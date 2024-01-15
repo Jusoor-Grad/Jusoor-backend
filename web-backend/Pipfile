@@ -1,0 +1,29 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+boto3 = "*"
+botocore = "*"
+django = "*"
+django-filter = "*"
+django-db-views = "*"
+djangorestframework = "*"
+djangorestframework-simplejwt = "*"
+pyjwt = "*"
+drf-yasg = "*"
+bcrypt = "*"
+celery = "*"
+django-apscheduler = "*"
+django-storages = "*"
+pydantic = "*"
+python-environ = "*"
+django-celery-results = "*"
+pylint-django = "*"
+gunicorn = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.10"

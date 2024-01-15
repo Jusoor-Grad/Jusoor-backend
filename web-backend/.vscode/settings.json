@@ -1,0 +1,24 @@
+{
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.pylintUseMinimalCheckers": false,
+    "python.linting.pylintArgs": [
+      "--load-plugins",
+      "pylint_django",
+      "--django-settings-module=watchtower.settings"
+    ],
+    "[python]": {
+      "editor.defaultFormatter": "ms-python.black-formatter",
+      "editor.formatOnType": false,
+      "editor.formatOnSave": true,
+    },
+    "formatFiles.excludePattern": "**migrations,**__pycache__",
+    "formatFiles.excludedFolders": [
+      "node_modules",
+      ".vscode",
+      ".git",
+      "dist",
+      ".chrome",
+      ".venv"
+    ]
+  }
