@@ -9,4 +9,4 @@ Mental health management and monitoring platform for KFUPM
 - web-backend: source code for the backend serving both the student application and therapist dashboard
 
 ## NOTICE
-All work of this respoitory is of the creative ownership of the active developers only
+All work of this respoitory is of the creative ownership of the active developers only. This work does not by any mean represent the official stance of KFUPM on mental health or student services
