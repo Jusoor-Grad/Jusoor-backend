@@ -16,3 +16,4 @@ python-environ
 django-celery-results
 pylint_django
 gunicorn
+drf-spectacular

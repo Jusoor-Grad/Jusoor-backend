@@ -14,6 +14,7 @@ from pathlib import Path
 from datetime import timedelta
 import environ
 
+
 env = environ.Env(DEBUG=(bool, False))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -32,6 +33,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
+    "[::1]",
     # TODO: add the deployment host as well
 ]
 
@@ -47,6 +49,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     "django_apscheduler",
+    'rest_framework_simplejwt',
+    'drf_spectacular',
     'django_filters',
     'django_db_views',
     "rest_framework",
@@ -66,10 +70,10 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=183),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "SIGNING_KEY": env("SIMPLE_JWT_SIGNING_KEY", default=None) or SECRET_KEY,
-    "TOKEN_OBTAIN_SERIALIZER": "apps.user.serializers.user_serializer.MyTokenObtainPairSerializer",
+    "TOKEN_OBTAIN_SERIALIZER": "auth.serializers.TokenPermInjectorSerializer",
     "ROTATE_REFRESH_TOKEN": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,

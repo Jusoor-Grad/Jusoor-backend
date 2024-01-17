@@ -36,8 +36,10 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('auth/', include('auth.urls')),
 ]
 
+# preventing the leakage of API docs in a production environment
 if env('DEBUG'):
     urlpatterns += [
         re_path(
