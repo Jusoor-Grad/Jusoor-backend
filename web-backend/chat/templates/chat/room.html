@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whimsical Chat room!</title>
+</head>
+<body>
+    <textarea disabled  id="chat-log" cols="100" rows="20"></textarea><br>
+    <input type="text" id="chat-message-input" size="100"> <br>
+    <input type="button" value="Send" id="chat-message-submit">
+    {{ room_name|json_script:"room_name" }}
+    <script>
+        // fetch the room name from the injected script tag
+        const roomName = JSON.parse(document.getElementById('room_name').textContent)
+
+        // establish the websocket connection
+        const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/chat/'
+            + roomName
+            + '/'
+        )
+
+        // event handler for incoming messages
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data)
+            document.querySelector('#chat-log').value += data.message + '\n';
+        }
+
+        // handling connection close
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly')
+        }
+
+        // handling keyboard input on the text field
+        document.querySelector('#chat-message-input').focus()
+        document.querySelector('#chat-message-input').onkeyup = function (e) {
+            if (e.key === 'Enter') {
+                document.querySelector('#chat-message-submit').click()
+            }
+        }
+
+        // handling submitting the written text
+        document.querySelector('#chat-message-submit').onclick = function(e) {
+            const messageInputDom = document.querySelector('#chat-message-input')
+            const message = messageInputDom.value
+            // sending the data through the websocket connection
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'type': 'chat.message'
+            }))
+            mess.value = ''
+        }
+    </script>
+</body>
+</html>

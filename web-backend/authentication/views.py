@@ -3,9 +3,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from core.mixins import SerializerMapperMixin
-from auth.serializers import UserLoginSerializer, UserSignupSerializer
-from auth.service import AuthService
-from auth.placeholders import INVALID_CREDENTIALS
+from .serializers import UserLoginSerializer, UserSignupSerializer
+from .services.auth import AuthService
+from .placeholders import INVALID_CREDENTIALS
 from core.placeholders import ERROR
 import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema

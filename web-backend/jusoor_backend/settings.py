@@ -41,6 +41,13 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
+    "core",
+    "chat",
+    "authentication",
+    "appointments",
+    "sentiment_ai",
+    "surveys",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -55,9 +62,21 @@ INSTALLED_APPS = [
     'django_db_views',
     "rest_framework",
     "drf_yasg",
-    'django_celery_results'
+    'django_celery_results',
 
 ]
+
+ASGI_APPLICATION = "jusoor_backend.asgi.application"
+
+# cross-consumer channel layer configuration (Redis is more recommended for production)
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -138,6 +157,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        "TEST": {
+            "NAME": BASE_DIR / "db2.sqlite3",
+        },
     }
 }
 
@@ -188,3 +210,13 @@ CELERY_RESULT_BACKEND = 'django-db'
 
 # celery setting.
 CELERY_CACHE_BACKEND = 'default'
+
+# sendgrid configurations
+
+SENDGRID_API_KEY = env("SENDGRID_API_KEY", default=None)
+
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_HOST_USER = 'apikey'
+EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True

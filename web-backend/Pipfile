@@ -23,6 +23,10 @@ django-celery-results = "*"
 pylint-django = "*"
 gunicorn = "*"
 drf-spectacular = "*"
+selenium = "*"
+channels-redis = "*"
+channels = {extras = ["daphne"], version = "*"}
+pycryptodome = "*"
 
 [dev-packages]
 

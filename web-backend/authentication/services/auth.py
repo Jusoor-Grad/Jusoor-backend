@@ -2,13 +2,17 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
-from auth.types import TokenPayload
-from auth.placeholders import DUPLICATE_CREDENTIALS
+from ..types import TokenPayload
+from ..placeholders import DUPLICATE_CREDENTIALS
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 class AuthService:
 
+    # TODO: force MFA on login for users who are classified as therapists
     def login(email: str, password: str) -> User | None:
         """Authenticate user credentials and return the user object if authenticated, None otherwise"""
+       
         try:
             user = User.objects.get(email=email)
             if user.check_password(password):
@@ -18,6 +22,7 @@ class AuthService:
 
         return None
 
+    # TODO: use encryption for username/email + email activation code
     def signup(email: str, password: str, username: str) -> User:
         """Create a new user with the given email and password"""
         if User.objects.filter(Q(email=email) | Q(username=username)).exists():

@@ -4,13 +4,12 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
 )
-from auth.views import AuthView
+from .views import AuthView
 
 router = SimpleRouter()
 
 router.register('', AuthView, basename='actions')
 
-from auth.views import AuthView
 
 urlpatterns = [
     *router.urls,
