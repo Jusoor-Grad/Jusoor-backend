@@ -18,7 +18,7 @@ class Command(BaseCommand):
      
         # firing a weboskcet event to all subscribed clientd to event chat.message
         channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)('chat_lobby',{
+        async_to_sync(channel_layer.send)('specific.1a064474dda74667907f9fc774cdf235!62ea8d73fa90424d92a989603900d03f',{
             'type': 'chat.message',
             "message": options['message']
         })

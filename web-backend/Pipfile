@@ -25,8 +25,12 @@ gunicorn = "*"
 drf-spectacular = "*"
 selenium = "*"
 channels-redis = "*"
-channels = {extras = ["daphne"], version = "*"}
 pycryptodome = "*"
+langchain = "*"
+channels = {extras = ["daphne"], version = "*"}
+langchain-openai = "*"
+langchain-community = "*"
+faker = "*"
 
 [dev-packages]
 

@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import Token
 from rest_framework import serializers
 
 
+# TODO: discard this serializer since it does not work at all
 class TokenPermInjectorSerializer(TokenObtainPairSerializer):
     """Customer serializer used to inject user permissions into the JWT token customer claims"""
     

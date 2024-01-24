@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    'rest_framework_simplejwt.token_blacklist',
     "django_apscheduler",
     'rest_framework_simplejwt',
     'drf_spectacular',
@@ -89,8 +89,8 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=24),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "SIGNING_KEY": env("SIMPLE_JWT_SIGNING_KEY", default=None) or SECRET_KEY,
     "TOKEN_OBTAIN_SERIALIZER": "auth.serializers.TokenPermInjectorSerializer",
     "ROTATE_REFRESH_TOKEN": True,

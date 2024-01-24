@@ -21,7 +21,10 @@
             + '/ws/chat/'
             + roomName
             + '/'
-        )
+        ,
+        [
+            "Token", 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzA2MTkwNzE4LCJpYXQiOjE3MDYxMDQzMTgsImp0aSI6IjkzYTU4M2QwZjA5ODQ5OTRiOWI1OWUxYzYxZjU0MzFiIiwidXNlcl9pZCI6MX0.3aIn6mQdouGu_8knf38bpu8u9Lv4la9eZCybFPS5uws'
+        ])
 
         // event handler for incoming messages
         chatSocket.onmessage = function(e) {
@@ -29,8 +32,15 @@
             document.querySelector('#chat-log').value += data.message + '\n';
         }
 
+        chatSocket.onopen = function(e) {
+            console.log('OPENED')
+            console.log(e)
+        }
+        
+
         // handling connection close
         chatSocket.onclose = function(e) {
+            console.error(e)
             console.error('Chat socket closed unexpectedly')
         }
 
@@ -51,7 +61,7 @@
                 'message': message,
                 'type': 'chat.message'
             }))
-            mess.value = ''
+            messageInputDom.value = ''
         }
     </script>
 </body>

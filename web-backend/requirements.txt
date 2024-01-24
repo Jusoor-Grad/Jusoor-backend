@@ -21,3 +21,7 @@ channels[daphne]
 selenium
 channels_redis
 pycryptodome
+langchain
+langchain_openai
+langchain_community
+faker

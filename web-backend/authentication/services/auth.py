@@ -38,4 +38,10 @@ class AuthService:
             access=str(refresh_token.access_token)
         )
 
+    def logout(refresh_token: str):
+        """Blacklist the given refresh token"""
+        refresh_token = RefreshToken(refresh_token)
+        refresh_token.blacklist()
+        
+
 
