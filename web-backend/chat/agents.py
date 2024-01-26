@@ -14,7 +14,7 @@ class ChatAIAgent(ABC):
         """
         pass
     
-    @abstractmethod
+
     def apply_prompt(self, question:  str = None):
         """Define a dynamic LangChain prompt pipeline
 
@@ -24,7 +24,7 @@ class ChatAIAgent(ABC):
         """
         pass
     
-    @abstractmethod
+
     def retrieve_relevant_docs(self, question):
         """
         Retrieve relevant documents from the configured vector database
@@ -33,8 +33,8 @@ class ChatAIAgent(ABC):
         """
         pass
 
-    @abstractmethod
-    def get_chat_history(self, user_id: int):
+
+    def get_chat_history(self, user_id: int, history_len: int):
         """
         Get the chat history of the user
 
@@ -42,7 +42,7 @@ class ChatAIAgent(ABC):
         """
         pass
     
-    @abstractmethod
+
     def answer(self, question):
         """
         Answer a question using the LangChain chat AI model

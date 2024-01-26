@@ -11,6 +11,7 @@ bcrypt
 celery
 django-apscheduler
 django-storages
+boto3
 pydantic
 python-environ
 django-celery-results

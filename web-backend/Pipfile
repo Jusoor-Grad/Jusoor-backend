@@ -27,10 +27,10 @@ selenium = "*"
 channels-redis = "*"
 pycryptodome = "*"
 langchain = "*"
-channels = {extras = ["daphne"], version = "*"}
 langchain-openai = "*"
 langchain-community = "*"
 faker = "*"
+channels = {extras = ["daphne"], version = "*"}
 
 [dev-packages]
 
