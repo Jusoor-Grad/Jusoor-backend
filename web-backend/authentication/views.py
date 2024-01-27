@@ -7,7 +7,7 @@ from core.http import FormattedResponse
 from core.mixins import SerializerMapperMixin
 from .serializers import UserLoginSerializer, UserSignupSerializer
 from .services.auth import AuthService
-from .placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT
+from .placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP
 from core.placeholders import ERROR, SUCCESS, CREATED
 
 import rest_framework.status as status
@@ -69,7 +69,7 @@ class AuthView(ActionBasedPermMixin, SerializerMapperMixin, ViewSet):
         tokens = AuthService.generate_tokens(user)
 
         # 4. return the tokens
-        return FormattedResponse(message=SIGNED_OUT, status=status.HTTP_200_OK)
+        return FormattedResponse(message=SIGNED_UP, status=status.HTTP_200_OK)
 
     @action(methods=['POST'], detail=False)
     def logout(self, request):

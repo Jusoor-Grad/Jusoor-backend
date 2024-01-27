@@ -1,11 +1,13 @@
+from operator import is_
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.exceptions import ValidationError
+from core.http import FormattedValidationError as ValidationError
 from ..types import TokenPayload
 from ..placeholders import DUPLICATE_CREDENTIALS
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from authentication.services.encryption import AESEncryptionService as AES
 
 User = get_user_model()
 class AuthService:
@@ -15,7 +17,10 @@ class AuthService:
         """Authenticate user credentials and return the user object if authenticated, None otherwise"""
        
         try:
-            user = User.objects.get(email=email)
+            aes = AES()
+            email = aes.encrypt(email)
+            print(email)
+            user = User.objects.get(email=email, is_active=True)
             if user.check_password(password):
                 return user
         except User.DoesNotExist:
@@ -23,12 +28,21 @@ class AuthService:
 
         return None
 
-    # TODO: use encryption for username/email + email activation code
+    
     def signup(email: str, password: str, username: str) -> User:
         """Create a new user with the given email and password"""
         if User.objects.filter(Q(email=email) | Q(username=username)).exists():
-            raise ValidationError({'message': DUPLICATE_CREDENTIALS})
+            raise ValidationError(DUPLICATE_CREDENTIALS)
+
+        # encrypt the username and email
+        # TODO: use the password hash for lookup instead of the email encrypted format
+        aes = AES()
+        username = aes.encrypt(username)
+        email = aes.encrypt(email)
+
+        
         user = User.objects.create_user(username=username, email=email, password=password)
+        # TODO: send a verification email to the user before activating his account
         return user
 
     def generate_tokens(user: User) -> TokenPayload:

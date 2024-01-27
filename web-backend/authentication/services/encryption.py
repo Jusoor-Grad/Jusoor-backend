@@ -8,6 +8,7 @@ import hashlib
 from Crypto import Random
 from Crypto.Cipher import AES
 from base64 import b64encode, b64decode
+from jusoor_backend.settings import env
 
 
 class EncryptionService(ABC):
@@ -47,8 +48,11 @@ class EncryptionService(ABC):
 
 class AESEncryptionService(EncryptionService):
 
-    def __init__(self, key: str) -> None:
+    def __init__(self, key: str = None) -> None:
 
+        if key is None:
+            key = env('ENCRYPTION_KEY')
+        
         self.block_size = AES.block_size
         # getting a 256-bit digest from the given key
         self.key = hashlib.sha256(key.encode()).digest()
@@ -89,7 +93,7 @@ class AESEncryptionService(EncryptionService):
     @staticmethod
     def _unpad(plain_text: str) -> str:
         last_character = plain_text[len(plain_text) - 1:]
-        return plain_text[:- ord(last_character)]
+        return plain_text[: -ord(last_character)]
 
 
 
