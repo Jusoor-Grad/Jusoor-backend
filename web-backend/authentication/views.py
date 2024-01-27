@@ -1,20 +1,27 @@
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from authentication.mixins import ActionBasedPermMixin
+from core.http import FormattedResponse
 from core.mixins import SerializerMapperMixin
 from .serializers import UserLoginSerializer, UserSignupSerializer
 from .services.auth import AuthService
-from .placeholders import INVALID_CREDENTIALS
-from core.placeholders import ERROR
+from .placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT
+from core.placeholders import ERROR, SUCCESS, CREATED
+
 import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
 
-class AuthView(SerializerMapperMixin, ViewSet):
+class AuthView(ActionBasedPermMixin, SerializerMapperMixin, ViewSet):
     """View for basic authentication functionality"""
 
 
-    permission_classes = [AllowAny]
+    action_permissions = {
+        'login': [AllowAny],
+        'signup': [AllowAny],
+        'logout': [IsAuthenticated]
+    }
     serializer_class_by_action = {
         'login': UserLoginSerializer,
         'signup': UserSignupSerializer
@@ -30,17 +37,20 @@ class AuthView(SerializerMapperMixin, ViewSet):
         serializer = self.get_serializer_class()(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
-        print(data)
+        
         # 2. authenticate the user
         user = AuthService.login(data['email'], data['password'])
         if user is None:
-            return Response({ERROR: INVALID_CREDENTIALS}, status=status.HTTP_401_UNAUTHORIZED)
+            return FormattedResponse(
+                status=status.HTTP_401_UNAUTHORIZED,message= INVALID_CREDENTIALS, data= None,
+                )
 
         # 3. generate the JWT token
         tokens = AuthService.generate_tokens(user)
 
         # 4. return the tokens
-        return Response(tokens.model_dump(), status=status.HTTP_200_OK)
+        return FormattedResponse(data=tokens.model_dump(),
+        message= LOGGED_IN, status=status.HTTP_200_OK)
     
     @swagger_auto_schema(responses= {status.HTTP_200_OK: UserSignupSerializer})
     @action(methods=['POST'], detail=False)
@@ -59,4 +69,10 @@ class AuthView(SerializerMapperMixin, ViewSet):
         tokens = AuthService.generate_tokens(user)
 
         # 4. return the tokens
-        return Response(tokens.model_dump(), status=status.HTTP_200_OK)
+        return FormattedResponse(message=SIGNED_OUT, status=status.HTTP_200_OK)
+
+    @action(methods=['POST'], detail=False)
+    def logout(self, request):
+        """logout a user by blacklisting his refresh token"""
+        AuthService.logout(request.data['refresh'])
+        return FormattedResponse(status=status.HTTP_200_OK)

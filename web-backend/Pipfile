@@ -30,7 +30,11 @@ langchain = "*"
 langchain-openai = "*"
 langchain-community = "*"
 faker = "*"
+pillow = "*"
+psycopg2-binary = "*"
 channels = {extras = ["daphne"], version = "*"}
+pgvector = "*"
+tiktoken = "*"
 
 [dev-packages]
 

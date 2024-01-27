@@ -26,3 +26,7 @@ langchain
 langchain_openai
 langchain_community
 faker
+pillow
+psycopg2-binary
+pgvector
+tiktoken

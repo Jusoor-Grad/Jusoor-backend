@@ -1,6 +1,7 @@
 
 from channels.db import database_sync_to_async
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth import get_user_model
 from channels.middleware import BaseMiddleware
 from rest_framework_simplejwt.tokens import UntypedToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
@@ -15,10 +16,10 @@ import re
 def get_user(validated_token: str):
 
     try:
-        user = User.objects.get(id=validated_token['user_id'])
+        user = get_user_model().objects.get(id=validated_token['user_id'])
         
         return user
-    except User.DoesNotExist:
+    except get_user_model().DoesNotExist:
         print(f'User does not exist')
         return AnonymousUser()
 

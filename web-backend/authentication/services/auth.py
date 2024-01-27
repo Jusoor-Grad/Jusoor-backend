@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
@@ -7,6 +7,7 @@ from ..placeholders import DUPLICATE_CREDENTIALS
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
+User = get_user_model()
 class AuthService:
 
     # TODO: force MFA on login for users who are classified as therapists

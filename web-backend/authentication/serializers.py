@@ -1,5 +1,5 @@
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import Token
 from rest_framework import serializers
@@ -10,7 +10,7 @@ class TokenPermInjectorSerializer(TokenObtainPairSerializer):
     """Customer serializer used to inject user permissions into the JWT token customer claims"""
     
     @classmethod
-    def get_token(cls, user: User) -> Token:
+    def get_token(cls, user: get_user_model()) -> Token:
         
         # 1.  getting serializer token dictionary
         token =  super().get_token(user)

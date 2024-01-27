@@ -31,14 +31,14 @@ class EncryptionService(ABC):
         pass
 
     @abstractmethod
-    def __pad(plain_text: str) -> str:
+    def _pad(plain_text: str) -> str:
         """
         Pad the string to be encrypted to a multiple of block_size
         """
         pass
 
     @abstractmethod
-    def __unpad(plain_text: str) -> str:
+    def _unpad(plain_text: str) -> str:
         """
         Remove the padding from the decrypted string
         """
@@ -56,11 +56,11 @@ class AESEncryptionService(EncryptionService):
 
     def encrypt(self, plaintext: str) -> str:
         
-        plaintext = self.__pad(plaintext)
+        plaintext = self._pad(plaintext)
         # random initialization vector of length block_size
         iv = Random.new().read(self.block_size)
         # creating the cipher
-        cipher = AES.new(self.key, AES.MODE_CBC)
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
         encrypted_text = cipher.encrypt(plaintext.encode())
         
         # append text to random init vector ans udes base64 encoding
@@ -73,10 +73,9 @@ class AESEncryptionService(EncryptionService):
         # create the cipher and decrypt the text
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         plaintext = cipher.decrypt(ciphertext[self.block_size:]).decode('utf-8')
-        
-        return self.__unpad(plaintext)
+        return self._unpad(plain_text=plaintext)
 
-    def __pad(self, plain_text: str) -> str:
+    def _pad(self, plain_text: str) -> str:
         
         number_of_bytes_to_pad = self.block_size - len(plain_text) % self.block_size
         # the character used for padding is the ascii 
@@ -87,8 +86,8 @@ class AESEncryptionService(EncryptionService):
         padded_plainttext = plain_text + padding_str
         return padded_plainttext
 
-
-    def __unpad(plain_text: str) -> str:
+    @staticmethod
+    def _unpad(plain_text: str) -> str:
         last_character = plain_text[len(plain_text) - 1:]
         return plain_text[:- ord(last_character)]
 
