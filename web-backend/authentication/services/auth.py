@@ -8,6 +8,7 @@ from ..placeholders import DUPLICATE_CREDENTIALS
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from authentication.services.encryption import AESEncryptionService as AES
+from .hash import hash_string
 
 User = get_user_model()
 class AuthService:
@@ -18,9 +19,9 @@ class AuthService:
        
         try:
             aes = AES()
-            email = aes.encrypt(email)
+            email = hash_string(email)
             print(email)
-            user = User.objects.get(email=email, is_active=True)
+            user = User.objects.get(hashed_email=email)
             if user.check_password(password):
                 return user
         except User.DoesNotExist:
@@ -34,14 +35,14 @@ class AuthService:
         if User.objects.filter(Q(email=email) | Q(username=username)).exists():
             raise ValidationError(DUPLICATE_CREDENTIALS)
 
-        # encrypt the username and email
-        # TODO: use the password hash for lookup instead of the email encrypted format
+        # encrypt the username and email, and hashing the email for deterministic lookup
         aes = AES()
         username = aes.encrypt(username)
+        hashed_email = hash_string(email)
         email = aes.encrypt(email)
 
         
-        user = User.objects.create_user(username=username, email=email, password=password)
+        user = User.objects.create_user(username=username, email=email, hashed_email=hashed_email, password=password)
         # TODO: send a verification email to the user before activating his account
         return user
 

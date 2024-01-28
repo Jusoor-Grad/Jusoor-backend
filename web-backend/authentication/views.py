@@ -10,6 +10,7 @@ from .services.auth import AuthService
 from .placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP
 from core.placeholders import ERROR, SUCCESS, CREATED
 
+
 import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
 

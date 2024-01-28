@@ -10,6 +10,7 @@ class User(AbstractUser, TimeStampedModel):
     Model to add extra fields to the default django user model
     """
     image = models.ImageField(upload_to='users', null=True, blank=True)
+    hashed_email = models.TextField(null=False, blank=False)
     
 
     def __str__(self) -> str:
