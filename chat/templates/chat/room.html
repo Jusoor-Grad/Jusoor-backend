@@ -23,13 +23,23 @@
             + '/'
         ,
         [
-            "Token", 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzA2MTkwNzE4LCJpYXQiOjE3MDYxMDQzMTgsImp0aSI6IjkzYTU4M2QwZjA5ODQ5OTRiOWI1OWUxYzYxZjU0MzFiIiwidXNlcl9pZCI6MX0.3aIn6mQdouGu_8knf38bpu8u9Lv4la9eZCybFPS5uws'
+            "Token", 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzA2NjE2MjAyLCJpYXQiOjE3MDY1Mjk4MDIsImp0aSI6ImZlZDU4NTIzZmE0MTQ5ZTRhN2Q4YjAxNzQ3M2MzZmFiIiwidXNlcl9pZCI6MTV9.40QNa76-Z7e0ebUFF2xj40C-rZ-5b24vaNlXnb5mn5c'
         ])
 
         // event handler for incoming messages
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data)
-            document.querySelector('#chat-log').value += data.message + '\n';
+
+  
+            if (data.type === 'chat.message_start'){
+            document.querySelector('#chat-log').value += 'Eve: ';}
+
+            if (data.type === 'chat.message_content' ){
+                document.querySelector('#chat-log').value += data.message
+            } 
+
+            if (data.type === 'chat.message_end'){
+            document.querySelector('#chat-log').value += '\n';}
         }
 
         chatSocket.onopen = function(e) {
@@ -62,6 +72,8 @@
                 'type': 'chat.message'
             }))
             messageInputDom.value = ''
+
+            document.querySelector('#chat-log').value += ('HUMAN' + ': ' + message + '\n\n')
         }
     </script>
 </body>
