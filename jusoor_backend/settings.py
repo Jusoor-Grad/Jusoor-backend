@@ -35,7 +35,7 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "[::1]",
-    "jusoor-dev-dcacfee1ff68.herokuapp.com"
+    "https://jusoor-dev-dcacfee1ff68.herokuapp.com"
     # TODO: add the deployment host as well
 ]
 
