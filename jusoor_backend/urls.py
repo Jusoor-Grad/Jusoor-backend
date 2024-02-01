@@ -5,6 +5,8 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from jusoor_backend.settings import env
+from django.conf.urls import static
+from django.conf import settings
 
 
 """
@@ -14,7 +16,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('authentication.urls')),
     path('chat/', include('chat.urls'))
-]
+] + static.static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 """
