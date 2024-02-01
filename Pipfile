@@ -36,6 +36,7 @@ pgvector = "*"
 tiktoken = "*"
 cffi = "*"
 channels = {extras = ["daphne"], version = "*"}
+django-cors-headers = "*"
 
 [dev-packages]
 
