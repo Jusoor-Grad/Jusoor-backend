@@ -24,7 +24,7 @@ import chat.routing
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
-    'wss': AllowedHostsOriginValidator(
+    'websocket': AllowedHostsOriginValidator(
         JWTAuthMiddlewareStack(
             URLRouter(
                 websocket_urlpatterns
