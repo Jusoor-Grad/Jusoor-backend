@@ -43,8 +43,8 @@ ALLOWED_HOSTS = [
 
 INSTALLED_APPS = [
     "daphne",
-    "core",
     "chat",
+    "core",
     "authentication",
     "appointments",
     "sentiment_ai",
