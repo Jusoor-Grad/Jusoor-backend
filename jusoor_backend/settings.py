@@ -73,7 +73,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [env('REDIS_URL')],
         },
     },
 }
@@ -89,7 +89,7 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=24),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=24),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "SIGNING_KEY": env("SIMPLE_JWT_SIGNING_KEY", default=None) or SECRET_KEY,
     "TOKEN_OBTAIN_SERIALIZER": "auth.serializers.TokenPermInjectorSerializer",
