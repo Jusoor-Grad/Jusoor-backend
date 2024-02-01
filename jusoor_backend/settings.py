@@ -39,10 +39,16 @@ ALLOWED_HOSTS = [
     # TODO: add the deployment host as well
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    ' https://jusoor-dev-dcacfee1ff68.herokuapp.com'
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
