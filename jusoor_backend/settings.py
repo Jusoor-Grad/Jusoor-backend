@@ -45,6 +45,14 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
+CSRF_TRUSTED_ORIGINS = [
+     'https://jusoor-dev-dcacfee1ff68.herokuapp.com'
+]
+# CORS HEADERS SETTINGS
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = False
+
 
 
 
@@ -134,10 +142,7 @@ CACHES = {
     }
 }
 
-# CORS HEADERS SETTINGS
 
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = False
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
