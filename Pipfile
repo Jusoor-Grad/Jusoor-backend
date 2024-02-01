@@ -32,9 +32,10 @@ langchain-community = "*"
 faker = "*"
 pillow = "*"
 psycopg2-binary = "*"
-channels = {extras = ["daphne"], version = "*"}
 pgvector = "*"
 tiktoken = "*"
+cffi = "*"
+channels = {extras = ["daphne"], version = "*"}
 
 [dev-packages]
 
