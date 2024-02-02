@@ -21,5 +21,22 @@ class SerializerMapperMixin:
 
         return serializer_class
 
+class QuerysetMapperMixin:
+    """
+    utility mixin used to assign a different queryset for each action
+    """
+
+    queryset = None
+    queryset_by_action = dict()
+
+    def get_queryset(self):
+        if hasattr(self, "queryset_by_action"):
+            queryset = self.queryset_by_action.get(self.action, self.queryset)
+
+            if self.queryset is None and queryset is None:
+                print("WARNING: You may need to either provide a default queryset or add a queryset mapping to invoked method")
+
+        return queryset
+
 
 

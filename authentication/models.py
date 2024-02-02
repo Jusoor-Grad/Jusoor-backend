@@ -56,3 +56,7 @@ class User(AbstractUser, TimeStampedModel):
         
         return super().save(*args, **kwargs)
 
+
+
+# specialized user roles
+

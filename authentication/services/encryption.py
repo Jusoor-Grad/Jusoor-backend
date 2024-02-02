@@ -59,13 +59,14 @@ class AESEncryptionService(EncryptionService):
         
 
     def encrypt(self, plaintext: str) -> str:
-        
-        plaintext = self._pad(plaintext)
+        # NOTE: utf-8 encoding is needed for padding and plaintext beforehand to support multi-byte encoding
+        # languages like arabic
+        plaintext = self._pad(plaintext.encode('utf-8'))
         # random initialization vector of length block_size
         iv = Random.new().read(self.block_size)
         # creating the cipher
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        encrypted_text = cipher.encrypt(plaintext.encode())
+        encrypted_text = cipher.encrypt(plaintext)
         
         # append text to random init vector ans udes base64 encoding
         return b64encode(iv + encrypted_text).decode('utf-8')
@@ -85,7 +86,7 @@ class AESEncryptionService(EncryptionService):
         # the character used for padding is the ascii 
         # representation of the number of bytes to pad (dynamic)
         # NOTE: this value can be zero, in this case the padding is not applied
-        ascii_string = chr(number_of_bytes_to_pad)
+        ascii_string = chr(number_of_bytes_to_pad).encode('utf-8')
         padding_str = number_of_bytes_to_pad * ascii_string
         padded_plainttext = plain_text + padding_str
         return padded_plainttext
