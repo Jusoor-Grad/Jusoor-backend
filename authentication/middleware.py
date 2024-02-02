@@ -9,7 +9,7 @@ from django.db import close_old_connections
 import jwt
 from channels.auth import AuthMiddlewareStack
 from jusoor_backend.settings import env, SIMPLE_JWT
-from authentication.placeholders import SIMPLE_JWT_SIGNING_KEY
+from authentication.constants.placeholders import SIMPLE_JWT_SIGNING_KEY
 import re
 
 @database_sync_to_async

@@ -1,5 +1,4 @@
 from rest_framework.viewsets import ViewSet
-from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from authentication.mixins import ActionBasedPermMixin
@@ -7,8 +6,9 @@ from core.http import FormattedResponse
 from core.mixins import SerializerMapperMixin
 from .serializers import UserLoginSerializer, UserSignupSerializer
 from .services.auth import AuthService
-from .placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP
+from .constants.placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP
 from core.placeholders import ERROR, SUCCESS, CREATED
+from django.contrib.auth import authenticate, login
 
 
 import rest_framework.status as status
@@ -40,12 +40,12 @@ class AuthView(ActionBasedPermMixin, SerializerMapperMixin, ViewSet):
         data = serializer.data
         
         # 2. authenticate the user
-        user = AuthService.login(data['email'], data['password'])
+        user = authenticate(request=request, username=data['email'], password=data['password'])
         if user is None:
             return FormattedResponse(
                 status=status.HTTP_401_UNAUTHORIZED,message= INVALID_CREDENTIALS, data= None,
                 )
-
+        login(request, user) ## used to track login timestamp in DB
         # 3. generate the JWT token
         tokens = AuthService.generate_tokens(user)
 
