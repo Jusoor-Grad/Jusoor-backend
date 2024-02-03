@@ -112,6 +112,7 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "PAGE_SIZE": 20,
+    'EXCEPTION_HANDLER': 'core.http.formatted_error_handler'
 }
 
 SIMPLE_JWT = {
@@ -119,7 +120,6 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=24),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "SIGNING_KEY": env("SIMPLE_JWT_SIGNING_KEY", default=None) or SECRET_KEY,
-    "TOKEN_OBTAIN_SERIALIZER": "auth.serializers.TokenPermInjectorSerializer",
     "ROTATE_REFRESH_TOKEN": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,

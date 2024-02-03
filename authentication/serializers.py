@@ -3,30 +3,71 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import Token
 from rest_framework import serializers
-
-
-# TODO: discard this serializer since it does not work at all
-class TokenPermInjectorSerializer(TokenObtainPairSerializer):
-    """Customer serializer used to inject user permissions into the JWT token customer claims"""
-    
-    @classmethod
-    def get_token(cls, user: get_user_model()) -> Token:
-        
-        # 1.  getting serializer token dictionary
-        token =  super().get_token(user)
-        # 2.  injecting user permissions into the token dictionary
-        token['permissions'] = list(user.get_all_permissions())
-        return token
+from authentication.models import User
+from core.http import FormattedValidationError
+from core.models import KFUPMDepartment
+from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
+from core.serializers import HttpResponeSerializer
 
 class UserLoginSerializer(serializers.Serializer):
-    """Serializer used for login credential validation on data level"""
+	"""Serializer used for login credential validation on data level"""
 
-    email = serializers.EmailField(allow_blank=False, max_length=150)
-    password = serializers.CharField(allow_blank=False, max_length=128)
+	email = serializers.EmailField(allow_blank=False, max_length=150)
+	password = serializers.CharField(allow_blank=False, max_length=128)
 
-class UserSignupSerializer(serializers.Serializer):
-    """Serializer used for signup credential validation on data level"""
-    
-    email = serializers.EmailField(allow_blank=False, max_length=150)
-    username = serializers.CharField(allow_blank=False, max_length=150)
-    password = serializers.CharField(allow_blank=False, max_length=128)
+class PatientSignupSerializer(serializers.Serializer):
+	"""Serializer used for signup credential validation on data level"""
+	
+	email = serializers.EmailField(allow_blank=False, max_length=150)
+	username = serializers.CharField(allow_blank=False, max_length=150)
+	password = serializers.CharField(allow_blank=False, max_length=128)
+	department = serializers.CharField(allow_blank=False, max_length=10)
+
+	def validate_department(self, value:str):
+		"""Verifying that a department exists within valid KFUPM departments in the DB"""
+		
+		if not KFUPMDepartment.objects.filter(short_name=value).exists():
+
+			raise FormattedValidationError(DEPARTMENT_DOES_NOT_EXIST)
+
+		return value
+
+
+class LoginResponseSerializer(serializers.Serializer):
+	"""Serializer used for login response validation on data level"""
+	
+	access = serializers.CharField()
+	refresh = serializers.CharField()
+
+class HttpLoginResponseSerializer(HttpResponeSerializer):
+	data = LoginResponseSerializer()
+
+
+
+# ------------- Token serializers ------------ #
+
+class TokenRefreshBodySerializer(serializers.Serializer):
+	refresh_token = serializers.CharField(allow_blank=False)
+
+class TokenRefreshResponeSerializer(serializers.Serializer):
+	refresh_token = serializers.CharField(allow_blank=False)
+	access_token = serializers.CharField(allow_blank=False)
+
+
+class HttpTokenRefreshResponseSerializer(serializers.Serializer):
+	data = TokenRefreshResponeSerializer()
+
+class HttpTokenVerifyResponseSerializer(serializers.Serializer):
+	data = TokenRefreshBodySerializer()
+
+
+# ----------- User serializers -------- #
+
+# TODO: decrypt username and email for retrieval serializer representation
+class UserReadSerializer(serializers.ModelSerializer):
+
+
+	class Meta:
+
+		model = User
+		

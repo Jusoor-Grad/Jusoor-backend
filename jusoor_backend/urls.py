@@ -12,16 +12,7 @@ from django.conf import settings
 """
 URL configuration for jusoor_backend project.
 """
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('auth/', include('authentication.urls')),
-    path('chat/', include('chat.urls'))
-] + static.static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-
-"""
-Swagger setup for auto documentation of endpoints
-"""
 schema_view = get_schema_view(
     openapi.Info(
         title="WATCHTOWER API",
@@ -34,10 +25,13 @@ schema_view = get_schema_view(
     public=True,
     permission_classes=[permissions.AllowAny],
 )
-# preventing the leakage of API docs in a production environment
 
-urlpatterns += [
-    re_path(
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('auth/', include('authentication.urls')),
+    # API docs endpoints
+    path('chat/', include('chat.urls')),
+        re_path(
         r"^swagger(?P<format>\.json|\.yaml)$",
         schema_view.without_ui(cache_timeout=0),
         name="schema-json",
@@ -48,4 +42,7 @@ urlpatterns += [
         name="schema-swagger-ui",
     ),
     re_path(r"^redoc/$", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
-]
+
+] + static.static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+

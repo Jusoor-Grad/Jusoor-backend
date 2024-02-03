@@ -18,3 +18,6 @@ SIMPLE_JWT_SIGNING_KEY = 'SIMPLE_JWT_SIGNING_KEY'
 LOGGED_IN = _("Logged in successfully")
 SIGNED_UP = _("Signed up successfully")
 SIGNED_OUT = _("Signed out successfully")
+TOKEN_REFRESHED  = _('Token refreshed successfully')
+TOKEN_VALID  = _('Token verified successfully')
+TOKEN_INVALID  = _('Passed token is invalid')
