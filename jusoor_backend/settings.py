@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "authentication",
     "appointments",
     "sentiment_ai",
+    'notifications',
     "surveys",
     'django.contrib.admin',
     'django.contrib.auth',
@@ -88,6 +89,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_yasg",
     'django_celery_results',
+    'django_celery_beat',
 
 ]
 
@@ -250,11 +252,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# TODO: define extra configuration for static storage for S3 and celery when using async tasks
 CELERY_RESULT_BACKEND = 'django-db'
-
+CELERY_BROKER_URL = env('REDIS_URL')
 # celery setting.
 CELERY_CACHE_BACKEND = 'default'
+
 
 # sendgrid configurations
 

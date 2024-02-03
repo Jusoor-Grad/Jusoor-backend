@@ -35,8 +35,9 @@ psycopg2-binary = "*"
 pgvector = "*"
 tiktoken = "*"
 cffi = "*"
-channels = {extras = ["daphne"], version = "*"}
 django-cors-headers = "*"
+channels = {extras = ["daphne"], version = "*"}
+django-celery-beat = "*"
 
 [dev-packages]
 

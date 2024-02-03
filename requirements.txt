@@ -32,3 +32,5 @@ psycopg2-binary
 pgvector
 tiktoken
 django-cors-headers
+django-celery-beat
+eventlet

@@ -27,7 +27,7 @@ class Appointment(TimeStampedModel):
     
     timeslot = models.ForeignKey(AvailabilityTimeSlot, on_delete=models.PROTECT, related_name='linked_appointments')
     patient = models.ForeignKey('core.StudentPatient', on_delete=models.PROTECT, related_name='appointments')
-    status = models.CharField(max_length=20, blank=False, null=False, choices=APPOINTMENT_STATUS_CHOICES)
+    status = models.CharField(max_length=20, blank=False, null=False, choices=APPOINTMENT_STATUS_CHOICES.items())
 
 
 
@@ -39,7 +39,7 @@ class PatientReferralRequest(TimeStampedModel):
     referrer = models.ForeignKey(User, on_delete=models.PROTECT, related_name='outward_referrals')
     referee = models.ForeignKey(User, on_delete=models.PROTECT, related_name='inward_referrals')
     reason = models.TextField(null=False, blank=False)
-    status = models.CharField(max_length=20, blank=False, null=False, choices=REFERRAL_STATUS_CHOICES)
+    status = models.CharField(max_length=20, blank=False, null=False, choices=REFERRAL_STATUS_CHOICES.items())
     # the therapist who responded to the referral request
     responding_therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, related_name='referrals', null=False, blank=False)
 
