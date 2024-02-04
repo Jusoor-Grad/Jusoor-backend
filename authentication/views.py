@@ -12,7 +12,7 @@ from core.placeholders import ERROR, SUCCESS, CREATED
 from django.contrib.auth import authenticate, login
 from core.serializers import HttpResponeSerializer
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.mixins import RetrieveModelMixin
+from rest_framework.mixins import UpdateModelMixin
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 
 
@@ -157,6 +157,7 @@ class UserViewset(SerializerMapperMixin, GenericViewSet):
     def get_queryset(self):
         return super().get_queryset().filter(id=self.request.user.id).select_related('patient_profile__department', 'therapist_profile')
 
+    # TODO: update serializer for both therapists and patients
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpPatientReadResponseSerializer()},manual_parameters=None)
     @action(methods=['GET'], detail=False, url_path='patient', url_name='patient')

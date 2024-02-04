@@ -11,14 +11,14 @@ from core.db_managers import SoftDeletedManager
 
 class TimeStampedModel(models.Model):
     """
-    Abstract model to add created_at and updated_at fields to all models
+    Abstract model to add tracking timestamps to all models
     in addition to soft_deletion functionality
     """
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
-    objects = SoftDeletedManager() ## custom object manager to mask out custom deleted objects
+    objects = SoftDeletedManager() ## custom object manager to mask out soft deleted objects
 
     class Meta:
         """
@@ -29,6 +29,9 @@ class TimeStampedModel(models.Model):
 
 
 class Therapist(TimeStampedModel):
+    """
+        Model store store therapist-specific information for therapist users
+    """
 
     user = models.OneToOneField(get_user_model(), unique=True, on_delete=models.CASCADE, related_name='therapist_profile')
     bio = models.TextField(null=True, blank=True)

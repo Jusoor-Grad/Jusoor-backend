@@ -62,3 +62,12 @@ class AppointmentFeedback(TimeStampedModel):
     appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT, related_name='feedbacks', blank=False, null=False)
     rating = models.IntegerField(null=False, blank=False, default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(null=True, blank=True)
+
+class TherapistAssignmentShift(TimeStampedModel):
+    """
+        Record to audit the shift of an appointment assignment from one therapist to another
+    """
+    old_therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, related_name='shifts', null=False, blank=False)
+    new_therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, related_name='shifts_taken', null=False, blank=False)
+    appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT, related_name='shifts', null=False, blank=False)
+    
