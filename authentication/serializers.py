@@ -8,6 +8,7 @@ from core.http import FormattedValidationError
 from core.models import KFUPMDepartment
 from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
 from core.serializers import HttpResponeSerializer
+from .services.encryption import AESEncryptionService
 
 class UserLoginSerializer(serializers.Serializer):
 	"""Serializer used for login credential validation on data level"""
@@ -66,8 +67,21 @@ class HttpTokenVerifyResponseSerializer(serializers.Serializer):
 # TODO: decrypt username and email for retrieval serializer representation
 class UserReadSerializer(serializers.ModelSerializer):
 
+	def to_representation(self, instance):
+		result =  super().to_representation(instance)
+
+		aes = AESEncryptionService()
+
+		result['username'] = aes.decrypt(result['username'])
+		result['email'] = aes.decrypt(result['email'])
+
+		return result
 
 	class Meta:
 
 		model = User
+		fields = ['id', 'username', 'email']
 		
+
+class HttpUserReadResponseSerializer(HttpResponeSerializer):
+	data = UserReadSerializer()

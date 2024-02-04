@@ -5,14 +5,14 @@ from sqlalchemy import desc
 from authentication.mixins import ActionBasedPermMixin
 from core.http import FormattedResponse, FormattedValidationError
 from core.mixins import SerializerMapperMixin
-from .serializers import HttpLoginResponseSerializer, HttpTokenRefreshResponseSerializer, LoginResponseSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer
+from .serializers import HttpLoginResponseSerializer, HttpTokenRefreshResponseSerializer, HttpUserReadResponseSerializer, LoginResponseSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, UserReadSerializer
 from .services.auth import AuthService
 from .constants.placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP, TOKEN_INVALID, TOKEN_REFRESHED
 from core.placeholders import ERROR, SUCCESS, CREATED
 from django.contrib.auth import authenticate, login
 from core.serializers import HttpResponeSerializer
 from rest_framework.viewsets import GenericViewSet
-
+from rest_framework.mixins import RetrieveModelMixin
 
 
 
@@ -142,4 +142,16 @@ class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
 
 class UserViewset(SerializerMapperMixin, GenericViewSet):
 
-    pass
+    serializer_class_by_action = {
+        'profile': UserReadSerializer
+    }
+
+    pagination_class = None
+
+
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpUserReadResponseSerializer()},manual_parameters=None)
+    @action(methods=['GET'], detail=False)
+    def profile(self, request, *args, **kwargs):
+
+        serializer = self.get_serializer(request.user)
+        return FormattedResponse(data=serializer.data, status=status.HTTP_200_OK)
