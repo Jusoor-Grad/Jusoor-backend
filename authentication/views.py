@@ -13,7 +13,7 @@ from django.contrib.auth import authenticate, login
 from core.serializers import HttpResponeSerializer
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import RetrieveModelMixin
-
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 
 
 import rest_framework.status as status
@@ -114,12 +114,14 @@ class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         data = serializer.data
         
         # create a new pair of tokens after validating token
-        
-        AuthService.validate_refresh_token(data['refresh_token'])
-        tokens = AuthService.generate_tokens(user=request.user)
-      
-        # blacklist old token
-        AuthService.logout(data['refresh_token'])
+        try:
+            AuthService.validate_refresh_token(data['refresh_token'])
+            tokens = AuthService.generate_tokens(user=request.user)
+            # blacklist old token
+            AuthService.logout(data['refresh_token'])
+        except (InvalidToken, TokenError) as e:
+            raise FormattedValidationError(TOKEN_INVALID)
+
 
         return FormattedResponse(data=tokens.model_dump(), message=TOKEN_REFRESHED, status=status.HTTP_201_CREATED)
 
@@ -133,7 +135,10 @@ class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.data
 
-        AuthService.validate_refresh_token(data['refresh_token'])
+        try:
+            AuthService.validate_refresh_token(data['refresh_token'])
+        except (InvalidToken, TokenError) as e:
+            raise FormattedValidationError(TOKEN_INVALID)
         
         return FormattedResponse(data={'refresh_token': data['refresh_token']}, status=status.HTTP_200_OK)
 

@@ -12,7 +12,7 @@ from authentication.services.encryption import AESEncryptionService as AES
 from .hash import hash_string
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
-
+from rest_framework_simplejwt.tokens import UntypedToken
 
 User = get_user_model()
 class AuthService:
@@ -47,10 +47,8 @@ class AuthService:
         """
             Validate a refresh token by checking current outstanding tokens and blacklisted tokens
         """
-
-        if not OutstandingToken.objects.filter(token=refresh_token).exists()  or BlacklistedToken.objects.filter(token__token=refresh_token).exists():
-            raise ValidationError(TOKEN_INVALID)
-
+        return UntypedToken(refresh_token)
+        
 
         
         
