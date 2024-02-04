@@ -31,4 +31,4 @@ class SoftDeletedManager(Manager):
         """
         Overriding the default get_queryset method to exclude soft deleted objects
         """
-        return SoftDeletedQuerySet.filter(deleted_at__isnull=True)
+        return SoftDeletedQuerySet(self.model, using=self._db).filter(deleted_at__isnull=True)

@@ -36,8 +36,10 @@ pgvector = "*"
 tiktoken = "*"
 cffi = "*"
 django-cors-headers = "*"
-channels = {extras = ["daphne"], version = "*"}
 django-celery-beat = "*"
+channels = {extras = ["daphne"], version = "*"}
+eventlet = "*"
+django-extensions = "*"
 
 [dev-packages]
 

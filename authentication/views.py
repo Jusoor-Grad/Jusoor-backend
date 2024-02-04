@@ -5,7 +5,7 @@ from sqlalchemy import desc
 from authentication.mixins import ActionBasedPermMixin
 from core.http import FormattedResponse, FormattedValidationError
 from core.mixins import SerializerMapperMixin
-from .serializers import HttpLoginResponseSerializer, HttpTokenRefreshResponseSerializer, HttpUserReadResponseSerializer, LoginResponseSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, UserReadSerializer
+from .serializers import HttpLoginResponseSerializer, HttpTherapistReadResponseSerializer, HttpTokenRefreshResponseSerializer, HttpPatientReadResponseSerializer, LoginResponseSerializer, TherapistReadSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, PatientReadSerializer
 from .services.auth import AuthService
 from .constants.placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP, TOKEN_INVALID, TOKEN_REFRESHED
 from core.placeholders import ERROR, SUCCESS, CREATED
@@ -72,7 +72,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         data = serializer.data
 
         # 2. create the user
-        user = AuthService.signup(data['email'], data['password'], data['username'])
+        user = AuthService.patient_signup(data['email'], data['password'], data['username'])
         # TODO: send a verification email to the user before activating his account
         # 3. generate the JWT token
         tokens = AuthService.generate_tokens(user)
@@ -148,15 +148,26 @@ class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
 class UserViewset(SerializerMapperMixin, GenericViewSet):
 
     serializer_class_by_action = {
-        'profile': UserReadSerializer
+        'patient_profile': PatientReadSerializer,
+        'therapist_profile': TherapistReadSerializer
     }
 
     pagination_class = None
 
+    def get_queryset(self):
+        return super().get_queryset().filter(id=self.request.user.id).select_related('patient_profile__department', 'therapist_profile')
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpUserReadResponseSerializer()},manual_parameters=None)
-    @action(methods=['GET'], detail=False)
-    def profile(self, request, *args, **kwargs):
+
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpPatientReadResponseSerializer()},manual_parameters=None)
+    @action(methods=['GET'], detail=False, url_path='patient', url_name='patient')
+    def patient_profile(self, request, *args, **kwargs):
+
+        serializer = self.get_serializer(request.user)
+        return FormattedResponse(data=serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpTherapistReadResponseSerializer()},manual_parameters=None)
+    @action(methods=['GET'], detail=False, url_path='therapist', url_name='therapist')
+    def therapist_profile(self, request, *args, **kwargs):
 
         serializer = self.get_serializer(request.user)
         return FormattedResponse(data=serializer.data, status=status.HTTP_200_OK)

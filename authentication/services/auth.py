@@ -4,6 +4,7 @@ from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from core.http import FormattedValidationError as ValidationError
+from core.models import StudentPatient
 from ..constants.types import TokenPayload
 from ..constants.placeholders import DUPLICATE_CREDENTIALS, TOKEN_INVALID
 from channels.layers import get_channel_layer
@@ -20,13 +21,14 @@ class AuthService:
 
 
     
-    def signup(email: str, password: str, username: str) -> User:
+    def patient_signup(email: str, password: str, username: str, department: str) -> User:
         """Create a new patient profile with the given email and password"""
         if User.objects.filter(Q(hashed_email= hash_string(email))).exists():
             raise ValidationError(DUPLICATE_CREDENTIALS)
 
         
         user = User.objects.create_user(username=username, email=email, password=password)
+        patient = StudentPatient.objects.create(user=user, department=department)
         # TODO: send a verification email to the user before activating his account
         return user
 

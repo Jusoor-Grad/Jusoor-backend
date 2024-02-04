@@ -5,7 +5,7 @@ from rest_framework_simplejwt.tokens import Token
 from rest_framework import serializers
 from authentication.models import User
 from core.http import FormattedValidationError
-from core.models import KFUPMDepartment
+from core.models import KFUPMDepartment, StudentPatient
 from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
 from core.serializers import HttpResponeSerializer
 from .services.encryption import AESEncryptionService
@@ -65,7 +65,13 @@ class HttpTokenVerifyResponseSerializer(serializers.Serializer):
 # ----------- User serializers -------- #
 
 # TODO: decrypt username and email for retrieval serializer representation
-class UserReadSerializer(serializers.ModelSerializer):
+class PatientReadSerializer(serializers.ModelSerializer):
+
+	department = serializers.SerializerMethodField()
+
+
+	def get_department(self, instance):
+		return instance.patient_profile.department.short_name
 
 	def to_representation(self, instance):
 		result =  super().to_representation(instance)
@@ -80,8 +86,41 @@ class UserReadSerializer(serializers.ModelSerializer):
 	class Meta:
 
 		model = User
-		fields = ['id', 'username', 'email']
+		
+		fields = ['id', 'username', 'email', 'department']
 		
 
-class HttpUserReadResponseSerializer(HttpResponeSerializer):
-	data = UserReadSerializer()
+class HttpPatientReadResponseSerializer(HttpResponeSerializer):
+	data = PatientReadSerializer()
+
+
+class TherapistReadSerializer(serializers.ModelSerializer):
+
+	speciality = serializers.SerializerMethodField()
+	bio = serializers.SerializerMethodField()
+
+	def get_speciality(self, instance):
+		return instance.therapist_profile.speciality
+
+	def get_bio(self, instance):
+		return instance.therapist_profile.bio
+
+	def to_representation(self, instance):
+		result =  super().to_representation(instance)
+
+		aes = AESEncryptionService()
+
+		result['username'] = aes.decrypt(result['username'])
+		result['email'] = aes.decrypt(result['email'])
+
+		return result
+
+	class Meta:
+
+		model = User
+		
+		fields = ['id', 'username', 'email', 'bio', 'speciality']
+		
+
+class HttpTherapistReadResponseSerializer(HttpResponeSerializer):
+	data = TherapistReadSerializer()

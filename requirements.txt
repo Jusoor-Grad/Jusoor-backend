@@ -34,3 +34,4 @@ tiktoken
 django-cors-headers
 django-celery-beat
 eventlet
+django-extensions

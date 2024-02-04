@@ -43,7 +43,6 @@ class StudentPatient(TimeStampedModel):
 
     user = models.OneToOneField(get_user_model(), unique=True, on_delete=models.PROTECT, related_name='patient_profile')
     department = models.ForeignKey('KFUPMDepartment', on_delete=models.PROTECT, related_name='students')
-    entry_date = models.DateField(null=True, blank=True)
 
 
 class KFUPMDepartment(models.Model):

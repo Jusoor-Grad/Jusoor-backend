@@ -16,18 +16,22 @@ class UserMock:
         
         users = []
 
-        for _ in range(n):
+        for i in range(n):
+            email = faker.ascii_free_email()
+            password= faker.password(length=12)
+
+            print(email, password)
             users.append(
                 User.objects.create_user(
                     username= faker.name(),
-                    email = faker.ascii_free_email(),
-                    password= faker.password(length=12),
+                    email=email,
+                    password=password,
                     is_active=True,
                     first_name = faker.first_name(),
-                    last_name=faker.last_name(),
-
-                )
-            )
+                    last_name=faker.last_name()
+                    ))
+            
+            
         
         return users
 
@@ -46,7 +50,7 @@ class TherapistMock:
                 Therapist(
                     user=user,
                     bio= faker.paragraph(),
-                    specialty = faker.paragraph(n_sentences=1)
+                    speciality = faker.paragraph(nb_sentences=1)
                 )
             )
 
@@ -56,9 +60,22 @@ class TherapistMock:
 
 class PatientMock:
     
-
+    @staticmethod
     def mock_instances(n: int):
 
         patients = []
-        random_departments
+        random_department = KFUPMDepartment.objects.all().order_by('?').first()
+        users = UserMock.mock_instances(n=n)
 
+        for i in range(n):
+            patients.append(
+                StudentPatient(
+                    user=users[i],
+                    department = random_department,
+                    entry_date = faker.date_this_decade()
+                )
+            )
+        
+        return StudentPatient.objects.bulk_create(patients)
+
+TherapistMock.mock_instances(2) # mock 10 patients
