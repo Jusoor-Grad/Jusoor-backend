@@ -5,7 +5,7 @@ from .views import AuthViewset, TokenViewset, UserViewset
 
 router = SimpleRouter()
 
-router.register('', AuthViewset, basename='auth')
+router.register('auth', AuthViewset, basename='auth')
 router.register('tokens', TokenViewset, basename='tokens')
 router.register('users', UserViewset, basename='users')
 

@@ -84,9 +84,6 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         return FormattedResponse(data=tokens.model_dump(),
         message= SIGNED_UP, status=status.HTTP_200_OK)
 
-        # 4. return the tokens
-        return FormattedResponse(message=SIGNED_UP, status=status.HTTP_200_OK)
-
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpResponeSerializer()})
     @action(methods=['POST'], detail=False)
     def logout(self, request):
