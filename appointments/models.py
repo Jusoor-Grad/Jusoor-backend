@@ -43,6 +43,8 @@ class PatientReferralRequest(TimeStampedModel):
     # the therapist who responded to the referral request
     responding_therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, related_name='referrals', null=False, blank=False)
 
+    def __str__(self):
+        return f'Referral {self.pk} from {self.referrer.id} to {self.referee.id}'
 
 class AppointmentReferral(TimeStampedModel):
     """
@@ -52,6 +54,8 @@ class AppointmentReferral(TimeStampedModel):
     referral_request = models.ForeignKey(PatientReferralRequest, on_delete=models.PROTECT, related_name='appointments_referrals', blank=False, null=False)
     appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT, related_name='referrals', blank=False, null=False)
 
+    def __str__(self):
+        return f'Referral {self.referral_request.id} -> Appointment {self.appointment.id}'
 
 ## ------------------ Utility models ------------------ ##
 
@@ -59,15 +63,20 @@ class AppointmentFeedback(TimeStampedModel):
     """
         Record for feedback recieved in response to a completed appointment
     """
+
     appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT, related_name='feedbacks', blank=False, null=False)
     rating = models.IntegerField(null=False, blank=False, default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(null=True, blank=True)
 
-class TherapistAssignmentShift(TimeStampedModel):
+    def __str__(self):
+        return f'Feedback for appointment {self.appointment.id} ({self.rating}/5) : {self.comment}'
+
+class TherapistAssignment(TimeStampedModel):
     """
         Record to audit the shift of an appointment assignment from one therapist to another
     """
-    old_therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, related_name='shifts', null=False, blank=False)
-    new_therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, related_name='shifts_taken', null=False, blank=False)
-    appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT, related_name='shifts', null=False, blank=False)
+
+    therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, null=False, blank=False, related_name='appointment_assignments')
+    status = models.CharField(max_length=20, blank=False, null=False, choices=APPOINTMENT_STATUS_CHOICES.items())
+    appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT, null=False, blank=False, related_name='therapist_assignments')
     

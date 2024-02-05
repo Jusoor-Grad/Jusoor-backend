@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     'django_celery_results',
     'django_celery_beat',
+    'django_extensions',
 
 ]
 

@@ -37,9 +37,10 @@ tiktoken = "*"
 cffi = "*"
 django-cors-headers = "*"
 django-celery-beat = "*"
-channels = {extras = ["daphne"], version = "*"}
 eventlet = "*"
 django-extensions = "*"
+channels = {extras = ["daphne"], version = "*"}
+ipython = "*"
 
 [dev-packages]
 

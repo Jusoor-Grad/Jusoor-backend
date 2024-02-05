@@ -20,3 +20,9 @@ REFERRAL_STATUS_CHOICES = {
     'ACCEPTED': _('Accepted'), ## the referee accepted the referral
     'REJECTED': _('Rejected'), ## the referee rejected the referral
 }
+
+# stati of a therapist assignment
+THERAPIST_ASSIGNMENT_STATUS_CHOICES = {
+    'ACTIVE': _('Active'), ## waiting for the therapist to accept or reject the assignment
+    'REJECTED': _('Rejected'), ## the therapist accepted
+}
