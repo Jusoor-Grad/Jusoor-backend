@@ -61,7 +61,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         return FormattedResponse(data=tokens.model_dump(),
         message= LOGGED_IN, status=status.HTTP_200_OK)
     
-    @swagger_auto_schema(responses= {status.HTTP_200_OK: PatientSignupSerializer})
+    @swagger_auto_schema(responses= {status.HTTP_200_OK: HttpResponeSerializer})
     @action(methods=['POST'], detail=False)
     def signup(self, request):
         """signup a new user using his email and password"""
