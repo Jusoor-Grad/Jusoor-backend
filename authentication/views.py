@@ -5,7 +5,7 @@ from sqlalchemy import desc
 from authentication.mixins import ActionBasedPermMixin
 from core.http import FormattedResponse, FormattedValidationError
 from core.mixins import SerializerMapperMixin
-from .serializers import HttpLoginResponseSerializer, HttpTherapistReadResponseSerializer, HttpTokenRefreshResponseSerializer, HttpPatientReadResponseSerializer, LoginResponseSerializer, TherapistReadSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, PatientReadSerializer
+from .serializers import HttpTokenResponseSerializer, HttpTherapistReadResponseSerializer, HttpTokenRefreshResponseSerializer, HttpPatientReadResponseSerializer, TokenResponseSerializer, TherapistReadSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, PatientReadSerializer
 from .services.auth import AuthService
 from .constants.placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP, TOKEN_INVALID, TOKEN_REFRESHED
 from core.placeholders import ERROR, SUCCESS, CREATED
@@ -34,7 +34,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
     }
 
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpLoginResponseSerializer(),
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpTokenResponseSerializer(),
     status.HTTP_401_UNAUTHORIZED: HttpResponeSerializer()},
     )
     @action(methods=['POST'], detail=False)
@@ -53,7 +53,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
             return FormattedResponse(
                 status=status.HTTP_401_UNAUTHORIZED, message= INVALID_CREDENTIALS, data=None,
                 )
-        login(request, user) ## used to track login timestamp in DB
+        login(request, user, 'authentication.backends.HashedEmailAuthBackend') ## used to track login timestamp in DB
         # 3. generate the JWT token
         tokens = AuthService.generate_tokens(user)
 
@@ -61,7 +61,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         return FormattedResponse(data=tokens.model_dump(),
         message= LOGGED_IN, status=status.HTTP_200_OK)
     
-    @swagger_auto_schema(responses= {status.HTTP_200_OK: HttpResponeSerializer})
+    @swagger_auto_schema(responses= {status.HTTP_200_OK: HttpTokenResponseSerializer()})
     @action(methods=['POST'], detail=False)
     def signup(self, request):
         """signup a new user using his email and password"""
@@ -72,10 +72,16 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         data = serializer.data
 
         # 2. create the user
-        user = AuthService.patient_signup(data['email'], data['password'], data['username'])
+        user = AuthService.patient_signup(email=data['email'], password=data['password'], username=data['username'], department=data['department'])
         # TODO: send a verification email to the user before activating his account
         # 3. generate the JWT token
+        login(request, user, 'authentication.backends.HashedEmailAuthBackend') ## used to track login timestamp in DB
+        # 3. generate the JWT token
         tokens = AuthService.generate_tokens(user)
+
+        # 4. return the tokens
+        return FormattedResponse(data=tokens.model_dump(),
+        message= SIGNED_UP, status=status.HTTP_200_OK)
 
         # 4. return the tokens
         return FormattedResponse(message=SIGNED_UP, status=status.HTTP_200_OK)

@@ -34,14 +34,14 @@ class PatientSignupSerializer(serializers.Serializer):
 		return value
 
 
-class LoginResponseSerializer(serializers.Serializer):
+class TokenResponseSerializer(serializers.Serializer):
 	"""Serializer used for login response validation on data level"""
 	
 	access = serializers.CharField()
 	refresh = serializers.CharField()
 
-class HttpLoginResponseSerializer(HttpResponeSerializer):
-	data = LoginResponseSerializer()
+class HttpTokenResponseSerializer(HttpResponeSerializer):
+	data = TokenResponseSerializer()
 
 
 
