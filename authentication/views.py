@@ -132,7 +132,7 @@ class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpTokenRefreshResponseSerializer()})
     @action(methods=['POST'], detail=False)
-    def validate(self, request):
+    def verify(self, request):
         
 
         serializer = self.get_serializer(data=request.data)
