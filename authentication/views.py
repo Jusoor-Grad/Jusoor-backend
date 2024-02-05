@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from sqlalchemy import desc
 from authentication.mixins import ActionBasedPermMixin
+from authentication.permissions import IsPatient, IsTherapist
 from core.http import FormattedResponse, FormattedValidationError
 from core.mixins import SerializerMapperMixin
 from .serializers import HttpTokenResponseSerializer, HttpTherapistReadResponseSerializer, HttpTokenRefreshResponseSerializer, HttpPatientReadResponseSerializer, TokenResponseSerializer, TherapistReadSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, PatientReadSerializer
@@ -151,11 +152,16 @@ class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
 
 
 
-class UserViewset(SerializerMapperMixin, GenericViewSet):
+class UserViewset(SerializerMapperMixin, ActionBasedPermMixin, GenericViewSet):
 
     serializer_class_by_action = {
         'patient_profile': PatientReadSerializer,
         'therapist_profile': TherapistReadSerializer
+    }
+
+    action_permissions = {
+        'patient_profile': [IsPatient()],
+        'therapist_profile': [IsTherapist()]
     }
 
     pagination_class = None
