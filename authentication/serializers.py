@@ -4,7 +4,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import Token
 from rest_framework import serializers
 from authentication.models import User
-from core.http import FormattedValidationError
+from core.http import ValidationError
 from core.models import KFUPMDepartment, StudentPatient
 from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
 from core.serializers import HttpResponeSerializer
@@ -29,7 +29,7 @@ class PatientSignupSerializer(serializers.Serializer):
 		
 		if not KFUPMDepartment.objects.filter(short_name=value).exists():
 
-			raise FormattedValidationError(DEPARTMENT_DOES_NOT_EXIST)
+			raise ValidationError(DEPARTMENT_DOES_NOT_EXIST)
 
 		return value
 
@@ -64,14 +64,10 @@ class HttpTokenVerifyResponseSerializer(serializers.Serializer):
 
 # ----------- User serializers -------- #
 
-# TODO: decrypt username and email for retrieval serializer representation
-class PatientReadSerializer(serializers.ModelSerializer):
-
-	department = serializers.SerializerMethodField()
-
-
-	def get_department(self, instance):
-		return instance.patient_profile.department.short_name
+class UserReadSerializer(serializers.ModelSerializer):
+	"""
+		Generic user serializer for reading unencryoted user data
+	"""
 
 	def to_representation(self, instance):
 		result =  super().to_representation(instance)
@@ -84,6 +80,17 @@ class PatientReadSerializer(serializers.ModelSerializer):
 		return result
 
 	class Meta:
+		model = User
+		fields = ['id', 'username', 'email']
+
+class PatientReadSerializer(UserReadSerializer):
+
+	department = serializers.SerializerMethodField()
+
+
+	def get_department(self, instance):
+		return instance.patient_profile.department.short_name
+	class Meta:
 
 		model = User
 		
@@ -94,7 +101,7 @@ class HttpPatientReadResponseSerializer(HttpResponeSerializer):
 	data = PatientReadSerializer()
 
 
-class TherapistReadSerializer(serializers.ModelSerializer):
+class TherapistReadSerializer(UserReadSerializer):
 
 	speciality = serializers.SerializerMethodField()
 	bio = serializers.SerializerMethodField()
@@ -105,16 +112,7 @@ class TherapistReadSerializer(serializers.ModelSerializer):
 	def get_bio(self, instance):
 		return instance.therapist_profile.bio
 
-	def to_representation(self, instance):
-		result =  super().to_representation(instance)
-
-		aes = AESEncryptionService()
-
-		result['username'] = aes.decrypt(result['username'])
-		result['email'] = aes.decrypt(result['email'])
-
-		return result
-
+	
 	class Meta:
 
 		model = User

@@ -4,24 +4,24 @@ all HTTP-related utilities
 """
 from copy import copy
 from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response as _Response
+from rest_framework.exceptions import ValidationError as _ValidationError
 from .placeholders import ERROR, SUCCESS
 from typing import Dict, Optional
 from rest_framework.views import exception_handler
 
-def FormattedResponse(data: Optional[Dict] = None, status = status.HTTP_200_OK, message: str = SUCCESS)  -> Response:
+def Response(data: Optional[Dict] = None, status = status.HTTP_200_OK, message: str = SUCCESS)  -> _Response:
     """Utility function to format all HTTP API respones into same format"""
   
-    return Response({
+    return _Response({
         'status': status,
         'data': data,
         'message': message
     }, status=status)
 
-def FormattedValidationError(message: str) -> ValidationError:
+def ValidationError(message: str) -> _ValidationError:
     """Utility function to format all HTTP API respones into same format"""
-    return ValidationError({
+    return _ValidationError({
         'status': status.HTTP_400_BAD_REQUEST,
         'message': message,
         'data': None

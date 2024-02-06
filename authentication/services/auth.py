@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
-from core.http import FormattedValidationError as ValidationError
+from core.http import ValidationError as ValidationError
 from core.models import KFUPMDepartment, StudentPatient
 from ..constants.types import TokenPayload
 from ..constants.placeholders import DUPLICATE_CREDENTIALS, TOKEN_INVALID

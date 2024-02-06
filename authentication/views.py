@@ -4,8 +4,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from sqlalchemy import desc
 from authentication.mixins import ActionBasedPermMixin
 from authentication.permissions import IsPatient, IsTherapist
-from core.http import FormattedResponse, FormattedValidationError
+from core.http import Response, ValidationError
 from core.mixins import SerializerMapperMixin
+from core.renderer import FormattedJSONRenderrer
 from .serializers import HttpTokenResponseSerializer, HttpTherapistReadResponseSerializer, HttpTokenRefreshResponseSerializer, HttpPatientReadResponseSerializer, TokenResponseSerializer, TherapistReadSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, PatientReadSerializer
 from .services.auth import AuthService
 from .constants.placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP, TOKEN_INVALID, TOKEN_REFRESHED
@@ -51,7 +52,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         # 2. authenticate the user
         user = authenticate(request=request, username=data['email'], password=data['password'])
         if user is None:
-            return FormattedResponse(
+            return Response(
                 status=status.HTTP_401_UNAUTHORIZED, message= INVALID_CREDENTIALS, data=None,
                 )
         login(request, user, 'authentication.backends.HashedEmailAuthBackend') ## used to track login timestamp in DB
@@ -59,7 +60,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         tokens = AuthService.generate_tokens(user)
 
         # 4. return the tokens
-        return FormattedResponse(data=tokens.model_dump(),
+        return Response(data=tokens.model_dump(),
         message= LOGGED_IN, status=status.HTTP_200_OK)
     
     @swagger_auto_schema(responses= {status.HTTP_200_OK: HttpTokenResponseSerializer()})
@@ -81,7 +82,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         tokens = AuthService.generate_tokens(user)
 
         # 4. return the tokens
-        return FormattedResponse(data=tokens.model_dump(),
+        return Response(data=tokens.model_dump(),
         message= SIGNED_UP, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpResponeSerializer()})
@@ -89,7 +90,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
     def logout(self, request):
         """logout a user by blacklisting his refresh token"""
         AuthService.logout(request.data['refresh'])
-        return FormattedResponse(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)
 
 class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
 
@@ -124,10 +125,10 @@ class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
             # blacklist old token
             AuthService.logout(data['refresh_token'])
         except (InvalidToken, TokenError) as e:
-            raise FormattedValidationError(TOKEN_INVALID)
+            raise ValidationError(TOKEN_INVALID)
 
 
-        return FormattedResponse(data=tokens.model_dump(), message=TOKEN_REFRESHED, status=status.HTTP_201_CREATED)
+        return Response(data=tokens.model_dump(), message=TOKEN_REFRESHED, status=status.HTTP_201_CREATED)
 
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpTokenRefreshResponseSerializer()})
@@ -142,9 +143,9 @@ class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         try:
             AuthService.validate_refresh_token(data['refresh_token'])
         except (InvalidToken, TokenError) as e:
-            raise FormattedValidationError(TOKEN_INVALID)
+            raise ValidationError(TOKEN_INVALID)
         
-        return FormattedResponse(data={'refresh_token': data['refresh_token']}, status=status.HTTP_200_OK)
+        return Response(data={'refresh_token': data['refresh_token']}, status=status.HTTP_200_OK)
 
 
 
@@ -173,11 +174,11 @@ class UserViewset(SerializerMapperMixin, ActionBasedPermMixin, GenericViewSet):
     def patient_profile(self, request, *args, **kwargs):
 
         serializer = self.get_serializer(request.user)
-        return FormattedResponse(data=serializer.data, status=status.HTTP_200_OK)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpTherapistReadResponseSerializer()},manual_parameters=None)
     @action(methods=['GET'], detail=False, url_path='therapist', url_name='therapist')
     def therapist_profile(self, request, *args, **kwargs):
 
         serializer = self.get_serializer(request.user)
-        return FormattedResponse(data=serializer.data, status=status.HTTP_200_OK)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)

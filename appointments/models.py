@@ -1,23 +1,30 @@
 from random import choice
+from click import group
 from django.db import models
 from pydantic import validator
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, REFERRAL_STATUS_CHOICES
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, REFERRAL_STATUS_CHOICES, THERAPIST_ASSIGNMENT_STATUS_CHOICES
 from authentication.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from core.models import Therapist, TimeStampedModel
 
-
-
 ## ------------------ Core models ------------------ ##
 
-class AvailabilityTimeSlot(TimeStampedModel):
+
+class AvailabilityTimeSlotGroup(TimeStampedModel):
     """
         Recording assigned avialability times for a therapist
+    """
+    pass
+class AvailabilityTimeSlot(TimeStampedModel):
+    """
+        Grouping availability timeslots to allow batch editing
     """
 
     therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, null=False, blank=False)
     start_at = models.DateTimeField(null= False, blank=False)
     end_at = models.DateTimeField(null= False, blank=False)
+    group   = models.ForeignKey(AvailabilityTimeSlotGroup, on_delete=models.PROTECT, null=False, blank=False)
+    
 
 
 class Appointment(TimeStampedModel):
@@ -28,6 +35,8 @@ class Appointment(TimeStampedModel):
     timeslot = models.ForeignKey(AvailabilityTimeSlot, on_delete=models.PROTECT, related_name='linked_appointments')
     patient = models.ForeignKey('core.StudentPatient', on_delete=models.PROTECT, related_name='appointments')
     status = models.CharField(max_length=20, blank=False, null=False, choices=APPOINTMENT_STATUS_CHOICES.items())
+    start_at = models.DateTimeField(null= False, blank=False)
+    end_at = models.DateTimeField(null= False, blank=False)
 
 
 
@@ -76,7 +85,7 @@ class TherapistAssignment(TimeStampedModel):
         Record to audit the shift of an appointment assignment from one therapist to another
     """
 
-    therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, null=False, blank=False, related_name='appointment_assignments')
-    status = models.CharField(max_length=20, blank=False, null=False, choices=APPOINTMENT_STATUS_CHOICES.items())
+    therapist_timeslot = models.ForeignKey(AvailabilityTimeSlot, on_delete=models.PROTECT, null=False, blank=False, related_name='appointment_assignments')
+    status = models.CharField(max_length=20, blank=False, null=False, choices=THERAPIST_ASSIGNMENT_STATUS_CHOICES.items())
     appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT, null=False, blank=False, related_name='therapist_assignments')
     
