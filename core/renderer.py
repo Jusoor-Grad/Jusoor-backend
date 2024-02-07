@@ -1,9 +1,9 @@
 from typing import Any
-from h11 import ERROR
+
 from rest_framework.viewsets import ModelViewSet
 
 from core.http import Response
-from core.placeholders import SUCCESS
+from core.placeholders import SUCCESS, ERROR
 
 from rest_framework.renderers import JSONRenderer
 
@@ -14,17 +14,14 @@ class FormattedJSONRenderrer(JSONRenderer):
 
         status_code = renderer_context['response'].status_code
         response = response = {
-          "status": SUCCESS,
+          "status": status_code,
           "data": data,
-          "message": None
+          "message": SUCCESS
         }
 
         if not str(status_code).startswith('2'):
-            response["status"] = ERROR
-            response["data"] = None
-            try:
-                response["message"] = data["detail"]
-            except KeyError:
-                response["data"] = data
+            response["status"] = status_code
+            response["data"] = data['data']
+            response["message"] = ERROR
 
         return super().render(response, accepted_media_type, renderer_context)

@@ -6,7 +6,7 @@ from copy import copy
 from rest_framework import status
 from rest_framework.response import Response as _Response
 from rest_framework.exceptions import ValidationError as _ValidationError
-from .placeholders import ERROR, SUCCESS
+from .placeholders import SUCCESS
 from typing import Dict, Optional
 from rest_framework.views import exception_handler
 

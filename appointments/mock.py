@@ -6,7 +6,7 @@ import faker
 import appointments
 from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, REFERRAL_STATUS_CHOICES
 
-from appointments.models import Appointment, AppointmentFeedback, AppointmentReferral, AvailabilityTimeSlot, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
+from appointments.models import Appointment, AppointmentFeedback, AvailabilityTimeSlot, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
 from core.models import StudentPatient, Therapist
 from django.utils import timezone
 
@@ -134,27 +134,19 @@ class ReferralMocker:
         """
         
         referrals_outs = []
-        appointment_referrals = []
         for appointment in appointments:
             referral_request= PatientReferralRequest(
                     referrer=appointment.patient.user,
                     referee=appointment.timeslot.therapist.user,
                     reason=faker.sentence(),
                     status=REFERRAL_STATUS_CHOICES['PENDING'],
-                    responding_therapist=appointment.timeslot.therapist
+                    responding_therapist=appointment.timeslot.therapist,
+                    appointment=appointment
                 )
                 
             referrals_outs.append(
                 referral_request
             )
 
-            appointment_referrals.append(
-                AppointmentReferral(
-                    referral_request=referral_request,
-                    appointment=appointment
-                )
-            )
-
-        referrals_outs = PatientReferralRequest.objects.bulk_create(referrals_outs)
-        appointment_referrals = AppointmentReferral.objects.bulk_create(appointment_referrals)
-        return referrals_outs, appointment_referrals
+        return PatientReferralRequest.objects.bulk_create(referrals_outs)
+        

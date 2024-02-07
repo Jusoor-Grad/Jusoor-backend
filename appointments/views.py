@@ -3,7 +3,7 @@ from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateMode
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from appointments.models import Appointment
-from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer
+from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
 from core.http import Response
@@ -22,8 +22,8 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
     action_permissions = {
         'list': [IsAuthenticated],
         'retrieve': [IsAuthenticated],
-        'create': [IsPatient],
-        'update': [IsTherapist],
+        'create': [IsAuthenticated],
+        'update': [IsAuthenticated],
        
     }
     serializer_class_by_action = {
@@ -37,27 +37,23 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
     queryset_by_action = {
         'list': Appointment.objects.all().select_related('timeslot__therapist__user'),
         'retrieve': Appointment.objects.all().select_related('timeslot__therapist__user'),
-        'create': None,
-        'update': None,
+        'create': Appointment.objects.all().select_related('timeslot__therapist__user'),
+        # 'update': None,
     }
 
    
-    
-    # def list(self, request):
-    #     """list all appointments for the logged in user"""
-    #     pass
+    @swagger_auto_schema(responses={200: HttpAppointmentListSerializer()})
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(responses={200: HttpAppointmentRetrieveSerializer()})
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
    
     
-    # def retrieve(self, request):
-    #     """retrieve a specific appointment for the logged in user"""
-    #     pass
-
-   
-    
-    def create(self, request):
-        """create a new appointment for the logged in user"""
-        pass
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
    
     
@@ -76,12 +72,12 @@ class AvailabilityTimeslotViewset(ActionBasedPermMixin, SerializerMapperMixin, G
         'update': [HasPerm('update')],
        
     }
-    serializer_class_by_action = {
-        'list': None,
-        'retrieve': None,
-        'create': None,
-        'update': None,
-    }
+    # serializer_class_by_action = {
+    #     'list': None,
+    #     'retrieve': None,
+    #     'create': None,
+    #     'update': None,
+    # }
 
    
     
@@ -118,12 +114,12 @@ class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSe
         'update': [HasPerm('update')],
        
     }
-    serializer_class_by_action = {
-        'list': None,
-        'retrieve': None,
-        'create': None,
-        'update': None,
-    }
+    # serializer_class_by_action = {
+    #     'list': None,
+    #     'retrieve': None,
+    #     'create': None,
+    #     'update': None,
+    # }
 
    
     

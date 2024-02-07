@@ -15,6 +15,7 @@ class AvailabilityTimeSlotGroup(TimeStampedModel):
         Recording assigned avialability times for a therapist
     """
     pass
+
 class AvailabilityTimeSlot(TimeStampedModel):
     """
         Grouping availability timeslots to allow batch editing
@@ -51,20 +52,11 @@ class PatientReferralRequest(TimeStampedModel):
     status = models.CharField(max_length=20, blank=False, null=False, choices=REFERRAL_STATUS_CHOICES.items())
     # the therapist who responded to the referral request
     responding_therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, related_name='referrals', null=False, blank=False)
+    appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT, blank=False, null=False, related_name='referral_request')
 
     def __str__(self):
         return f'Referral {self.pk} from {self.referrer.id} to {self.referee.id}'
 
-class AppointmentReferral(TimeStampedModel):
-    """
-        Recording all appointments originating from a referral
-    """
-
-    referral_request = models.ForeignKey(PatientReferralRequest, on_delete=models.PROTECT, related_name='appointments_referrals', blank=False, null=False)
-    appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT, related_name='referrals', blank=False, null=False)
-
-    def __str__(self):
-        return f'Referral {self.referral_request.id} -> Appointment {self.appointment.id}'
 
 ## ------------------ Utility models ------------------ ##
 

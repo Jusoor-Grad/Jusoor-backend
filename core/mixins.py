@@ -48,8 +48,8 @@ class QuerysetMapperMixin:
 
 
 
-def OwnedQuerySet(user_id: int, queryset: QuerySet, ownership_field: str = 'user'):
+def OwnedQuerySet(qs_request, queryset: QuerySet, ownership_field: str = 'user'):
     """
         Queryset filter action that only returns owned objects by the current user
     """
-    return queryset.filter(**{ownership_field: user_id})
+    return queryset.filter(**{ownership_field: qs_request.user})
