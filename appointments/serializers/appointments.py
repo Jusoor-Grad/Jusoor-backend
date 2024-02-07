@@ -46,6 +46,7 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         timeslot = attrs['timeslot']
         start_at = attrs['start_at']
         end_at = attrs['end_at']
+
         if start_at < timeslot.start_at or end_at > timeslot.end_at:
             raise ValidationError({"timeslot": _('APPOINTMENT TIME MUST BE WITHIN THE AVAILABILITY TIMESLOT')})
 
@@ -57,6 +58,11 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         # 3. validate that the owner of the timeslot is the user himself if the request was made by a therapist
         if self.context['request'].user.therapist_profile is not None and timeslot.therapist != self.context['request'].user.therapist_profile:
             raise ValidationError({"timeslot": _('YOU CANNOT USE ANOTHER THERAPIST\'S TIMESLOT')})
+
+
+        # 4. validate that start time is before end time
+        if start_at >= end_at:
+            raise ValidationError({"start_at": _('APPOINTMENT START TIME MUST BE BEFORE END TIME')})
 
         return attrs
     
@@ -89,9 +95,9 @@ class AppointmentUpdateSerializer(AppointmentCreateSerializer):
 
     def validate(self, attrs):
 
-        timeslot = attrs['timeslot']
-        start_at = attrs['start_at']
-        end_at = attrs['end_at']
+        timeslot = attrs['timeslot'] or self.instance.timeslot
+        start_at = attrs['start_at'] or self.instance.start_at
+        end_at = attrs['end_at'] or self.instance.end_at
         if start_at < timeslot.start_at or end_at > timeslot.end_at:
             raise ValidationError({"timeslot": _('APPOINTMENT TIME MUST BE WITHIN THE AVAILABILITY TIMESLOT')})
 
@@ -100,6 +106,10 @@ class AppointmentUpdateSerializer(AppointmentCreateSerializer):
             ~Q(pk=self.instance.pk) &
             Q(status='CONFIRMED') & (Q(start_at__lte=start_at, end_at__gte=start_at) | Q(start_at__lte=end_at, end_at__gte=end_at))).exists():
             raise ValidationError({"timeslot": _('APPOINTMENT TIME CONFLICTS WITH ANOTHER CONFIRMED APPOINTMENT')})
+
+        # 3. validate that start time is before end time
+        if start_at >= end_at:
+            raise ValidationError({"start_at": _('APPOINTMENT START TIME MUST BE BEFORE END TIME')})
 
         return attrs
     

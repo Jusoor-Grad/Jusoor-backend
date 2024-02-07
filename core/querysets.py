@@ -1,7 +1,9 @@
-from typing import List
+from typing import List, Dict
 from django.db.models import QuerySet, Q
 from django.utils import timezone
 from rest_framework.generics import GenericAPIView
+from django.contrib.auth import get_user_model
+from core.enums import UserRole
 
 
 class SoftDeletedQuerySet(QuerySet):
@@ -29,10 +31,15 @@ def OwnedQuerySet( view: GenericAPIView, queryset: QuerySet, ownership_fields: L
         Queryset filter action that only returns owned objects by the current user
     """
     
+    
     user = view.request.user
 
     if user_model_rel is not None:
+        # TODO: refactor
+        if not hasattr(user, user_model_rel):
+            return queryset.none()
         user = getattr(user, user_model_rel)
+
 
     filters = Q(**{ownership_fields[0]: user})
 
@@ -40,6 +47,21 @@ def OwnedQuerySet( view: GenericAPIView, queryset: QuerySet, ownership_fields: L
         for field in ownership_fields[1:]:
             filters |= Q(**{field: user})
 
-    print('FILTERING', filters)
 
     return queryset.filter(filters)
+
+
+
+# TODO: refactor to accept a user group codename instead of normal conditional statement
+def ConditionalQuerySet( view: GenericAPIView , mapper: Dict[UserRole, QuerySet]):
+    """
+        Queryset filter action that only returns owned objects by the current user
+    """
+    
+    user = view.request.user
+    
+    if hasattr(user, 'patient_profile'):
+        return mapper[UserRole.PATIENT]
+
+    if hasattr(user, 'therapist_profile'):
+        return mapper[UserRole.THERAPIST]

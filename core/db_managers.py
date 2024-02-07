@@ -3,7 +3,6 @@
 """
 from django.db.models import Manager, QuerySet
 from django.utils import timezone
-
 from core.querysets import SoftDeletedQuerySet
 
 

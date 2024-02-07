@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from appointments.models import AvailabilityTimeSlot
 from authentication.serializers import TherapistReadSerializer
-from core.serializers import HttpSuccessResponeSerializer
+from core.serializers import HttpSuccessResponeSerializer, paginate_serializer
 
 
 class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
@@ -18,16 +18,44 @@ class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 
 class HttpAvailabilityTimeslotListSerializer(HttpSuccessResponeSerializer):
     """Serializer for listing availability timeslots"""
-    data = AvailabilityTimeslotReadSerializer(many=True)
+    data = paginate_serializer(AvailabilityTimeslotReadSerializer(many=True))
 
 class HttpAvailabilityTimeslotRetrieveSerializer(HttpSuccessResponeSerializer):
     """Serializer for listing availability timeslots"""
     data = AvailabilityTimeslotReadSerializer()
 
 
-class AvailabilityTimeslotCreateSerializer(serializers.Serializer):
+class IntervalSerializer(serializers.Serializer):
+    """Serializer for listing availability timeslots"""
+    start_at = serializers.DateTimeField()
+    end_at = serializers.DateTimeField()
+
+
+class WeekRepresentationSerializer(serializers.Serializer):
+
+    sunday = IntervalSerializer(many=True, allow_empty=False, allow_null=True, required=False)
+    monday = IntervalSerializer(many=True, allow_empty=False, allow_null=True, required=False)
+    tuesday = IntervalSerializer(many=True, allow_empty=False, allow_null=True, required=False)
+    wednesday = IntervalSerializer(many=True, allow_empty=False, allow_null=True, required=False)
+    thursday = IntervalSerializer(many=True, allow_empty=False, allow_null=True, required=False)
+
+    def validate(self, attrs):
+
+        if not any([attrs.get('sunday'), attrs.get('monday'), attrs.get('tuesday'), attrs.get('wednesday'), attrs.get('thursday')]):
+            raise serializers.ValidationError('At least one day must be selected')
+
+        return attrs
+
+    def create(self, validated_data):
+        return super().create(validated_data)
+
+
+
+class AvailabilityTimeslotCreateSerializer(IntervalSerializer):
     """Serializer for creating availability timeslots"""
-    pass
+    start_at = serializers.DateTimeField()
+    end_at = serializers.DateTimeField()
+    days = WeekRepresentationSerializer(many=True)
 
 class AvailabilityTimeslotUpdateSerializer(serializers.Serializer):
     """Serializer for updating availability timeslots"""

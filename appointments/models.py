@@ -3,7 +3,6 @@ from click import group
 from django.db import models
 from pydantic import validator
 from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, REFERRAL_STATUS_CHOICES, THERAPIST_ASSIGNMENT_STATUS_CHOICES
-from authentication.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from core.models import Therapist, TimeStampedModel
 
@@ -30,7 +29,7 @@ class AvailabilityTimeSlot(TimeStampedModel):
 
 class Appointment(TimeStampedModel):
     """
-        Recording appointment requests on a pre-defind availability slot
+        Recording appointment requests on a pre-defined availability slot
     """
     
     timeslot = models.ForeignKey(AvailabilityTimeSlot, on_delete=models.PROTECT, related_name='linked_appointments')
@@ -46,8 +45,8 @@ class PatientReferralRequest(TimeStampedModel):
         Record for a referral from one user to another for a therapist
     """
 
-    referrer = models.ForeignKey(User, on_delete=models.PROTECT, related_name='outward_referrals')
-    referee = models.ForeignKey(User, on_delete=models.PROTECT, related_name='inward_referrals')
+    referrer = models.ForeignKey('authentication.User', on_delete=models.PROTECT, related_name='outward_referrals')
+    referee = models.ForeignKey('authentication.User', on_delete=models.PROTECT, related_name='inward_referrals')
     reason = models.TextField(null=False, blank=False)
     status = models.CharField(max_length=20, blank=False, null=False, choices=REFERRAL_STATUS_CHOICES.items())
     # the therapist who responded to the referral request
