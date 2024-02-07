@@ -12,7 +12,7 @@ from .services.auth import AuthService
 from .constants.placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP, TOKEN_INVALID, TOKEN_REFRESHED
 from core.placeholders import ERROR, SUCCESS, CREATED
 from django.contrib.auth import authenticate, login
-from core.serializers import HttpResponeSerializer
+from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSerializer
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import UpdateModelMixin
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
@@ -37,7 +37,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
 
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpTokenResponseSerializer(),
-    status.HTTP_401_UNAUTHORIZED: HttpResponeSerializer()},
+    status.HTTP_401_UNAUTHORIZED: HttpErrorResponseSerializer()},
     )
     @action(methods=['POST'], detail=False)
     def login(self, request):
@@ -63,7 +63,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         return Response(data=tokens.model_dump(),
         message= LOGGED_IN, status=status.HTTP_200_OK)
     
-    @swagger_auto_schema(responses= {status.HTTP_200_OK: HttpTokenResponseSerializer()})
+    @swagger_auto_schema(responses= {status.HTTP_200_OK: HttpTokenResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorResponseSerializer() })
     @action(methods=['POST'], detail=False)
     def signup(self, request):
         """signup a new user using his email and password"""
@@ -85,7 +85,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         return Response(data=tokens.model_dump(),
         message= SIGNED_UP, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpResponeSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpSuccessResponeSerializer()})
     @action(methods=['POST'], detail=False)
     def logout(self, request):
         """logout a user by blacklisting his refresh token"""
@@ -104,7 +104,7 @@ class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         'refresh': TokenRefreshBodySerializer 
     }
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpTokenRefreshResponseSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpTokenRefreshResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorResponseSerializer()})
     @action(methods=['POST'], detail=False)
     def refresh(self, request):
         """

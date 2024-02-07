@@ -1,16 +1,16 @@
 from rest_framework import serializers
-from core.serializers import HttpResponeSerializer
+from core.serializers import HttpSuccessResponeSerializer
 
 
 class ReferralRequestReadSerializer(serializers.ModelSerializer):
     """Serializer for listing referral requests"""
     pass
 
-class HttpReferralRequestListSerializer(HttpResponeSerializer):
+class HttpReferralRequestListSerializer(HttpSuccessResponeSerializer):
     """Serializer for listing referral requests"""
     data = ReferralRequestReadSerializer(many=True)
 
-class HttpReferralRequestRetrieveSerializer(HttpResponeSerializer):
+class HttpReferralRequestRetrieveSerializer(HttpSuccessResponeSerializer):
     """Serializer for listing referral requests"""
     data = ReferralRequestReadSerializer()
 

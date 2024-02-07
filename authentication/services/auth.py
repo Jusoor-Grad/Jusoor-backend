@@ -19,8 +19,6 @@ User = get_user_model()
 class AuthService:
 
 
-
-    
     def patient_signup(email: str, password: str, username: str, department: str) -> User:
         """Create a new patient profile with the given email and password"""
         if User.objects.filter(Q(hashed_email= hash_string(email))).exists():

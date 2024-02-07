@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from appointments.models import AvailabilityTimeSlot
 from authentication.serializers import TherapistReadSerializer
-from core.serializers import HttpResponeSerializer
+from core.serializers import HttpSuccessResponeSerializer
 
 
 class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
@@ -16,11 +16,11 @@ class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
         model = AvailabilityTimeSlot
         fields = ['id', 'therapist', 'start_at', 'end_at', 'created_at']
 
-class HttpAvailabilityTimeslotListSerializer(HttpResponeSerializer):
+class HttpAvailabilityTimeslotListSerializer(HttpSuccessResponeSerializer):
     """Serializer for listing availability timeslots"""
     data = AvailabilityTimeslotReadSerializer(many=True)
 
-class HttpAvailabilityTimeslotRetrieveSerializer(HttpResponeSerializer):
+class HttpAvailabilityTimeslotRetrieveSerializer(HttpSuccessResponeSerializer):
     """Serializer for listing availability timeslots"""
     data = AvailabilityTimeslotReadSerializer()
 

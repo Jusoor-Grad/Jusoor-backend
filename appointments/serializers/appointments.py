@@ -2,7 +2,7 @@ from rest_framework import serializers
 from appointments.models import Appointment
 from appointments.serializers.timeslots import AvailabilityTimeslotReadSerializer
 
-from core.serializers import HttpResponeSerializer
+from core.serializers import HttpSuccessResponeSerializer
 
 
 
@@ -17,11 +17,11 @@ class AppointmentReadSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at']
 
-class HttpAppointmentRetrieveSerializer(HttpResponeSerializer):
+class HttpAppointmentRetrieveSerializer(HttpSuccessResponeSerializer):
     """Serializer used for swagger HTTP schema"""
     data = AppointmentReadSerializer(many=True)
 
-class HttpAppointmentRetrieveSerializer(HttpResponeSerializer):
+class HttpAppointmentRetrieveSerializer(HttpSuccessResponeSerializer):
     """Serializer used for swagger HTTP schema"""
     data = AppointmentReadSerializer()
 
@@ -42,11 +42,11 @@ class AppointmentFeedbackReadSerializer(serializers.ModelSerializer):
     """Serializer for listing appointment feedbacks"""
     pass
 
-class HttpAppointmentFeedbackListSerializer(HttpResponeSerializer):
+class HttpAppointmentFeedbackListSerializer(HttpSuccessResponeSerializer):
     """Serializer for listing appointment feedbacks"""
     data = AppointmentFeedbackReadSerializer(many=True)
 
-class HttpAppointmentFeedbackRetrieveSerializer(HttpResponeSerializer):
+class HttpAppointmentFeedbackRetrieveSerializer(HttpSuccessResponeSerializer):
     """Serializer for listing appointment feedbacks"""
     data = AppointmentFeedbackReadSerializer()
 

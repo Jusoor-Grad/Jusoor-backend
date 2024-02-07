@@ -7,7 +7,7 @@ from authentication.models import User
 from core.http import ValidationError
 from core.models import KFUPMDepartment, StudentPatient
 from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
-from core.serializers import HttpResponeSerializer
+from core.serializers import HttpSuccessResponeSerializer
 from .services.encryption import AESEncryptionService
 
 class UserLoginSerializer(serializers.Serializer):
@@ -40,7 +40,7 @@ class TokenResponseSerializer(serializers.Serializer):
 	access = serializers.CharField()
 	refresh = serializers.CharField()
 
-class HttpTokenResponseSerializer(HttpResponeSerializer):
+class HttpTokenResponseSerializer(HttpSuccessResponeSerializer):
 	data = TokenResponseSerializer()
 
 
@@ -97,7 +97,7 @@ class PatientReadSerializer(UserReadSerializer):
 		fields = ['id', 'username', 'email', 'department']
 		
 
-class HttpPatientReadResponseSerializer(HttpResponeSerializer):
+class HttpPatientReadResponseSerializer(HttpSuccessResponeSerializer):
 	data = PatientReadSerializer()
 
 
@@ -120,5 +120,5 @@ class TherapistReadSerializer(UserReadSerializer):
 		fields = ['id', 'username', 'email', 'bio', 'speciality']
 		
 
-class HttpTherapistReadResponseSerializer(HttpResponeSerializer):
+class HttpTherapistReadResponseSerializer(HttpSuccessResponeSerializer):
 	data = TherapistReadSerializer()
