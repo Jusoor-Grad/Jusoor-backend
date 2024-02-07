@@ -2,8 +2,9 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, UPDATEABLE_APPOINTMENT_STATI
 from appointments.models import Appointment
-from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer
+from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
 from core.http import Response
@@ -11,6 +12,7 @@ from core.mixins import QuerysetMapperMixin, SerializerMapperMixin
 from authentication.permissions import IsPatient, IsTherapist
 import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
+from core.querysets import OwnedQuerySet
 
 from core.renderer import FormattedJSONRenderrer
 
@@ -19,11 +21,14 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
 
     renderer_classes = [FormattedJSONRenderrer]
 
+    def get_queryset(self):
+        return super().get_queryset()
+
     action_permissions = {
         'list': [IsAuthenticated],
         'retrieve': [IsAuthenticated],
         'create': [IsAuthenticated],
-        'update': [IsAuthenticated],
+        'update': [IsPatient()],
        
     }
     serializer_class_by_action = {
@@ -38,7 +43,7 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
         'list': Appointment.objects.all().select_related('timeslot__therapist__user'),
         'retrieve': Appointment.objects.all().select_related('timeslot__therapist__user'),
         'create': Appointment.objects.all().select_related('timeslot__therapist__user'),
-        # 'update': None,
+        'update': lambda self: OwnedQuerySet(self, Appointment.objects.filter(status__in=UPDATEABLE_APPOINTMENT_STATI), ['patient'], 'patient_profile'),
     }
 
    
@@ -51,15 +56,13 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
         return super().retrieve(request, *args, **kwargs)
 
    
-    
+    @swagger_auto_schema(responses={200: HttpAppointmentCreateSerializer()})
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
    
-    
-    def update(self, request):
-        """update a specific appointment for the logged in user"""
-        pass
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
 
 
 class AvailabilityTimeslotViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):

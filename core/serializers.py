@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from rest_framework.fields import empty
-
+from rest_framework.generics import GenericAPIView
+from typing import Dict
 
 
 #  ------- Utility serializers ---------
@@ -37,3 +37,5 @@ class HttpErrorResponseSerializer(serializers.Serializer):
     status = serializers.IntegerField()
     message = serializers.CharField()
     data = HttpErrorSerializer()
+
+

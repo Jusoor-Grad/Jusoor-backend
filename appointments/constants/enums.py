@@ -13,6 +13,12 @@ APPOINTMENT_STATUS_CHOICES = {
     'MISSED': _('Missed'), ## one of the parties did not show up
 }
 
+UPDATEABLE_APPOINTMENT_STATI = [
+    'PENDING_THERAPIST',
+    'PENDING_PATIENT',
+    'CONFIRMED'
+]
+
 
 # stati of a a referral request
 REFERRAL_STATUS_CHOICES = {

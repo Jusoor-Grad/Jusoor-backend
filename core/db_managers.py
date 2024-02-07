@@ -4,22 +4,7 @@
 from django.db.models import Manager, QuerySet
 from django.utils import timezone
 
-class SoftDeletedQuerySet(QuerySet):
-    """
-        Overriding standard queryset to remove all softly deleted records
-    """
-
-    def delete(self):
-        """
-        Overriding the default delete method to soft delete the objects
-        """
-        return super(SoftDeletedQuerySet, self).update(deleted_at=timezone.now())
-
-    def hard_delete(self):
-        """
-        Method to permanently delete the objects from the database
-        """
-        return super(SoftDeletedQuerySet, self).delete()
+from core.querysets import SoftDeletedQuerySet
 
 
 class SoftDeletedManager(Manager):
