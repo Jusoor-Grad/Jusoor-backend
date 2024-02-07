@@ -81,7 +81,7 @@ class UserReadSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = User
-		fields = ['id', 'username', 'email']
+		fields = ['id', 'username', 'email', 'image']
 
 class PatientReadSerializer(UserReadSerializer):
 
@@ -94,7 +94,7 @@ class PatientReadSerializer(UserReadSerializer):
 
 		model = User
 		
-		fields = ['id', 'username', 'email', 'department']
+		fields = ['id', 'username', 'email', 'department', 'image']
 		
 
 class HttpPatientReadResponseSerializer(HttpSuccessResponeSerializer):
@@ -117,7 +117,7 @@ class TherapistReadSerializer(UserReadSerializer):
 
 		model = User
 		
-		fields = ['id', 'username', 'email', 'bio', 'speciality']
+		fields = ['id', 'username', 'email', 'bio', 'speciality', 'image']
 		
 
 class HttpTherapistReadResponseSerializer(HttpSuccessResponeSerializer):
