@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from appointments.models import AvailabilityTimeSlot
 from authentication.serializers import TherapistReadSerializer
-from core.serializers import HttpSuccessResponeSerializer, paginate_serializer
+from core.http import ValidationError
+from core.serializers import HttpSuccessResponeSerializer, HttpPaginatedSerializer
 
 
 class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
@@ -16,9 +17,13 @@ class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
         model = AvailabilityTimeSlot
         fields = ['id', 'therapist', 'start_at', 'end_at', 'created_at']
 
-class HttpAvailabilityTimeslotListSerializer(HttpSuccessResponeSerializer):
+class HttpPaginatedAvailabilityTimeslotListSerializer(HttpPaginatedSerializer):
     """Serializer for listing availability timeslots"""
-    data = paginate_serializer(AvailabilityTimeslotReadSerializer(many=True))
+    results = AvailabilityTimeslotReadSerializer(many=True)
+
+class HttpAvailabilityTimeslotListSerializer(HttpSuccessResponeSerializer,):
+    """Serializer for listing availability timeslots"""
+    data = HttpPaginatedAvailabilityTimeslotListSerializer()    
 
 class HttpAvailabilityTimeslotRetrieveSerializer(HttpSuccessResponeSerializer):
     """Serializer for listing availability timeslots"""
@@ -26,7 +31,7 @@ class HttpAvailabilityTimeslotRetrieveSerializer(HttpSuccessResponeSerializer):
 
 
 class IntervalSerializer(serializers.Serializer):
-    """Serializer for listing availability timeslots"""
+    """Serializer for specifying time intervals"""
     start_at = serializers.DateTimeField()
     end_at = serializers.DateTimeField()
 
@@ -42,7 +47,7 @@ class WeekRepresentationSerializer(serializers.Serializer):
     def validate(self, attrs):
 
         if not any([attrs.get('sunday'), attrs.get('monday'), attrs.get('tuesday'), attrs.get('wednesday'), attrs.get('thursday')]):
-            raise serializers.ValidationError('At least one day must be selected')
+            raise ValidationError('At least one day must be selected')
 
         return attrs
 
@@ -50,13 +55,17 @@ class WeekRepresentationSerializer(serializers.Serializer):
         return super().create(validated_data)
 
 
+# TODO: omega validation inbound
+
 
 class AvailabilityTimeslotCreateSerializer(IntervalSerializer):
     """Serializer for creating availability timeslots"""
-    start_at = serializers.DateTimeField()
-    end_at = serializers.DateTimeField()
-    days = WeekRepresentationSerializer(many=True)
+    days = WeekRepresentationSerializer()
 
 class AvailabilityTimeslotUpdateSerializer(serializers.Serializer):
     """Serializer for updating availability timeslots"""
-    pass
+    start_at = serializers.DateTimeField(required=True)
+    timeslot_group = serializers.IntegerField(required=True)
+    days = WeekRepresentationSerializer()
+    force_drop = serializers.BooleanField(default=False)
+
