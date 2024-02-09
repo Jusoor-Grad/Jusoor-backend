@@ -2,10 +2,14 @@
 General utility DB models
 """
 
+from typing import Iterable
 from django.db import models
 from django.contrib.auth import get_user_model
+from numpy import save
 from core.db_managers import SoftDeletedManager
+from django.contrib.auth.models import Group
 
+from core.enums import UserRole
 # Create your models here.
 
 
@@ -35,7 +39,6 @@ class Therapist(TimeStampedModel):
 
     user = models.OneToOneField(get_user_model(), unique=True, on_delete=models.CASCADE, related_name='therapist_profile')
     bio = models.TextField(null=True, blank=True)
-    speciality = models.CharField(max_length=100, null=True, blank=True)
 
 
     def __str__(self) -> str:
@@ -47,6 +50,18 @@ class StudentPatient(TimeStampedModel):
     user = models.OneToOneField(get_user_model(), unique=True, on_delete=models.PROTECT, related_name='patient_profile')
     department = models.ForeignKey('KFUPMDepartment', on_delete=models.PROTECT, related_name='students')
 
+    @staticmethod
+    def create(username: str, email: str, password: str, department: str):
+        """
+        Method to create a new patient profile
+        """
+        user = get_user_model().objects.create_user(username=username, email=email, password=password)       
+        patient = StudentPatient.objects.create(user=user, department=department)
+        user.groups.add(Group.objects.get(name=UserRole.PATIENT.value))
+        user.save()
+
+        return patient, user
+
 
 class KFUPMDepartment(models.Model):
     """
@@ -57,3 +72,4 @@ class KFUPMDepartment(models.Model):
 
     def __str__(self) -> str:
         return self.short_name
+
