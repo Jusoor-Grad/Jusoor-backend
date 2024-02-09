@@ -3,22 +3,25 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, UPDATEABLE_APPOINTMENT_STATI
-from appointments.models import Appointment, AvailabilityTimeSlot
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
+from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest
 from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer
+from appointments.serializers.referrals import ReferralRequestReadSerializer
 from appointments.serializers.timeslots import AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
-from core.enums import UserRole
+from core.enums import QuerysetBranching, UserRole
 from core.http import Response
 from core.mixins import QuerysetMapperMixin, SerializerMapperMixin
 from authentication.permissions import IsPatient, IsTherapist
+from .serializers.referrals import HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer
 import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
-from core.querysets import ConditionalQuerySet, OwnedQuerySet
+from core.querysets import  OwnedQS, PatientOwnedQS, QSWrapper
 
 from core.renderer import FormattedJSONRenderrer
 from core.serializers import HttpErrorResponseSerializer
+from core.http import Response
 
 class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMapperMixin, GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
     """View for appointments functionality"""
@@ -42,32 +45,28 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
         'update': AppointmentUpdateSerializer,
     }
 
-    # TODO: create a conditional queryset to filter only owned appointments for patients
-    queryset_by_action = {
-        'list': lambda v: ConditionalQuerySet(v, 
-        {
-             UserRole.PATIENT: OwnedQuerySet(v, Appointment.objects.all(), ['patient'], 'patient_profile'), 
-             UserRole.THERAPIST: Appointment.objects.all()
-             }),
-        'retrieve': Appointment.objects.all().select_related('timeslot__therapist__user'),
-        'update': lambda v: OwnedQuerySet(v, Appointment.objects.filter(status__in=UPDATEABLE_APPOINTMENT_STATI), ['patient'], 'patient_profile'),
-    }
+    queryset = QSWrapper(Appointment.objects.all())\
+                        .branch({
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=REFERRER_OR_REFEREE_FIELD)
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        passthrough=[UserRole.THERAPIST.value])
 
 #    TODO: query params for temporal filtering
-    @swagger_auto_schema(responses={200: HttpAppointmentListSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentListSerializer()})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @swagger_auto_schema(responses={200: HttpAppointmentRetrieveSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentRetrieveSerializer()})
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
    
-    @swagger_auto_schema(responses={200: HttpAppointmentCreateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorResponseSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentCreateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorResponseSerializer()})
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @swagger_auto_schema(responses={200: HttpAppointmentCreateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorResponseSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentCreateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorResponseSerializer()})
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
 
@@ -94,7 +93,12 @@ class AvailabilityTimeslotViewset(ActionBasedPermMixin, SerializerMapperMixin, Q
     queryset_by_action = {
         'list': AvailabilityTimeSlot.objects.all().select_related('therapist__user'),
         'retrieve': AvailabilityTimeSlot.objects.all().select_related('therapist__user'),
-        'update': lambda self: OwnedQuerySet(self, AvailabilityTimeSlot.objects.all(), ['therapist'], 'therapist_profile')
+        'update': QSWrapper(AvailabilityTimeSlot.objects.all())
+                    .branch({
+                        UserRole.PATIENT.value: OwnedQS(ownership_fields=[UserRole.PATIENT.value])
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        passthrough=[UserRole.THERAPIST.value])
     }
    
     
@@ -109,11 +113,8 @@ class AvailabilityTimeslotViewset(ActionBasedPermMixin, SerializerMapperMixin, Q
         return super().retrieve(request, *args, **kwargs)
 
    
-    
+    # TODO: create custom batch creation of timeslots
     def create(self, request, *args, **kwargs):
-
-
-
         return super().create(request, *args, **kwargs)
 
    
@@ -123,43 +124,90 @@ class AvailabilityTimeslotViewset(ActionBasedPermMixin, SerializerMapperMixin, Q
         pass
 
 
-class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
+class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMapperMixin, GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
     """View for referral functionality"""
 
+    renderer_classes = [FormattedJSONRenderrer]
+    
     action_permissions = {
-        'list': [HasPerm('list')],
-        'retrieve': [HasPerm('retrieve')],
-        'create': [HasPerm('create')],
-        'update': [HasPerm('update')],
-       
+        'list': [IsAuthenticated],
+        'retrieve': [IsAuthenticated],
+        'create': [IsAuthenticated],
+        'update': [IsPatient()],
+        'partial_update': [IsPatient()],
+        'reply': [IsTherapist()]
     }
-    # serializer_class_by_action = {
-    #     'list': None,
-    #     'retrieve': None,
-    #     'create': None,
-    #     'update': None,
-    # }
+    serializer_class_by_action = {
+        'list': ReferralRequestReadSerializer,
+        'retrieve': ReferralRequestReadSerializer,
+        'create': ReferralRequestCreateSerializer,
+        'update': ReferralRequestUpdateSerializer,
+        'partial_update': ReferralRequestUpdateSerializer,
+        'reply': ReferralRequestReplySerializer
+    }
+
+    queryset_by_action = {
+        'list': QSWrapper(PatientReferralRequest.objects.all().select_related('responding_therapist__user'))
+                    .branch({
+                        UserRole.PATIENT.value: OwnedQS(ownership_fields=REFERRER_OR_REFEREE_FIELD)
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        passthrough=[UserRole.THERAPIST.value]),
+        'retrieve': QSWrapper(PatientReferralRequest.objects.all().select_related('responding_therapist__user'))
+                    .branch({
+                        UserRole.PATIENT.value: OwnedQS(ownership_fields=REFERRER_OR_REFEREE_FIELD)
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        passthrough=[UserRole.THERAPIST.value]),
+        'update': QSWrapper(PatientReferralRequest.objects.all())
+                    .branch({
+                        UserRole.PATIENT.value: OwnedQS(ownership_fields=[REFERRER_FIELD])
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        passthrough=[UserRole.THERAPIST.value]),
+        'partial_update': QSWrapper(PatientReferralRequest.objects.all())
+                    .branch({
+                        UserRole.PATIENT.value: OwnedQS(ownership_fields=[REFERRER_FIELD])
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        passthrough=[UserRole.THERAPIST.value]),
+        'reply': PatientReferralRequest.objects.filter(status='PENDING')
+    }
 
    
-    
-    def list(self, request):
-        """list all referrals for the logged in user"""
-        pass
+    # TODO: filters by status
+    @swagger_auto_schema(responses={200: HttpReferralRequestListSerializer()})
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
    
-    
-    def retrieve(self, request):
-        """retrieve a specific referral for the logged in user"""
-        pass
+    @swagger_auto_schema(responses={200: HttpReferralRequestRetrieveSerializer()})
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
    
-    
-    def create(self, request):
-        """create a new referral for the logged in user"""
-        pass
+    @swagger_auto_schema(responses={200: HttpReferralRequestRetrieveSerializer()})
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
    
-    
-    def update(self, request):
-        """update a specific referral for the logged in user"""
-        pass
+    @swagger_auto_schema(responses={200: HttpReferralRequestUpdateResponseSerializer()})
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(responses={200: HttpReferralRequestUpdateResponseSerializer(partial=True)})
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @swagger_auto_schema(responses={200: HttpReferralRequestUpdateResponseSerializer()})    
+    @action(methods=['PATCH'], detail=True)
+    def reply(self, request, *args, **kwargs):
+        """
+            A therapist reply to a referral request 
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance=instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        return self.perform_update(serializer)
+

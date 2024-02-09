@@ -1,10 +1,12 @@
 
+from hmac import new
+from tkinter import ACTIVE
 from rest_framework import serializers
-from appointments.models import Appointment, AvailabilityTimeSlot
+from appointments.models import Appointment, AvailabilityTimeSlot, TherapistAssignment
 from appointments.serializers.timeslots import AvailabilityTimeslotReadSerializer
 from core.http import ValidationError
 from django.utils import timezone
-from core.serializers import  HttpSuccessResponeSerializer, paginate_serializer
+from core.serializers import  HttpSuccessResponeSerializer
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
@@ -15,6 +17,7 @@ class AppointmentReadSerializer(serializers.ModelSerializer):
     
     timeslot = AvailabilityTimeslotReadSerializer()
 
+
     class Meta:
         model = Appointment
         fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at']
@@ -23,9 +26,13 @@ class HttpAppointmentRetrieveSerializer(HttpSuccessResponeSerializer):
     """Serializer used for swagger HTTP schema"""
     data = (AppointmentReadSerializer())
 
+class PaginatedAppointmentReadSerializer(serializers.Serializer):
+    """Serializer for paginated appointment list"""
+    results = AppointmentReadSerializer(many=True)
+
 class HttpAppointmentListSerializer(HttpSuccessResponeSerializer):
     """Serializer used for swagger HTTP schema"""
-    data = paginate_serializer(AppointmentReadSerializer())
+    data = PaginatedAppointmentReadSerializer()
 
 
 
@@ -77,9 +84,17 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
             validated_data['status'] = 'PENDING_THERAPIST'
             validated_data['patient'] = self.context['request'].user.patient_profile ## forcing patient to only create appointments for himself    
 
+        # create a therapist assignment for the appointment
 
-        return super().create(validated_data)
+        result =  super().create(validated_data)
 
+        TherapistAssignment.objects.create(
+            therapist_timeslot=validated_data['timeslot'],
+            status= ACTIVE,
+            appointment= result
+        )
+
+        return result
 
     class Meta:
         model = Appointment
@@ -112,28 +127,23 @@ class AppointmentUpdateSerializer(AppointmentCreateSerializer):
             raise ValidationError({"start_at": _('APPOINTMENT START TIME MUST BE BEFORE END TIME')})
 
         return attrs
+
+    def update(self, instance, validated_data):
+        
+        old_timeslot = instance.timeslot.pk
+        new_timeslot = validated_data.get('timeslot', instance.timeslot).pk
+        result =  super().update(instance, validated_data)
+
+        if old_timeslot != new_timeslot:
+            TherapistAssignment.objects.create(
+                therapist_timeslot=validated_data['timeslot'],
+                status= ACTIVE,
+                appointment= instance
+            )
+
+        return result
     
     class Meta:
         model = AppointmentCreateSerializer.Meta.model
         fields = ['timeslot', 'status', 'start_at', 'end_at', 'id']
 
-class AppointmentAssignmentDropSerializer(serializers.Serializer):
-    """Serializer for dropping an appointment assignment"""
-    pass
-
-class AppointmentFeedbackReadSerializer(serializers.ModelSerializer):
-    """Serializer for listing appointment feedbacks"""
-    pass
-
-class HttpAppointmentFeedbackListSerializer(HttpSuccessResponeSerializer):
-    """Serializer for listing appointment feedbacks"""
-    data = AppointmentFeedbackReadSerializer(many=True)
-
-class HttpAppointmentFeedbackRetrieveSerializer(HttpSuccessResponeSerializer):
-    """Serializer for listing appointment feedbacks"""
-    data = AppointmentFeedbackReadSerializer()
-
-
-class AppointmentFeedbackCreateSerializer(serializers.Serializer):
-    """Serializer for creating appointment feedbacks"""
-    pass

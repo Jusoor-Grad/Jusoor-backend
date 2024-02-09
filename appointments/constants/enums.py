@@ -1,6 +1,14 @@
+
 from django.utils.translation import gettext_lazy as _
 
 
+PENDING_THERAPIST = 'PENDING_THERAPIST'
+PENDING_PATIENT = 'PENDING_PATIENT'
+CONFIRMED = 'CONFIRMED'
+CANCELLED = 'CANCELLED'
+REJECTED = 'REJECTED'
+COMPLETED = 'COMPLETED'
+MISSED = 'MISSED'
 
 # all possible stati of an appointment
 APPOINTMENT_STATUS_CHOICES = {
@@ -19,16 +27,27 @@ UPDATEABLE_APPOINTMENT_STATI = [
     'CONFIRMED'
 ]
 
+PENDING = 'PENDING'
+ACCEPTED = 'ACCEPTED'
+REJECTED = 'REJECTED'
 
 # stati of a a referral request
 REFERRAL_STATUS_CHOICES = {
-    'PENDING': _('Pending'), ## waiting for the therapist to accept or reject the referral
-    'ACCEPTED': _('Accepted'), ## the referee accepted the referral
-    'REJECTED': _('Rejected'), ## the referee rejected the referral
+    PENDING: _('Pending'), ## waiting for the therapist to accept or reject the referral
+    ACCEPTED: _('Accepted'), ## the referee accepted the referral
+    REJECTED: _('Rejected'), ## the referee rejected the referral
 }
 
+ACTIVE = 'ACTIVE'
+REJECTED = 'REJECTED'
 # stati of a therapist assignment
 THERAPIST_ASSIGNMENT_STATUS_CHOICES = {
-    'ACTIVE': _('Active'), ## waiting for the therapist to accept or reject the assignment
-    'REJECTED': _('Rejected'), ## the therapist accepted
+    ACTIVE: _('Active'), ## waiting for the therapist to accept or reject the assignment
+    REJECTED: _('Rejected'), ## the therapist accepted
 }
+
+
+REFERRER_FIELD = 'referrer'
+REFEREE_FIELD = 'referee'
+
+REFERRER_OR_REFEREE_FIELD = [REFERRER_FIELD, REFEREE_FIELD]

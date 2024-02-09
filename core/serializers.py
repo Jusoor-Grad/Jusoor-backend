@@ -15,16 +15,14 @@ class HttpSuccessResponeSerializer(serializers.Serializer):
 
 
 
-def paginate_serializer(serializer: serializers.Serializer):
 
-    class HttpPaginatedSerializer(serializers.Serializer):
+class HttpPaginatedSerializer(serializers.Serializer):
 
-        count = serializers.IntegerField()
-        next = serializers.URLField()
-        previous = serializers.URLField()
-        results = serializers.ListField(child=serializer)
+    count = serializers.IntegerField()
+    next = serializers.URLField()
+    previous = serializers.URLField()
+    results = serializers.ListField(child=serializers.DictField())
 
-    return HttpPaginatedSerializer()
 
     
 
