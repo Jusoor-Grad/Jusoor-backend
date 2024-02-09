@@ -3,9 +3,11 @@ Mocking module for core models.
 """
 import email
 from faker import Faker
+
+from core.enums import UserRole
 from .models import  Therapist, StudentPatient, KFUPMDepartment
 from authentication.models import User
-
+from django.contrib.auth.models import Group
 
 faker = Faker('en')
 
@@ -49,12 +51,19 @@ class TherapistMock:
             therapists.append(
                 Therapist(
                     user=user,
-                    bio= faker.paragraph(),
-                    speciality = faker.paragraph(nb_sentences=1)
+                    bio= faker.paragraph()
                 )
             )
 
-        return Therapist.objects.bulk_create(therapists)
+        therapists = Therapist.objects.bulk_create(therapists)
+
+        gr = Group.objects.get(name=UserRole.THERAPIST.value)
+        for therapist in therapists:
+            gr.user_set.add(therapist.user)
+        
+        gr.save()
+
+        return therapists
 
 
 
@@ -66,16 +75,22 @@ class PatientMock:
         patients = []
         random_department = KFUPMDepartment.objects.all().order_by('?').first()
         users = UserMock.mock_instances(n=n)
+        gr = Group.objects.get(name=UserRole.PATIENT.value)
 
         for i in range(n):
             patients.append(
                 StudentPatient(
                     user=users[i],
-                    department = random_department,
-                    entry_date = faker.date_this_decade()
+                    department = random_department
                 )
             )
         
-        return StudentPatient.objects.bulk_create(patients)
+        students = StudentPatient.objects.bulk_create(patients)
 
-TherapistMock.mock_instances(2) # mock 10 patients
+        for student in students:
+            gr.user_set.add(student.user)
+        gr.save()
+
+        return students
+
+# TherapistMock.mock_instances(1) # mock 10 patients
