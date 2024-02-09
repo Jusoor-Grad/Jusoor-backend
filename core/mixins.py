@@ -4,8 +4,11 @@ An agregation of all DRF mixin class general-purposee utilities
 from ast import Call
 from typing import Dict, Callable, Union
 import django
+from numpy import isin
 from rest_framework import serializers
 from django.db.models import QuerySet, Model
+
+from core.querysets import QSWrapper
 class SerializerMapperMixin:
     """
     utility mixin used to assign a different serializer class for each action
@@ -36,7 +39,9 @@ class QuerysetMapperMixin:
         if hasattr(self, "queryset_by_action"):
             action_qs = self.queryset_by_action.get(self.action, self.queryset)
 
-            if callable(action_qs):
+            if isinstance(action_qs, QSWrapper):
+                queryset = action_qs()(self)
+            elif callable(action_qs):
                 queryset = action_qs(self)
             else:
                 queryset = action_qs
