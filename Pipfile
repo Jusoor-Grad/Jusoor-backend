@@ -39,8 +39,8 @@ django-cors-headers = "*"
 django-celery-beat = "*"
 eventlet = "*"
 django-extensions = "*"
-channels = {extras = ["daphne"], version = "*"}
 ipython = "*"
+channels = {extras = ["daphne"], version = "*"}
 
 [dev-packages]
 
