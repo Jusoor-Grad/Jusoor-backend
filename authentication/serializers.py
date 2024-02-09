@@ -69,16 +69,6 @@ class UserReadSerializer(serializers.ModelSerializer):
 		Generic user serializer for reading unencryoted user data
 	"""
 
-	def to_representation(self, instance):
-		result =  super().to_representation(instance)
-
-		aes = AESEncryptionService()
-
-		result['username'] = aes.decrypt(result['username'])
-		result['email'] = aes.decrypt(result['email'])
-
-		return result
-
 	class Meta:
 		model = User
 		fields = ['id', 'username', 'email', 'image']
@@ -103,11 +93,7 @@ class HttpPatientReadResponseSerializer(HttpSuccessResponeSerializer):
 
 class TherapistReadSerializer(UserReadSerializer):
 
-	speciality = serializers.SerializerMethodField()
 	bio = serializers.SerializerMethodField()
-
-	def get_speciality(self, instance):
-		return instance.therapist_profile.speciality
 
 	def get_bio(self, instance):
 		return instance.therapist_profile.bio
@@ -117,7 +103,7 @@ class TherapistReadSerializer(UserReadSerializer):
 
 		model = User
 		
-		fields = ['id', 'username', 'email', 'bio', 'speciality', 'image']
+		fields = ['id', 'username', 'email', 'bio', 'image']
 		
 
 class HttpTherapistReadResponseSerializer(HttpSuccessResponeSerializer):

@@ -50,7 +50,6 @@ class JWTAuthMiddleware(BaseMiddleware):
         else:
 
             decoded_data = jwt.decode(token, env(SIMPLE_JWT_SIGNING_KEY), algorithms = [SIMPLE_JWT['ALGORITHM']]  )
-            print(decoded_data)
             scope['user'] = await get_user(validated_token=decoded_data)
         return await self.app(scope, receive, send)
 

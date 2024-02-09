@@ -7,8 +7,9 @@ from authentication.permissions import IsPatient, IsTherapist
 from core.http import Response, ValidationError
 from core.mixins import SerializerMapperMixin
 from core.renderer import FormattedJSONRenderrer
+
 from .serializers import HttpTokenResponseSerializer, HttpTherapistReadResponseSerializer, HttpTokenRefreshResponseSerializer, HttpPatientReadResponseSerializer, TokenResponseSerializer, TherapistReadSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, PatientReadSerializer
-from .services.auth import AuthService
+from .services.auth import AuthService, User
 from .constants.placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP, TOKEN_INVALID, TOKEN_REFRESHED
 from core.placeholders import ERROR, SUCCESS, CREATED
 from django.contrib.auth import authenticate, login
@@ -51,6 +52,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         
         # 2. authenticate the user
         user = authenticate(request=request, username=data['email'], password=data['password'])
+
         if user is None:
             return Response(
                 status=status.HTTP_401_UNAUTHORIZED, message= INVALID_CREDENTIALS, data=None,

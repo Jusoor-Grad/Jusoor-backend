@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
+from core.enums import UserRole
 from core.http import ValidationError as ValidationError
 from core.models import KFUPMDepartment, StudentPatient
 from ..constants.types import TokenPayload
@@ -15,22 +16,21 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import UntypedToken
 
+
 User = get_user_model()
 class AuthService:
 
 
-    def patient_signup(email: str, password: str, username: str, department: str) -> User:
+    def patient_signup(email: str, password: str, username: str, department: str):
         """Create a new patient profile with the given email and password"""
-        if User.objects.filter(Q(hashed_email= hash_string(email))).exists():
+        if User.objects.filter(Q(email= email)).exists():
             raise ValidationError(DUPLICATE_CREDENTIALS)
 
-        department = KFUPMDepartment.objects.get(short_name=department)
-        user = User.objects.create_user(username=username, email=email, password=password)
-        patient = StudentPatient.objects.create(user=user, department=department)
-        # TODO: send a verification email to the user before activating his account
+        patient, user = StudentPatient.create(username, email, password, department)
+        
         return user
 
-    def generate_tokens(user: User) -> TokenPayload:
+    def generate_tokens(user) -> TokenPayload:
         refresh_token = RefreshToken.for_user(user)
         
         return TokenPayload(
