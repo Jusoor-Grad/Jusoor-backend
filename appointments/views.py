@@ -2,7 +2,7 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED, PATIENT_FIELD, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
 from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest
 from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer
 from appointments.serializers.referrals import ReferralRequestReadSerializer
@@ -13,6 +13,7 @@ from core.enums import QuerysetBranching, UserRole
 from core.http import Response
 from core.mixins import QuerysetMapperMixin, SerializerMapperMixin
 from authentication.permissions import IsPatient, IsTherapist
+from core.viewssets import AugmentedViewSet
 from .serializers.referrals import HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer
 import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
@@ -22,13 +23,18 @@ from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSeri
 from core.http import Response
 from django.utils.translation import gettext as _
 
-class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMapperMixin, GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
+class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
     """View for appointments functionality"""
 
-    renderer_classes = [FormattedJSONRenderrer]
 
-    def get_queryset(self):
-        return super().get_queryset()
+    ordering_fields = ['start_at']
+    ordering = ['start_at']
+    filterset_fields = {
+        'status': ['iexact'],
+        'start_at': ['gte', 'lte'],
+        'timeslot__therapist': ['exact'],
+    }
+
 
     action_permissions = {
         'list': [IsAuthenticated],
@@ -48,26 +54,26 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
     queryset_by_action = {
         'list': QSWrapper(Appointment.objects.all())\
                         .branch({
-                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient'])
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         pass_through=[UserRole.THERAPIST.value]),
         'retrieve': QSWrapper(Appointment.objects.all())\
                         .branch({
-                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient'])
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         pass_through=[UserRole.THERAPIST.value]),
         'create': QSWrapper(Appointment.objects.all())\
                         .branch({
-                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient'])
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         pass_through=[UserRole.THERAPIST.value]),
         # TODO: test the endpoint formally
         'update': QSWrapper(Appointment.objects.all())\
                         .branch({
-                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient']),
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD]),
                         UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['timeslot__therapist'])
                         },
                         by=QuerysetBranching.USER_GROUP, 
@@ -82,7 +88,7 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
         
     }
 
-#    TODO: query params for temporal filtering
+#    TODO: query params for temporal filtering and sorting
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentListSerializer()})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -114,10 +120,16 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
 
 
 
-class AvailabilityTimeslotViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMapperMixin, GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
+class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
     """View for availability timeslot functionality"""
 
-    renderer_classes = [FormattedJSONRenderrer]
+    ordering_fields = ['start_at']
+    ordering = ['start_at']
+    filterset_fields = {
+        'start_at': ['gte', 'lte'],
+        'therapist': ['exact']
+    }
+    
 
     action_permissions = {
         'list': [IsAuthenticated],
@@ -171,6 +183,14 @@ class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMappe
     """View for referral functionality"""
 
     renderer_classes = [FormattedJSONRenderrer]
+
+    ordering_fields = ['created_at']
+    ordering = ['created_at']
+    filterset_fields = {
+        'status': ['iexact'],
+        'referrer': ['exact'],
+        'referee': ['exact']
+    }
     
     action_permissions = {
         'list': [IsAuthenticated],

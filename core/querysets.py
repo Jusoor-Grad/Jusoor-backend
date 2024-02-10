@@ -294,7 +294,7 @@ class QSWrapper:
             raise ValueError('Invalid keys passed for filtering')
 
 
-    def branch(self, qs_mapper: Dict[str, Union[Q, QSWrapperFilter]], by: QuerysetBranching, passthrough: List[str]) -> 'QSWrapper':
+    def branch(self, qs_mapper: Dict[str, Union[Q, QSWrapperFilter]], by: QuerysetBranching, pass_through: List[str] = []) -> 'QSWrapper':
         """
             Method to used to add a new queryset mapper to the stack
             for dynamic length branching for a queryset
@@ -306,14 +306,14 @@ class QSWrapper:
 
         # appending the mapper object to the stack
         if by == QuerysetBranching.USER_GROUP:
-            self.mapper_stack.append(UserGroupQS( qs_mapper, pass_through=passthrough))
+            self.mapper_stack.append(UserGroupQS( qs_mapper, pass_through=pass_through))
         elif by == QuerysetBranching.PERMISSION:
-            self.mapper_stack.append(PermissionQS(qs_mapper, pass_through=passthrough))
+            self.mapper_stack.append(PermissionQS(qs_mapper, pass_through=pass_through))
         else:
             raise ValueError('Invalid branching type')
 
         # appending the keys of the mapper to the stack to be used for chained filtering
-        self.mapper_keys_stack.append(list(qs_mapper.keys()) + passthrough)
+        self.mapper_keys_stack.append(list(qs_mapper.keys()) + pass_through)
 
         return self ## used for future chaining
 
