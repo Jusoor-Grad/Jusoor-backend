@@ -55,17 +55,32 @@ class WeekRepresentationSerializer(serializers.Serializer):
         return super().create(validated_data)
 
 
-# TODO: omega validation inbound
+# TODO: omega validation inbound for both update and create
 
 
-class AvailabilityTimeslotCreateSerializer(IntervalSerializer):
-    """Serializer for creating availability timeslots"""
+class AvailabilityTimeslotBatchCreateSerializer(IntervalSerializer):
+    """Serializer for creating availability timeslots for a week pattern within a datetime interval"""
+    days = WeekRepresentationSerializer()
+class AvailabilityTimeslotCreateSerializer(serializers.Serializer):
+    """
+        Serializer to create availabiltiy timslots for a single week only
+    """
     days = WeekRepresentationSerializer()
 
-class AvailabilityTimeslotUpdateSerializer(serializers.Serializer):
+class AvailabilityTimeslotBatchUpdateSerializer(serializers.Serializer):
     """Serializer for updating availability timeslots"""
     start_at = serializers.DateTimeField(required=True)
     timeslot_group = serializers.IntegerField(required=True)
     days = WeekRepresentationSerializer()
     force_drop = serializers.BooleanField(default=False)
+
+
+class AvailabilityTimeslotSingleUpdateSerializer(serializers.ModelSerializer):
+    """
+        Serializer for updating a single availability timeslot
+    """
+
+    class Meta:
+        model = AvailabilityTimeSlot
+        fields = ['start_at', 'end_at']
 

@@ -15,16 +15,20 @@ from .hash import hash_string
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import UntypedToken
-
+from django.db import transaction
 
 User = get_user_model()
 class AuthService:
 
 
+    @transaction.atomic
     def patient_signup(email: str, password: str, username: str, department: str):
         """Create a new patient profile with the given email and password"""
         if User.objects.filter(Q(email= email)).exists():
             raise ValidationError(DUPLICATE_CREDENTIALS)
+
+        department = KFUPMDepartment.objects.get(short_name=department)
+
 
         patient, user = StudentPatient.create(username, email, password, department)
         

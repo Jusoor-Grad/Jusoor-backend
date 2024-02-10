@@ -6,7 +6,7 @@ from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED, 
 from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest
 from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer
 from appointments.serializers.referrals import ReferralRequestReadSerializer
-from appointments.serializers.timeslots import AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer
+from appointments.serializers.timeslots import AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
 from core.enums import QuerysetBranching, UserRole
@@ -141,7 +141,7 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
     serializer_class_by_action = {
         'list': AvailabilityTimeslotReadSerializer ,
         'retrieve': AvailabilityTimeslotReadSerializer,
-        'create': AvailabilityTimeslotCreateSerializer,
+        'create': AvailabilityTimeslotBatchCreateSerializer,
         'update': None,
     }
 
