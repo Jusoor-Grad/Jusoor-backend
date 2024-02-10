@@ -1,9 +1,8 @@
-from venv import create
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
 from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest
 from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer
 from appointments.serializers.referrals import ReferralRequestReadSerializer
@@ -17,11 +16,11 @@ from authentication.permissions import IsPatient, IsTherapist
 from .serializers.referrals import HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer
 import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
-from core.querysets import  OwnedQS, PatientOwnedQS, QSWrapper
-
+from core.querysets import  OwnedQS, PatientOwnedQS, QSWrapper, TherapistOwnedQS
 from core.renderer import FormattedJSONRenderrer
-from core.serializers import HttpErrorResponseSerializer
+from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSerializer
 from core.http import Response
+from django.utils.translation import gettext as _
 
 class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMapperMixin, GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
     """View for appointments functionality"""
@@ -35,7 +34,8 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
         'list': [IsAuthenticated],
         'retrieve': [IsAuthenticated],
         'create': [IsAuthenticated],
-        'update': [IsPatient()],
+        'update': [IsAuthenticated],
+        'cancel': [IsAuthenticated]
        
     }
     serializer_class_by_action = {
@@ -45,12 +45,42 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
         'update': AppointmentUpdateSerializer,
     }
 
-    queryset = QSWrapper(Appointment.objects.all())\
+    queryset_by_action = {
+        'list': QSWrapper(Appointment.objects.all())\
                         .branch({
-                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=REFERRER_OR_REFEREE_FIELD)
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient'])
                         },
                         by=QuerysetBranching.USER_GROUP, 
-                        passthrough=[UserRole.THERAPIST.value])
+                        pass_through=[UserRole.THERAPIST.value]),
+        'retrieve': QSWrapper(Appointment.objects.all())\
+                        .branch({
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient'])
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        pass_through=[UserRole.THERAPIST.value]),
+        'create': QSWrapper(Appointment.objects.all())\
+                        .branch({
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient'])
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        pass_through=[UserRole.THERAPIST.value]),
+        # TODO: test the endpoint formally
+        'update': QSWrapper(Appointment.objects.all())\
+                        .branch({
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient']),
+                        UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['timeslot__therapist'])
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        ),
+        'cancel': QSWrapper(Appointment.objects.all())\
+                        .branch({
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient']),
+                        UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['timeslot__therapist'])
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        )
+        
+    }
 
 #    TODO: query params for temporal filtering
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentListSerializer()})
@@ -69,6 +99,19 @@ class AppointmentsViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetM
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentCreateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorResponseSerializer()})
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(responses={200: HttpSuccessResponeSerializer()})    
+    @action(methods=['PATCH'], detail=True)
+    def cancel(self, request, *args, **kwargs):
+        """
+            Cancel an appointment
+        """
+        instance: Appointment = self.get_object()
+        instance.status = CANCELLED
+        instance.save()
+
+        return Response(data=None, status=status.HTTP_200_OK, message=_('Appointment cancelled successfully'))
+
 
 
 class AvailabilityTimeslotViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMapperMixin, GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
@@ -98,7 +141,7 @@ class AvailabilityTimeslotViewset(ActionBasedPermMixin, SerializerMapperMixin, Q
                         UserRole.PATIENT.value: OwnedQS(ownership_fields=[UserRole.PATIENT.value])
                         },
                         by=QuerysetBranching.USER_GROUP, 
-                        passthrough=[UserRole.THERAPIST.value])
+                        pass_through=[UserRole.THERAPIST.value])
     }
    
     
@@ -152,25 +195,25 @@ class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMappe
                         UserRole.PATIENT.value: OwnedQS(ownership_fields=REFERRER_OR_REFEREE_FIELD)
                         },
                         by=QuerysetBranching.USER_GROUP, 
-                        passthrough=[UserRole.THERAPIST.value]),
+                        pass_through=[UserRole.THERAPIST.value]),
         'retrieve': QSWrapper(PatientReferralRequest.objects.all().select_related('responding_therapist__user'))
                     .branch({
                         UserRole.PATIENT.value: OwnedQS(ownership_fields=REFERRER_OR_REFEREE_FIELD)
                         },
                         by=QuerysetBranching.USER_GROUP, 
-                        passthrough=[UserRole.THERAPIST.value]),
+                        pass_through=[UserRole.THERAPIST.value]),
         'update': QSWrapper(PatientReferralRequest.objects.all())
                     .branch({
                         UserRole.PATIENT.value: OwnedQS(ownership_fields=[REFERRER_FIELD])
                         },
                         by=QuerysetBranching.USER_GROUP, 
-                        passthrough=[UserRole.THERAPIST.value]),
+                        pass_through=[UserRole.THERAPIST.value]),
         'partial_update': QSWrapper(PatientReferralRequest.objects.all())
                     .branch({
                         UserRole.PATIENT.value: OwnedQS(ownership_fields=[REFERRER_FIELD])
                         },
                         by=QuerysetBranching.USER_GROUP, 
-                        passthrough=[UserRole.THERAPIST.value]),
+                        pass_through=[UserRole.THERAPIST.value]),
         'reply': PatientReferralRequest.objects.filter(status='PENDING')
     }
 
