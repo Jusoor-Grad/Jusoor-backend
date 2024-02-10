@@ -1,7 +1,5 @@
-
-from hmac import new
-from tkinter import ACTIVE
 from rest_framework import serializers
+from appointments.constants.enums import ACTIVE
 from appointments.models import Appointment, AvailabilityTimeSlot, TherapistAssignment
 from appointments.serializers.timeslots import AvailabilityTimeslotReadSerializer
 from core.http import ValidationError
