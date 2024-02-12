@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
-from telnetlib import AUTHENTICATION
 import environ
 
 
@@ -201,7 +200,7 @@ DATABASES = {
         
         "TEST": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db2.sqlite3",
+            "NAME": "db.sqlite3",
         },
     }
 }

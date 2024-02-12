@@ -42,6 +42,7 @@ django-extensions = "*"
 ipython = "*"
 channels = {extras = ["daphne"], version = "*"}
 python-dateutil = "*"
+pathlib = "*"
 
 [dev-packages]
 
