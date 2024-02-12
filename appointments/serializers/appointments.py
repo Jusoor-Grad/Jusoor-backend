@@ -8,6 +8,7 @@ from core.serializers import  HttpSuccessResponeSerializer
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
+
 # ---------- Appointments ----------
 
 class AppointmentReadSerializer(serializers.ModelSerializer):
@@ -112,17 +113,20 @@ class AppointmentUpdateSerializer(AppointmentCreateSerializer):
         start_at = attrs['start_at'] or self.instance.start_at
         end_at = attrs['end_at'] or self.instance.end_at
         if start_at < timeslot.start_at or end_at > timeslot.end_at:
-            raise ValidationError({"timeslot": _('APPOINTMENT TIME MUST BE WITHIN THE AVAILABILITY TIMESLOT')})
+            raise ValidationError({_('APPOINTMENT TIME MUST BE WITHIN THE AVAILABILITY TIMESLOT')})
+
+        if start_at < timezone.now():
+            raise ValidationError(_('APPOINTMENT CANNOT START IN THE PAST'))
 
         # 2. validate that the appointment does not conflict with other confirmed appointment
         if timeslot.linked_appointments.filter(
             ~Q(pk=self.instance.pk) &
             Q(status='CONFIRMED') & (Q(start_at__lte=start_at, end_at__gte=start_at) | Q(start_at__lte=end_at, end_at__gte=end_at))).exists():
-            raise ValidationError({"timeslot": _('APPOINTMENT TIME CONFLICTS WITH ANOTHER CONFIRMED APPOINTMENT')})
+            raise ValidationError({_('APPOINTMENT TIME CONFLICTS WITH ANOTHER CONFIRMED APPOINTMENT')})
 
         # 3. validate that start time is before end time
         if start_at >= end_at:
-            raise ValidationError({"start_at": _('APPOINTMENT START TIME MUST BE BEFORE END TIME')})
+            raise ValidationError({_('APPOINTMENT START TIME MUST BE BEFORE END TIME')})
 
         return attrs
 
@@ -145,3 +149,7 @@ class AppointmentUpdateSerializer(AppointmentCreateSerializer):
         model = AppointmentCreateSerializer.Meta.model
         fields = ['timeslot', 'status', 'start_at', 'end_at', 'id']
 
+
+class HttpAppointmentUpdateSerializer(HttpSuccessResponeSerializer):
+    """Serializer used for swagger HTTP schema"""
+    data = AppointmentUpdateSerializer()

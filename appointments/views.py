@@ -4,9 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED, PATIENT_FIELD, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
 from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest
-from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer
+from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpAppointmentUpdateSerializer
 from appointments.serializers.referrals import ReferralRequestReadSerializer
-from appointments.serializers.timeslots import AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer
+from appointments.serializers.timeslots import  AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotResponse
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
 from core.enums import QuerysetBranching, UserRole
@@ -88,7 +88,6 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         
     }
 
-#    TODO: query params for temporal filtering and sorting
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentListSerializer()})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -102,7 +101,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentCreateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorResponseSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentUpdateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorResponseSerializer()})
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
 
@@ -135,14 +134,17 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         'list': [IsAuthenticated],
         'retrieve': [IsAuthenticated],
         'create': [IsTherapist()],
+        'batch_create': [IsTherapist()],
         'update': [IsTherapist()],
-       
+        'batch_update': [IsTherapist()]       
     }
     serializer_class_by_action = {
         'list': AvailabilityTimeslotReadSerializer ,
         'retrieve': AvailabilityTimeslotReadSerializer,
-        'create': AvailabilityTimeslotBatchCreateSerializer,
+        'create': AvailabilityTimeslotCreateSerializer,
+        'batch_create': AvailabilityTimeslotCreateSerializer,
         'update': None,
+        'batch_update': None,
     }
 
     queryset_by_action = {
@@ -153,7 +155,13 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
                         UserRole.PATIENT.value: OwnedQS(ownership_fields=[UserRole.PATIENT.value])
                         },
                         by=QuerysetBranching.USER_GROUP, 
-                        pass_through=[UserRole.THERAPIST.value])
+                        pass_through=[UserRole.THERAPIST.value]),
+        'batch_update': QSWrapper(AvailabilityTimeSlot.objects.all())
+                        .branch({
+                            UserRole.PATIENT.value: OwnedQS(ownership_fields=[UserRole.PATIENT.value])
+                            },
+                            by=QuerysetBranching.USER_GROUP, 
+                            pass_through=[UserRole.THERAPIST.value])
     }
    
     
@@ -168,11 +176,26 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         return super().retrieve(request, *args, **kwargs)
 
    
-    # TODO: create custom batch creation of timeslots
+    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotCreateResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorAvailabilityTimeslotResponse()})
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-   
+    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotCreateResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorAvailabilityTimeslotResponse()})
+    @action(methods=['POST'], detail=False)
+    def batch_create(self, request, *args, **kwargs):
+        
+        # 1. raw data validation
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.data
+        # 2. generate all matching datetime intervals using rrules
+        intervals = []
+
+        # 3. validate the generated data using the create serializer
+
+        # 4. create if valid
+
+
     
     def update(self, request):
         """update a specific availability timeslot for the logged in user"""

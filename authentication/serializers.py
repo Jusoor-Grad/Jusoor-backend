@@ -22,16 +22,7 @@ class PatientSignupSerializer(serializers.Serializer):
 	email = serializers.EmailField(allow_blank=False, max_length=150)
 	username = serializers.CharField(allow_blank=False, max_length=150)
 	password = serializers.CharField(allow_blank=False, max_length=128)
-	department = serializers.CharField(allow_blank=False, max_length=10)
 
-	def validate_department(self, value:str):
-		"""Verifying that a department exists within valid KFUPM departments in the DB"""
-		
-		if not KFUPMDepartment.objects.filter(short_name=value).exists():
-
-			raise ValidationError(DEPARTMENT_DOES_NOT_EXIST)
-
-		return value
 
 
 class TokenResponseSerializer(serializers.Serializer):

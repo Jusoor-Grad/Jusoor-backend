@@ -36,3 +36,4 @@ django-celery-beat
 eventlet
 django-extensions
 ipython
+python-dateutil

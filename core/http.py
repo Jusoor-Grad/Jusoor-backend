@@ -19,11 +19,16 @@ def Response(data: Optional[Dict] = None, status = status.HTTP_200_OK, message: 
         'message': message
     }, status=status)
 
-def ValidationError(message: str) -> _ValidationError:
+def ValidationError(message: str, data: Dict = None) -> _ValidationError:
     """Utility function to format all HTTP API respones into same format"""
-    return _ValidationError({
+    
+    err_obj = {
         'error': message,
-        })
+        }
+    
+    if data:
+        err_obj['data'] = data
+    return _ValidationError(err_obj)
 
 
 def formatted_error_handler(exc, context):

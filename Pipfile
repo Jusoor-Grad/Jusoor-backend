@@ -41,6 +41,7 @@ eventlet = "*"
 django-extensions = "*"
 ipython = "*"
 channels = {extras = ["daphne"], version = "*"}
+python-dateutil = "*"
 
 [dev-packages]
 

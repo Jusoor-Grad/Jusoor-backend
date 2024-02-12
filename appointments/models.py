@@ -23,7 +23,7 @@ class AvailabilityTimeSlot(TimeStampedModel):
     therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, null=False, blank=False)
     start_at = models.DateTimeField(null= False, blank=False)
     end_at = models.DateTimeField(null= False, blank=False)
-    group   = models.ForeignKey(AvailabilityTimeSlotGroup, on_delete=models.PROTECT, null=False, blank=False)
+    group   = models.ForeignKey(AvailabilityTimeSlotGroup, on_delete=models.PROTECT, null=True, blank=True)
     
 
 
