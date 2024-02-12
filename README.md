@@ -1,4 +1,4 @@
-## Jusoor Django
+## Jusoor Django 0.1
 The source code for the backend source code for Jusoor project
 
 ## How to run?
