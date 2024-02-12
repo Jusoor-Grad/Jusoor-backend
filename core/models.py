@@ -48,7 +48,7 @@ class Therapist(TimeStampedModel):
 class StudentPatient(TimeStampedModel):
 
     user = models.OneToOneField(get_user_model(), unique=True, on_delete=models.PROTECT, related_name='patient_profile')
-    department = models.ForeignKey('KFUPMDepartment', on_delete=models.PROTECT, related_name='students')
+    department = models.ForeignKey('KFUPMDepartment', on_delete=models.PROTECT, related_name='students', null=True, blank=True)
 
     @staticmethod
     def create(username: str, email: str, password: str, department: str):
