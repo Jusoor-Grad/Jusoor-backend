@@ -2,6 +2,8 @@ from rest_framework import serializers
 from rest_framework.generics import GenericAPIView
 from typing import Dict
 
+from core.models import KFUPMDepartment
+
 
 #  ------- Utility serializers ---------
 class HttpSuccessResponeSerializer(serializers.Serializer):
@@ -22,12 +24,6 @@ class HttpPaginatedSerializer(serializers.Serializer):
     next = serializers.URLField()
     previous = serializers.URLField()
     results = serializers.ListField(child=serializers.DictField())
-
-
-    
-
-
-
 class HttpErrorSerializer(serializers.Serializer):
     errors = serializers.DictField(child=serializers.CharField())
 
@@ -36,4 +32,14 @@ class HttpErrorResponseSerializer(serializers.Serializer):
     message = serializers.CharField()
     data = HttpErrorSerializer()
 
+class KFUPMDepartmentSerializer(serializers.ModelSerializer):
+    """Serializer for KFUPMDepartment"""
+    class Meta:
+        model = KFUPMDepartment
+        fields = ['id', 'short_name', 'long_name']
 
+class HttpKFUPMDepartmentResponseSerializer(HttpPaginatedSerializer):
+    results = KFUPMDepartmentSerializer(many=True)
+
+class HttpKFUPMDepartmentDetailResponseSerializer(HttpSuccessResponeSerializer):
+    data = KFUPMDepartmentSerializer()

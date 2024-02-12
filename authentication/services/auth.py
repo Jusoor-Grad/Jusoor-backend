@@ -22,15 +22,14 @@ class AuthService:
 
 
     @transaction.atomic
-    def patient_signup(email: str, password: str, username: str, department: str):
+    def patient_signup(email: str, password: str, username: str):
         """Create a new patient profile with the given email and password"""
         if User.objects.filter(Q(email= email)).exists():
             raise ValidationError(DUPLICATE_CREDENTIALS)
 
-        department = KFUPMDepartment.objects.get(short_name=department)
 
 
-        patient, user = StudentPatient.create(username, email, password, department)
+        patient, user = StudentPatient.create(username, email, password, )
         
         return user
 

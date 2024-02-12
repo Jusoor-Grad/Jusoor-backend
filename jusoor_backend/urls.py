@@ -29,6 +29,8 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('authentication.urls')),
+    path('', include(arg='core.urls')),
+    path('', include('appointments.urls')),
     # API docs endpoints
     path('chat/', include('chat.urls')),
         re_path(
@@ -36,7 +38,6 @@ urlpatterns = [
         schema_view.without_ui(cache_timeout=0),
         name="schema-json",
     ),
-    path('', include('appointments.urls')),
     re_path(
         r"^swagger/$",
         schema_view.with_ui("swagger", cache_timeout=0),

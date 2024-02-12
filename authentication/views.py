@@ -76,7 +76,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         data = serializer.data
 
         # 2. create the user
-        user = AuthService.patient_signup(email=data['email'], password=data['password'], username=data['username'], department=data['department'])
+        user = AuthService.patient_signup(email=data['email'], password=data['password'], username=data['username'])
         # TODO: send a verification email to the user before activating his account
         # 3. generate the JWT token
         login(request, user, 'authentication.backends.HashedEmailAuthBackend') ## used to track login timestamp in DB
