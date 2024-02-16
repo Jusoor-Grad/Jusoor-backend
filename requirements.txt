@@ -37,3 +37,4 @@ eventlet
 django-extensions
 ipython
 python-dateutil
+pytest-django

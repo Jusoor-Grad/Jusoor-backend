@@ -40,9 +40,10 @@ django-celery-beat = "*"
 eventlet = "*"
 django-extensions = "*"
 ipython = "*"
-channels = {extras = ["daphne"], version = "*"}
 python-dateutil = "*"
 pathlib = "*"
+channels = {extras = ["daphne"], version = "*"}
+pytest-django = "*"
 
 [dev-packages]
 
