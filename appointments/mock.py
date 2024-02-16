@@ -1,6 +1,8 @@
 """
     File used for object mocking for all appointment system related tasks
 """
+from datetime import time
+from tracemalloc import start
 from typing import List
 import faker
 import appointments
@@ -9,6 +11,8 @@ from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, REFERRAL_ST
 from appointments.models import Appointment,  AvailabilityTimeSlot, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
 from core.models import StudentPatient, Therapist
 from django.utils import timezone
+
+from core.types import TimeInterval, WeeklyTimeSchedule
 
 
 faker = faker.Faker()
@@ -60,6 +64,38 @@ class AvailabilityTimeslotMocker:
         AvailabilityTimeSlotGroup.objects.bulk_create(slot_groups)
         return AvailabilityTimeSlot.objects.bulk_create(availability_timeslots)
 
+    @staticmethod
+    def mock_schedule_input(days: List[str] = ['sunday'], conflicting: bool = False):
+        """
+            mocking a weekly schedule input for batch creationg of timeslots
+        """
+        output = dict()
+        for day in days:
+            start_at= timezone.now().replace(hour=1, minute=0, second=0, microsecond=0)
+            end_at= start_at + timezone.timedelta(hours=1)
+            output[day] = []
+
+            output[day].append(
+                    TimeInterval(
+                        start_at=start_at.time(),
+                        end_at=end_at.time()
+                    )
+                )
+            if not conflicting:
+                start_at+= timezone.timedelta(hours=1, minutes=30)
+                end_at= start_at + timezone.timedelta(minutes=10)
+            else:
+                start_at+= timezone.timedelta(hours=0, minutes=30)
+                end_at= start_at + timezone.timedelta(hours=0, minutes=10)
+
+            output[day].append(
+                    TimeInterval(
+                        start_at=start_at.time(),
+                        end_at=end_at.time()
+                    )
+                )
+       
+        return WeeklyTimeSchedule(**output)
 
 class AppointmentMocker:
     """
@@ -101,6 +137,9 @@ class AppointmentMocker:
         appointment_outs= Appointment.objects.bulk_create(appointments)
         TherapistAssignment.objects.bulk_create(appoint_assignments)
         return appointment_outs
+
+    
+
 
 
 class ReferralMocker:

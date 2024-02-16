@@ -6,7 +6,6 @@ from authentication.mixins import ActionBasedPermMixin
 from authentication.permissions import IsPatient, IsTherapist
 from core.http import Response, ValidationError
 from core.mixins import SerializerMapperMixin
-from core.renderer import FormattedJSONRenderrer
 
 from .serializers import HttpTokenResponseSerializer, HttpTherapistReadResponseSerializer, HttpTokenRefreshResponseSerializer, HttpPatientReadResponseSerializer, TokenResponseSerializer, TherapistReadSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, PatientReadSerializer
 from .services.auth import AuthService, User

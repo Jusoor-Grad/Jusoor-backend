@@ -7,7 +7,7 @@ from authentication.models import User
 from core.http import ValidationError
 from core.models import KFUPMDepartment, StudentPatient
 from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
-from core.serializers import HttpSuccessResponeSerializer
+from core.serializers import HttpPaginatedSerializer, HttpSuccessResponeSerializer
 from .services.encryption import AESEncryptionService
 
 class UserLoginSerializer(serializers.Serializer):
@@ -81,6 +81,9 @@ class PatientReadSerializer(UserReadSerializer):
 class HttpPatientReadResponseSerializer(HttpSuccessResponeSerializer):
 	data = PatientReadSerializer()
 
+
+class HttpPatientListResponseSerializer(HttpPaginatedSerializer):
+    results = PatientReadSerializer(many=True)
 
 class TherapistReadSerializer(UserReadSerializer):
 

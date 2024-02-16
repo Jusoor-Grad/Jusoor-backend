@@ -1,20 +1,21 @@
+import json
+from multiprocessing import context
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED, PATIENT_FIELD, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
 from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest
-from appointments.serializers.appointments import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpAppointmentUpdateSerializer
-from appointments.serializers.referrals import ReferralRequestReadSerializer
-from appointments.serializers.timeslots import  AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotResponse
+from .serializers import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpAppointmentUpdateSerializer, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
 from core.enums import QuerysetBranching, UserRole
 from core.http import Response
 from core.mixins import QuerysetMapperMixin, SerializerMapperMixin
 from authentication.permissions import IsPatient, IsTherapist
+from core.types import DatetimeInterval, WeeklyTimeSchedule
+from core.utils.time import TimeUtil
 from core.viewssets import AugmentedViewSet
-from .serializers.referrals import HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer
 import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
 from core.querysets import  OwnedQS, PatientOwnedQS, QSWrapper, TherapistOwnedQS
@@ -22,6 +23,7 @@ from core.renderer import FormattedJSONRenderrer
 from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSerializer
 from core.http import Response
 from django.utils.translation import gettext as _
+
 
 class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
     """View for appointments functionality"""
@@ -142,8 +144,8 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         'list': AvailabilityTimeslotReadSerializer ,
         'retrieve': AvailabilityTimeslotReadSerializer,
         'create': AvailabilityTimeslotCreateSerializer,
-        'batch_create': AvailabilityTimeslotCreateSerializer,
-        'update': None,
+        'batch_create': AvailabilityTimeslotBatchCreateSerializer,
+        'update': AvailabilityTimeslotSingleUpdateSerializer,
         'batch_update': None,
     }
 
@@ -176,24 +178,47 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         return super().retrieve(request, *args, **kwargs)
 
    
-    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotCreateResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorAvailabilityTimeslotResponse()})
+    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotCreateResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorAvailabilityTimeslotBatchCreateResponse()})
     def create(self, request, *args, **kwargs):
+        """
+            Creates one or more availability timeslots with no recurrcne
+
+             **@validation**:
+                - all passed time intervals must not conflict with each other
+                - the schedule created from the specified intervals must not conflict with any existing timeslots
+        """
         return super().create(request, *args, **kwargs)
 
-    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotCreateResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorAvailabilityTimeslotResponse()})
+    @swagger_auto_schema(responses={200: None, status.HTTP_400_BAD_REQUEST: HttpErrorAvailabilityTimeslotBatchCreateResponse()})
     @action(methods=['POST'], detail=False)
     def batch_create(self, request, *args, **kwargs):
+        """
+            Createing a group of timeslots by specifiyng a weekly schedule with multiple time intervals along a date span
+
+            **@validation**:
+                - all passed time intervals must not conflict with each other
+                - the schedule created from the specified intervals must not conflict with any existing timeslots
+        """
         
         # 1. raw data validation
-        serializer = self.get_serializer(data=request.data, many=True)
+        serializer = AvailabilityTimeslotBatchUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
         # 2. generate all matching datetime intervals using rrules
-        intervals = []
-
+        intervals = TimeUtil.generate_intervals(WeeklyTimeSchedule(**data['weekly_schedule']), DatetimeInterval(start_at=data['start_at'], end_at=data['end_at']))
         # 3. validate the generated data using the create serializer
+        conflict_serializer = AvailabilityTimeslotBatchCreateSerializer(data={
+            'weekly_schedule': intervals,
+            'start_at': data['start_at'],
+            'end_at': data['end_at'],
+           
+        }, context=self.get_serializer_context())
+        conflict_serializer.is_valid(raise_exception=True)
 
-        # 4. create if valid
+        # 4. create the timeslots if valid
+        self.perform_create(conflict_serializer)
+
+        return Response(data=conflict_serializer.data, status=status.HTTP_201_CREATED)
 
 
     

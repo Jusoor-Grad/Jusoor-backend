@@ -1,7 +1,4 @@
 from rest_framework import serializers
-from rest_framework.generics import GenericAPIView
-from typing import Dict
-
 from core.models import KFUPMDepartment
 
 
@@ -14,10 +11,7 @@ class HttpSuccessResponeSerializer(serializers.Serializer):
     message = serializers.CharField()
     status = serializers.IntegerField()
     data = serializers.CharField()
-
-
-
-
+    
 class HttpPaginatedSerializer(serializers.Serializer):
 
     count = serializers.IntegerField()
@@ -37,6 +31,7 @@ class KFUPMDepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = KFUPMDepartment
         fields = ['id', 'short_name', 'long_name']
+
 
 class HttpKFUPMDepartmentResponseSerializer(HttpPaginatedSerializer):
     results = KFUPMDepartmentSerializer(many=True)

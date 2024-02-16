@@ -54,3 +54,11 @@ REFERRER_OR_REFEREE_FIELD = [REFERRER_FIELD, REFEREE_FIELD]
 
 PATIENT_FIELD = 'patient'
 
+WEEK_DAYS = [
+    'sunday'
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    
+]
