@@ -51,12 +51,12 @@ class StudentPatient(TimeStampedModel):
     department = models.ForeignKey('KFUPMDepartment', on_delete=models.PROTECT, related_name='students', null=True, blank=True)
 
     @staticmethod
-    def create(username: str, email: str, password: str, department: str):
+    def create(username: str, email: str, password: str):
         """
         Method to create a new patient profile
         """
         user = get_user_model().objects.create_user(username=username, email=email, password=password)       
-        patient = StudentPatient.objects.create(user=user, department=department)
+        patient = StudentPatient.objects.create(user=user)
         user.groups.add(Group.objects.get(name=UserRole.PATIENT.value))
         user.save()
 

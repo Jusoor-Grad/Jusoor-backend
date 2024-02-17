@@ -29,7 +29,7 @@ class AuthService:
 
 
 
-        patient, user = StudentPatient.create(username, email, password, )
+        patient, user = StudentPatient.create(username, email, password)
         
         return user
 
