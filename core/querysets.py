@@ -5,7 +5,7 @@ from django.utils import timezone
 from numpy import isin
 from rest_framework.generics import GenericAPIView
 from django.contrib.auth import get_user_model
-from core.enums import PATIENT_PROFILE_FIELD, QuerysetBranching, UserRole
+from core.enums import PATIENT_PROFILE_FIELD, QuerysetBranching, UserRole, THERAPIST_PROFILE_FIELD
 from abc import ABC, abstractmethod
 
 class SoftDeletedQuerySet(QuerySet):
@@ -146,7 +146,7 @@ class OwnedQS(QSWrapperFilter):
         if len(self.ownership_fields) > 1:
             for field in self.ownership_fields[1:]:
                 filters |= Q(**{field: user})
-
+        
         return self._extract_qs(view, qs).filter(filters)
         
 
@@ -163,7 +163,7 @@ class TherapistOwnedQS(OwnedQS):
         shotcut to use querysets owned by a therapist
     """
     def __init__(self, ownership_fields: List[str] = [UserRole.THERAPIST.value]) -> None:
-        super().__init__(ownership_fields= ownership_fields, user_model_rel=PATIENT_PROFILE_FIELD)
+        super().__init__(ownership_fields= ownership_fields, user_model_rel=THERAPIST_PROFILE_FIELD)
 
 class UserGroupQS(QSWrapperBranch):
     """Queryset mapper based on user group membership"""
