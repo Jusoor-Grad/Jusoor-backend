@@ -7,11 +7,6 @@
       "pylint_django",
       "--django-settings-module=watchtower.settings"
     ],
-    "[python]": {
-      "editor.defaultFormatter": "ms-python.black-formatter",
-      "editor.formatOnType": false,
-      "editor.formatOnSave": true,
-    },
     "formatFiles.excludePattern": "**migrations,**__pycache__",
     "formatFiles.excludedFolders": [
       "node_modules",

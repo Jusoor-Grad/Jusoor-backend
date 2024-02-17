@@ -1,12 +1,12 @@
 import json
 from multiprocessing import context
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin
+from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED, PATIENT_FIELD, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
 from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest
-from .serializers import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpAppointmentUpdateSerializer, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer
+from .serializers import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpAppointmentUpdateSerializer, HttpAvailabilityTimeslotUpdateSuccessResponse, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer, AvailabilityTimeslotBatchUpdateSerializer
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
 from core.enums import QuerysetBranching, UserRole
@@ -23,7 +23,6 @@ from core.renderer import FormattedJSONRenderrer
 from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSerializer
 from core.http import Response
 from django.utils.translation import gettext as _
-
 
 class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
     """View for appointments functionality"""
@@ -121,7 +120,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
 
 
 
-class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
+class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin):
     """View for availability timeslot functionality"""
 
     ordering_fields = ['start_at']
@@ -131,22 +130,23 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         'therapist': ['exact']
     }
     
-
     action_permissions = {
         'list': [IsAuthenticated],
         'retrieve': [IsAuthenticated],
         'create': [IsTherapist()],
         'batch_create': [IsTherapist()],
         'update': [IsTherapist()],
-        'batch_update': [IsTherapist()]       
+        'batch_update': [IsTherapist()],
+        'destroy': [IsTherapist()]       
     }
+
     serializer_class_by_action = {
         'list': AvailabilityTimeslotReadSerializer ,
         'retrieve': AvailabilityTimeslotReadSerializer,
         'create': AvailabilityTimeslotCreateSerializer,
         'batch_create': AvailabilityTimeslotBatchCreateSerializer,
         'update': AvailabilityTimeslotSingleUpdateSerializer,
-        'batch_update': None,
+        'batch_update': AvailabilityTimeslotBatchUpdateSerializer,
     }
 
     queryset_by_action = {
@@ -154,16 +154,15 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         'retrieve': AvailabilityTimeSlot.objects.all().select_related('therapist__user'),
         'update': QSWrapper(AvailabilityTimeSlot.objects.all())
                     .branch({
-                        UserRole.PATIENT.value: OwnedQS(ownership_fields=[UserRole.PATIENT.value])
+                        UserRole.THERAPIST.value: TherapistOwnedQS()
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         pass_through=[UserRole.THERAPIST.value]),
         'batch_update': QSWrapper(AvailabilityTimeSlot.objects.all())
                         .branch({
-                            UserRole.PATIENT.value: OwnedQS(ownership_fields=[UserRole.PATIENT.value])
+                            UserRole.THERAPIST.value: TherapistOwnedQS()
                             },
-                            by=QuerysetBranching.USER_GROUP, 
-                            pass_through=[UserRole.THERAPIST.value])
+                            by=QuerysetBranching.USER_GROUP)
     }
    
     
@@ -219,12 +218,27 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         self.perform_create(conflict_serializer)
 
         return Response(data=conflict_serializer.data, status=status.HTTP_201_CREATED)
-
-
     
-    def update(self, request):
-        """update a specific availability timeslot for the logged in user"""
-        pass
+    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotUpdateSuccessResponse(), 400: HttpAvailabilityTimeslotUpdateSuccessResponse()})
+    @action(
+        methods=['PUT'],
+        detail=True,
+    )
+    def batch_update(self, request, *args, **kwargs):
+
+        instance = self.get_object()
+        serializer = self.get_serializer(instance=instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        print('Hello?')
+        self.perform_update(serializer)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+    
+    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotUpdateSuccessResponse(), 400: HttpReferralRequestUpdateResponseSerializer()})
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+
 
 
 class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMapperMixin, GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
@@ -319,6 +333,8 @@ class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMappe
         instance = self.get_object()
         serializer = self.get_serializer(instance=instance, data=request.data)
         serializer.is_valid(raise_exception=True)
+        
+        self.perform_update(serializer)
 
-        return self.perform_update(serializer)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 

@@ -1,4 +1,4 @@
-import attrs
+
 from rest_framework import serializers
 from appointments.constants.enums import ACCEPTED, PENDING, PENDING_THERAPIST, REJECTED, WEEK_DAYS
 from appointments.models import Appointment, PatientReferralRequest
@@ -11,7 +11,7 @@ from appointments.models import Appointment, AvailabilityTimeSlot, TherapistAssi
 from core.http import ValidationError
 from django.utils import timezone
 from core.serializers import  HttpSuccessResponeSerializer
-from django.db.models import Q
+from django.db.models import Q, F
 from django.utils import timezone
 from rest_framework import serializers
 from appointments.models import AvailabilityTimeSlot, AvailabilityTimeSlotGroup
@@ -24,6 +24,7 @@ from core.types import DatetimeInterval
 from core.utils.time import TimeUtil
 from django.db.models.functions import ExtractHour, ExtractMinute, ExtractWeekDay
 from django.utils.translation import gettext as _
+from datetime import datetime
 
 class ReferralRequestReadSerializer(serializers.ModelSerializer):
     """Serializer for listing referral requests"""
@@ -123,6 +124,17 @@ class HttpReferralRequestReplyResponseSerializer(HttpSuccessResponeSerializer):
     data = ReferralRequestReplySerializer()
 
 
+class RawAvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
+    """Serializer for listing availability timeslots"""
+    therapist = serializers.SerializerMethodField()
+
+    def get_therapist(self, instance):
+
+        return TherapistReadSerializer(instance=instance.therapist.user).data
+    
+    class Meta:
+        model = AvailabilityTimeSlot
+        fields = ['id', 'therapist', 'start_at', 'end_at', 'created_at']
 
 class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
     """Serializer for listing availability timeslots"""
@@ -297,14 +309,15 @@ class AvailabilityTimeslotBatchCreateSerializer(FutureDatetimeIntervalSerializer
         possible_conflicting_timeslots = AvailabilityTimeSlot.objects.filter(
             Q(therapist= Therapist.objects.get(user=self.context['request'].user)) & 
             # filter to get all timeslots with any region possibly contained within the new declared timeslots
-            (Q(start_at__lte=attrs['start_at'], end_at__lte=attrs['end_at'], end_at__gte=attrs['start_at']) |
+            ((Q(start_at__lte=attrs['start_at'], end_at__lte=attrs['end_at'], end_at__gte=attrs['start_at']) |
             Q(start_at__lte=attrs['end_at'], start_at__gte=attrs['start_at'], end_at__gte=attrs['end_at'])) | 
             # checking if timeslot is fully contained within a single timeslot
-            (Q(start_at__gte=attrs['start_at'], end_at__lte=attrs['end_at'])) |
+            Q(start_at__gte=attrs['start_at'], end_at__lte=attrs['end_at']) |
             # checking if a single timeslots spans the full specified timeslot
-            (Q(start_at__lte=attrs['start_at'], end_at__gte=attrs['end_at']))
+            Q(start_at__lte=attrs['start_at'], end_at__gte=attrs['end_at']))
             )
-
+        print('POSSIIBLE CONFLICTS', possible_conflicting_timeslots)
+        print('THERAPIST', Therapist.objects.get(user=self.context['request'].user).pk)
         # setting up an error collection object for precise error reporting
         error_obj = {
             'sunday': {
@@ -423,74 +436,109 @@ class BatchCreateFinalWrapperSerializer(serializers.Serializer):
 class HttpErrorAvailabilityTimeslotBatchCreateResponse(HttpErrorResponseSerializer):
     data = HttpCreateTimeslotRawErrorSerializer()
     
-class AvailabilityTimeslotBatchUpdateSerializer(serializers.Serializer):
+class AvailabilityTimeslotBatchUpdateSerializer(TimeIntervalSerializer):
     """
         Serializer to only update the successive timeslots IN ONE TIME INTERVAL
         WITHIN THE TIMESLOT GROUP
     """
-    start_at = serializers.DateTimeField(required=True)
-    timeslot = serializers.IntegerField(required=True)
     force_drop = serializers.BooleanField(default=False)
 
-    def validate_timeslot(self, value):
-        
-        if not AvailabilityTimeSlot.objects.filter(pk=value).exists():
-            raise ValidationError(_('The timeslot does not exist'))
+    def validate(self, value):
 
+        # 1. checking for conflict with other timeslots by the same therapist
+        conflicting_timeslots = AvailabilityTimeSlot.objects.annotate(
+            weekday= ExtractWeekDay('start_at'),
+        ).filter(
+            Q(therapist= Therapist.objects.get(user=self.context['request'].user)) &
+            Q(weekday=(self.instance.start_at.weekday() + 2) % 7) &
+            ~Q(pk=self.instance.pk) & 
+            (Q(start_at__time__lte=value['start_at'], end_at__time__gte=value['start_at']) |
+            Q(start_at__time__lte=value['end_at'], end_at__time__gte=value['end_at']))
+            )
         
+        if conflicting_timeslots.exists():
+            raise ValidationError(message=_('The following timeslots conflict with new updated timeslots: '), data={
+                'conflicting_timeslots': AvailabilityTimeslotReadSerializer(instance=conflicting_timeslots, many=True).data
+            })
+        
+        # 2. checking that no appointment linked to this timeslot fall out of the new interval, if froce drop is not true
+        if value.get('force_drop', False):
+            appointments = self.instance.linked_appointments.annotate(
+                weekday= ExtractWeekDay('start_at'),
+            ).filter(
+                Q(weekday=(self.instance.start_at.weekday() + 2) % 7) &
+                Q(start_at__time__lt=value['start_at']) | Q(end_at__time__gt=value['end_at'])
+            )
 
+            # TODO: include in error object
+            if appointments.exists():
+                raise ValidationError(message=_('The following appointments fall out of the new interval: '), data={
+                    'dropped_appointments': AppointmentReadSerializer(instance=appointments, many=True).data
+                })
+        
         return value
 
 
 
     def update(self, instance, validated_data):
         
-        #  create a new availability timeslot group for the updated group of updated intervals
+        # create a new availability timeslot group for the updated group of updated intervals
         group = AvailabilityTimeSlotGroup.objects.create()
         # drop any appointments outside the boundaries of new intervals
-        if attrs.get('force_drop', False):
+        if validated_data.get('force_drop', True):
             Appointment.objects.annotate(weekday = ExtractWeekDay('start_at')).filter(
                 Q(timeslot__group=instance.group) &
-                Q(weekday=instance.start_at.weekday()) &
-                Q(start_at__time__gte=instance.start_at.time()) & Q(end_at__time__lte=instance.end_at.time())
+                Q(weekday=(instance.start_at.weekday() + 2) % 7) &
+                # filtering appointments that were originally inside timeslot and now outside
                 (Q(start_at__time__lt=validated_data['start_at']) | Q(end_at__time__gt=validated_data['end_at']))
             ).update(timeslot=None)
 
-        AvailabilityTimeSlot.objects\
+        affected_slots = AvailabilityTimeSlot.objects\
         .annotate(weekday= ExtractWeekDay('start_at'), 
         start_hour=ExtractHour('start_at'),
         start_minute=ExtractMinute('start_at'),
         end_hour=ExtractHour('end_at'),
         end_minute=ExtractMinute('end_at')).filter(
-            Q(group=instance.group) &
-            Q(weekday = instance.start_at.weekday()) &
+            # get all parallel timeslots with same group and time range
+            Q(group=instance.group)&
+            Q(weekday = (instance.start_at.weekday() + 2) % 7) & 
             Q(start_hour=instance.start_at.hour) &
             Q(start_minute=instance.start_at.minute) &
             Q(end_hour=instance.end_at.hour) &
-            Q(end_minute=instance.end_at.minute)
-        ).update(timeslot=None, group=group, start_at= validated_data['start_at'], end_at=validated_data['end_at'])
+            Q(end_minute=instance.end_at.minute) &
+            Q(start_at__gte = instance.start_at) ## only update future timeslots only
+            )
+        
+        
+        for timeslot in affected_slots:
+            print(timeslot.start_at.strftime("%A"), instance.start_at.strftime("%A"))
+            timeslot.group=group
+            timeslot.start_at = datetime.combine(timeslot.start_at, validated_data['start_at']) 
+            timeslot.end_at = datetime.combine(timeslot.end_at, validated_data['end_at'])
 
-
+        AvailabilityTimeSlot.objects.bulk_update(affected_slots, ['group', 'start_at', 'end_at'])
 
         return validated_data
 
 
-class AvailabilityTimeslotSingleUpdateSerializer(serializers.Serializer):
+class AvailabilityTimeslotSingleUpdateSerializer(TimeIntervalSerializer):
     """
         Serializer for updating a single availability timeslot
     """
-    start_at = serializers.DateTimeField(required=True)
-    end_at = serializers.DateTimeField(required=True)
     force_drop = serializers.BooleanField(default=False)
 
 
     def validate(self, attrs):
 
+        start_at = self.instance.start_at.combine(self.instance.start_at.date(), attrs['start_at'])
+        end_at = self.instance.end_at.combine(self.instance.end_at.date(), attrs['end_at'])
+
         # 1. checking for conflict with other timeslots by the same therapist
         conflicting_timeslots = AvailabilityTimeSlot.objects.filter(
-            Q(therapist= Therapist.objects.get(user=self.context['request'].user)) & 
-            (Q(start_at__lte=attrs['start_at'], end_at__gte=attrs['start_at']) |
-            Q(start_at__lte=attrs['end_at'], end_at__gte=attrs['end_at']))
+            Q(therapist= Therapist.objects.get(user=self.context['request'].user)) &
+            ~Q(pk=self.instance.pk) & 
+            (Q(start_at__lte=start_at, end_at__gte=start_at) |
+            Q(start_at__lte=end_at, end_at__gte=end_at))
             )
 
         if conflicting_timeslots.exists():
@@ -502,33 +550,57 @@ class AvailabilityTimeslotSingleUpdateSerializer(serializers.Serializer):
         # 2. checking that no appointment linked to this timeslot fall out of the new interval, if froce drop is not true
         if attrs.get('force_drop', False):
             appointments = self.instance.linked_appointments.filter(
-                Q(start_at__lt=attrs['start_at']) | Q(end_at__gt=attrs['end_at'])
+                Q(start_at__lt=start_at) | Q(end_at__gt=end_at)
             )
-
+            # TODO: include in error object
             if appointments.exists():
                 raise ValidationError(message=_('The following appointments fall out of the new interval: '), data={
-                    'interval': attrs,
-                    'conflicting_appointments': AppointmentReadSerializer(instance=appointments, many=True).data
+                    'dropped_appointments': AppointmentReadSerializer(instance=appointments, many=True).data
                 })
+            
+        return attrs
         
 
     def update(self, instance, validated_data):
 
         # drop all appointments falling out of range when using force drop
         if validated_data.get('force_drop', True):
-            self.instance.linked_appointments.filter(
+            instance.linked_appointments.filter(
                 Q(start_at__lt=validated_data['start_at']) | Q(end_at__gt=validated_data['end_at'])
             ).update(timeslot=None)
 
-        instance.start_at = validated_data.get('start_at', instance.start_at)
-        instance.end_at = validated_data.get('end_at', instance.end_at)
+        start_at = self.instance.start_at.combine(self.instance.start_at.date(), validated_data['start_at'])
+        end_at = self.instance.end_at.combine(self.instance.end_at.date(), validated_data['end_at'])
+
+        instance.start_at = start_at
+        instance.end_at = end_at
         instance.group = None ## detaching the updated instnace from the timeslot group to avoid problems in batch editing
         instance.save()
-        return instance
+
+        return validated_data
 
 
+class UpdateErrorInnerWrapperSerializer(serializers.Serializer):
+    conflicting_timeslots = AvailabilityTimeslotReadSerializer(many=True, allow_null=True)
+    dropped_appointments = AvailabilityTimeslotReadSerializer(many=True, allow_null=True)
+
+class UpdateErrorOuterWrapperSerializer(serializers.Serializer):
+    data = UpdateErrorInnerWrapperSerializer()
+    error = serializers.ListSerializer(child=serializers.CharField())
+
+class ErrorAvailabilityTimeslotSingleUpdateFinalResponseWrapper(serializers.Serializer):
+    errors = UpdateErrorOuterWrapperSerializer()
+
+class HttpErrorAvailabilityTimeslotSingleUpdateResponse(HttpErrorResponseSerializer):
+    data = AvailabilityTimeslotSingleUpdateSerializer()
+
+class HttpAvailabilityTimeslotUpdateSuccessResponse(HttpSuccessResponeSerializer):
+    data = AvailabilityTimeslotSingleUpdateSerializer()
 
 # ---------- Appointments ----------
+    
+
+
 
 class AppointmentReadSerializer(serializers.ModelSerializer):
     """Serializer for listing appointments"""
