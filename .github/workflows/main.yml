@@ -36,4 +36,4 @@ jobs:
           pip install -r requirements.txt
       - name: Run the test
         run: |
-          pytest -vv
+          pytest -vv --no-migrations
