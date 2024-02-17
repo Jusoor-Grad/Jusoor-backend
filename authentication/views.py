@@ -28,7 +28,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
     action_permissions = {
         'login': [AllowAny],
         'signup': [AllowAny],
-        'logout': [IsAuthenticated]
+        'logout': [AllowAny]
     }
     serializer_class_by_action = {
         'login': UserLoginSerializer,
