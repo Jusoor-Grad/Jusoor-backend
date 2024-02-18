@@ -7,7 +7,7 @@ from authentication.models import User
 from core.http import ValidationError
 from core.models import KFUPMDepartment, StudentPatient
 from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
-from core.serializers import HttpPaginatedSerializer, HttpSuccessResponeSerializer
+from core.serializers import HttpPaginatedSerializer, HttpSuccessResponeSerializer, HttpErrorSerializer
 from .services.encryption import AESEncryptionService
 
 class UserLoginSerializer(serializers.Serializer):
@@ -16,14 +16,32 @@ class UserLoginSerializer(serializers.Serializer):
 	email = serializers.EmailField(allow_blank=False, max_length=150)
 	password = serializers.CharField(allow_blank=False, max_length=128)
 
+class LoginInnerWrapperSerializer(serializers.Serializer):
+	"""Serializer used for login credential validation on data level"""
+	email = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150))
+	password = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
+class LoginErrorWrapperSerializer(HttpErrorSerializer):
+	errors = LoginInnerWrapperSerializer()
+
+class HttpLoginErrorSerializer(HttpErrorSerializer):
+	data = LoginErrorWrapperSerializer()
+
 class PatientSignupSerializer(serializers.Serializer):
 	"""Serializer used for signup credential validation on data level"""
-	
 	email = serializers.EmailField(allow_blank=False, max_length=150)
 	username = serializers.CharField(allow_blank=False, max_length=150)
 	password = serializers.CharField(allow_blank=False, max_length=128)
 
+class SignupInnerWrapperSerializer(serializers.Serializer):
+	"""Serializer used for Signup credential validation on data level"""
+	email = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150))
+	username = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
+	password = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
+class SignupErrorWrapperSerializer(HttpErrorSerializer):
+	errors = SignupInnerWrapperSerializer()
 
+class HttpSignupErrorSerializer(HttpErrorSerializer):
+	data = LoginErrorWrapperSerializer()
 
 class TokenResponseSerializer(serializers.Serializer):
 	"""Serializer used for login response validation on data level"""

@@ -1,3 +1,4 @@
+from turtle import st
 from rest_framework.viewsets import ViewSet
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -7,7 +8,7 @@ from authentication.permissions import IsPatient, IsTherapist
 from core.http import Response, ValidationError
 from core.mixins import SerializerMapperMixin
 
-from .serializers import HttpTokenResponseSerializer, HttpTherapistReadResponseSerializer, HttpTokenRefreshResponseSerializer, HttpPatientReadResponseSerializer, TokenResponseSerializer, TherapistReadSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, PatientReadSerializer
+from .serializers import HttpLoginErrorSerializer, HttpSignupErrorSerializer, HttpTokenResponseSerializer, HttpTherapistReadResponseSerializer, HttpTokenRefreshResponseSerializer, HttpPatientReadResponseSerializer, TokenResponseSerializer, TherapistReadSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, PatientReadSerializer
 from .services.auth import AuthService, User
 from .constants.placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP, TOKEN_INVALID, TOKEN_REFRESHED
 from core.placeholders import ERROR, SUCCESS, CREATED
@@ -36,8 +37,10 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
     }
 
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpTokenResponseSerializer(),
-    status.HTTP_401_UNAUTHORIZED: HttpErrorResponseSerializer()},
+    @swagger_auto_schema(responses=
+    {status.HTTP_200_OK: HttpTokenResponseSerializer(),
+    status.HTTP_401_UNAUTHORIZED: HttpErrorResponseSerializer(),
+    status.HTTP_400_BAD_REQUEST: HttpLoginErrorSerializer()},
     )
     @action(methods=['POST'], detail=False)
     def login(self, request):
@@ -56,7 +59,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
             return Response(
                 status=status.HTTP_401_UNAUTHORIZED, message= INVALID_CREDENTIALS, data=None,
                 )
-        login(request, user, 'authentication.backends.HashedEmailAuthBackend') ## used to track login timestamp in DB
+        login(request, user, 'authentication.backends.EmailAuthBackend') ## used to track login timestamp in DB
         # 3. generate the JWT token
         tokens = AuthService.generate_tokens(user)
 
@@ -64,7 +67,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         return Response(data=tokens.model_dump(),
         message= LOGGED_IN, status=status.HTTP_200_OK)
     
-    @swagger_auto_schema(responses= {status.HTTP_200_OK: HttpTokenResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrorResponseSerializer() })
+    @swagger_auto_schema(responses= {status.HTTP_200_OK: HttpTokenResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpSignupErrorSerializer() })
     @action(methods=['POST'], detail=False)
     def signup(self, request):
         """signup a new user using his email and password"""
@@ -78,7 +81,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         user = AuthService.patient_signup(email=data['email'], password=data['password'], username=data['username'])
         # TODO: send a verification email to the user before activating his account
         # 3. generate the JWT token
-        login(request, user, 'authentication.backends.HashedEmailAuthBackend') ## used to track login timestamp in DB
+        login(request, user, 'authentication.backends.EmailAuthBackend') ## used to track login timestamp in DB
         # 3. generate the JWT token
         tokens = AuthService.generate_tokens(user)
 

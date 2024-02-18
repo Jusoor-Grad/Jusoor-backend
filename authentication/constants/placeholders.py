@@ -7,8 +7,8 @@ from django.utils.translation import gettext_lazy as _
 
 #  --------------- Errors ---------------
 
-INVALID_CREDENTIALS = _("INVALID_CREDENTIALS")
-DUPLICATE_CREDENTIALS = _("DUPLICATE_CREDENTIALS")
+INVALID_CREDENTIALS = _("Invalid credentials")
+DUPLICATE_CREDENTIALS = _("Duplicate Credentials")
 
 #  --------------- ENV KEYS ---------------
 
