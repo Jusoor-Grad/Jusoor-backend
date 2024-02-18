@@ -168,13 +168,18 @@ class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing availability timeslots"""
 	therapist = serializers.SerializerMethodField()
 
+	linked_appointments = serializers.SerializerMethodField()
+
+	def get_linked_appointments(self, instance):
+		return RawAppointmentReadSerializer(instance=instance.linked_appointments, many=True).data
+
 	def get_therapist(self, instance):
 
 		return TherapistReadSerializer(instance=instance.therapist.user).data
 	
 	class Meta:
 		model = AvailabilityTimeSlot
-		fields = ['id', 'therapist', 'start_at', 'end_at', 'created_at']
+		fields = ['id', 'therapist', 'linked_appointments',  'start_at', 'end_at', 'created_at']
 
 class HttpPaginatedAvailabilityTimeslotListSerializer(HttpPaginatedSerializer):
 	"""Serializer for listing availability timeslots"""
@@ -664,6 +669,15 @@ class AppointmentReadSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Appointment
 		fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at']
+
+class RawAppointmentReadSerializer(serializers.ModelSerializer):
+	"""Serializer for listing appointments"""
+	
+	
+
+	class Meta:
+		model = Appointment
+		fields = ['id', 'patient', 'status', 'start_at', 'end_at']
 
 class HttpAppointmentRetrieveSerializer(HttpSuccessResponeSerializer):
 	"""Serializer used for swagger HTTP schema"""

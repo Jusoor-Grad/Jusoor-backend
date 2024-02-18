@@ -166,7 +166,7 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
 
     queryset_by_action = {
         'list': AvailabilityTimeSlot.objects.all().select_related('therapist__user'),
-        'retrieve': AvailabilityTimeSlot.objects.all().select_related('therapist__user'),
+        'retrieve': AvailabilityTimeSlot.objects.all().prefetch_related('therapist__user', 'linked_appointments__patient__user'),
         'update': QSWrapper(AvailabilityTimeSlot.objects.all())
                     .branch({
                         UserRole.THERAPIST.value: TherapistOwnedQS()
