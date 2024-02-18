@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED, PATIENT_FIELD, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
 from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest
-from .serializers import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpErrAppointmentCreateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpErrAppointmentUpdateSerializer, HttpSuccessAppointmentUpdateSerializer, HttpAvailabilityTimeslotUpdateSuccessResponse, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer, AvailabilityTimeslotBatchUpdateSerializer
+from .serializers import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeSlotDestroySerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpErrAppointmentCreateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpErrAppointmentUpdateSerializer, HttpErrReferralRequestCreateSerializer, HttpErrReferralRequestReplySerializer, HttpErrorAvailabilityTimeslotDestroyErrorResponse, HttpErrorAvailabilityTimeslotSingleUpdateResponse, HttpReferralRequestCreateResponseSerializer, HttpReferralRequestReplyResponseSerializer, HttpSuccessAppointmentUpdateSerializer, HttpAvailabilityTimeslotUpdateSuccessResponse, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer, AvailabilityTimeslotBatchUpdateSerializer
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
 from core.enums import QuerysetBranching, UserRole
@@ -161,6 +161,7 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         'update': AvailabilityTimeslotSingleUpdateSerializer,
         'partial_update': AvailabilityTimeslotSingleUpdateSerializer,
         'batch_update': AvailabilityTimeslotBatchUpdateSerializer,
+        'destroy': AvailabilityTimeSlotDestroySerializer
     }
 
     queryset_by_action = {
@@ -179,6 +180,11 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
                         by=QuerysetBranching.USER_GROUP, 
                         ),
         'batch_update': QSWrapper(AvailabilityTimeSlot.objects.all())
+                        .branch({
+                            UserRole.THERAPIST.value: TherapistOwnedQS()
+                            },
+                            by=QuerysetBranching.USER_GROUP),
+        'destroy': QSWrapper(AvailabilityTimeSlot.objects.all())
                         .branch({
                             UserRole.THERAPIST.value: TherapistOwnedQS()
                             },
@@ -238,7 +244,7 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
 
         return Response(data=conflict_serializer.data, status=status.HTTP_201_CREATED)
     
-    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotUpdateSuccessResponse(), 400: HttpAvailabilityTimeslotUpdateSuccessResponse()})
+    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotUpdateSuccessResponse(), 400: HttpErrorAvailabilityTimeslotSingleUpdateResponse()})
     @action(
         methods=['PUT'],
         detail=True,
@@ -252,14 +258,32 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         print('Hello?')
         self.perform_update(serializer)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
-    
-    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotUpdateSuccessResponse(), 400: HttpReferralRequestUpdateResponseSerializer()})
+    # TODO: add error serializers
+    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotUpdateSuccessResponse(), 400:HttpErrorAvailabilityTimeslotSingleUpdateResponse()})
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
     
-    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotUpdateSuccessResponse(), 400: HttpReferralRequestUpdateResponseSerializer()})
+    @swagger_auto_schema(responses={200: HttpAvailabilityTimeslotUpdateSuccessResponse(), 400: HttpErrorAvailabilityTimeslotSingleUpdateResponse()})
     def partial_update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(responses={200: None,400: HttpErrorAvailabilityTimeslotDestroyErrorResponse()})
+    def destroy(self, request, *args, **kwargs):
+
+        instance = self.get_object()
+
+        serializer = self.get_serializer(instance=instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+
+        
+        if serializer.data.get('force_drop', False):
+            instance.linked_appointments.all().delete()
+        
+        self.perform_destroy(instance)
+
+
+        return Response(data=None, status=status.HTTP_200_OK)
     
 
 
@@ -283,7 +307,8 @@ class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMappe
         'create': [IsAuthenticated],
         'update': [IsPatient()],
         'partial_update': [IsPatient()],
-        'reply': [IsTherapist()]
+        'reply': [IsTherapist()],
+        
     }
     serializer_class_by_action = {
         'list': ReferralRequestReadSerializer,
@@ -334,20 +359,20 @@ class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMappe
         return super().retrieve(request, *args, **kwargs)
 
    
-    @swagger_auto_schema(responses={200: HttpReferralRequestRetrieveSerializer()})
+    # TODO: add error serializers
+    @swagger_auto_schema(responses={200: HttpReferralRequestCreateResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrReferralRequestCreateSerializer()})
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-   
-    @swagger_auto_schema(responses={200: HttpReferralRequestUpdateResponseSerializer()})
+    @swagger_auto_schema(responses={200: HttpReferralRequestUpdateResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrReferralRequestCreateSerializer()})
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
 
-    @swagger_auto_schema(responses={200: HttpReferralRequestUpdateResponseSerializer(partial=True)})
+    @swagger_auto_schema(responses={200: HttpReferralRequestUpdateResponseSerializer(partial=True), status.HTTP_400_BAD_REQUEST: HttpErrReferralRequestCreateSerializer()})
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
-    @swagger_auto_schema(responses={200: HttpReferralRequestUpdateResponseSerializer()})    
+    @swagger_auto_schema(responses={200: HttpReferralRequestReplyResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrReferralRequestReplySerializer()})    
     @action(methods=['PATCH'], detail=True)
     def reply(self, request, *args, **kwargs):
         """

@@ -4,7 +4,7 @@ from appointments.constants.enums import ACCEPTED, PENDING, PENDING_THERAPIST, R
 from appointments.models import Appointment, PatientReferralRequest
 from authentication.serializers import UserReadSerializer
 from core.http import ValidationError
-from core.serializers import HttpSuccessResponeSerializer
+from core.serializers import HttpErrorSerializer, HttpSuccessResponeSerializer
 from rest_framework import serializers
 from appointments.constants.enums import ACTIVE
 from appointments.models import Appointment, AvailabilityTimeSlot, TherapistAssignment
@@ -76,6 +76,20 @@ class HttpReferralRequestCreateResponseSerializer(HttpSuccessResponeSerializer):
 	"""Serializer for creating referral requests"""
 	data = ReferralRequestCreateSerializer()
 
+class ReferralRequestCreateErrorInnerWrapperSerializer(serializers.Serializer):
+	"""Serializer used for Signup credential validation on data level"""
+	referee = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150))
+	reason = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
+	error = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
+
+class ReferralRequestCreateErrorOuterWrapperSerializer(serializers.Serializer):
+	errors = ReferralRequestCreateErrorInnerWrapperSerializer()
+
+class HttpErrReferralRequestCreateSerializer(HttpErrorResponseSerializer):
+	"""Serializer used for swagger HTTP schema"""
+	data = ReferralRequestCreateErrorOuterWrapperSerializer()
+
+
 class ReferralRequestUpdateSerializer(serializers.ModelSerializer):
 
 	def validate(self, attrs):
@@ -89,9 +103,11 @@ class ReferralRequestUpdateSerializer(serializers.ModelSerializer):
 		model = PatientReferralRequest
 		fields = ['referee', 'reason']
 
+
 class HttpReferralRequestUpdateResponseSerializer(HttpSuccessResponeSerializer):
 	"""Serializer for updating referral requests"""
 	data = ReferralRequestUpdateSerializer()
+
 
 class ReferralRequestReplySerializer(serializers.ModelSerializer):
 
@@ -124,6 +140,17 @@ class HttpReferralRequestReplyResponseSerializer(HttpSuccessResponeSerializer):
 	"""Serializer for updating referral requests"""
 	data = ReferralRequestReplySerializer()
 
+class ReferralRequestReplyErrorInnerWrapperSerializer(serializers.Serializer):
+	"""Serializer used for Signup credential validation on data level"""
+	status = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150))
+	error = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
+
+class ReferralRequestReplyErrorOuterWrapperSerializer(serializers.Serializer):
+	errors = ReferralRequestReplyErrorInnerWrapperSerializer()
+
+class HttpErrReferralRequestReplySerializer(HttpErrorResponseSerializer):
+	"""Serializer used for swagger HTTP schema"""
+	data = ReferralRequestReplyErrorOuterWrapperSerializer()
 
 class RawAvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing availability timeslots"""
@@ -596,11 +623,32 @@ class UpdateErrorOuterWrapperSerializer(serializers.Serializer):
 class ErrorAvailabilityTimeslotSingleUpdateFinalResponseWrapper(serializers.Serializer):
 	errors = UpdateErrorOuterWrapperSerializer()
 
+# TODO: fix the serializers
 class HttpErrorAvailabilityTimeslotSingleUpdateResponse(HttpErrorResponseSerializer):
-	data = AvailabilityTimeslotSingleUpdateSerializer()
+	data = ErrorAvailabilityTimeslotSingleUpdateFinalResponseWrapper()
 
 class HttpAvailabilityTimeslotUpdateSuccessResponse(HttpSuccessResponeSerializer):
 	data = AvailabilityTimeslotSingleUpdateSerializer()
+
+
+class AvailabilityTimeSlotDestroySerializer(serializers.ModelSerializer):
+
+	force_drop = serializers.BooleanField(default=False)
+
+	def validate(self, attrs):
+		
+		# 1. checking that no appointment linked to this timeslot fall out of the new interval, if froce drop is not true
+		if attrs.get('force_drop', False) and self.instance.linked_appointments.exists():
+			raise ValidationError(message=_('The following appointments will be dropped: '), data={
+				'dropped_appointments': AppointmentReadSerializer(instance=self.instance.linked_appointments, many=True).data
+			})
+		
+		return attrs
+
+
+	class Meta:
+		model = AvailabilityTimeSlot
+		fields = ['id', 'force_drop']
 
 # ---------- Appointments ----------
 	
@@ -783,3 +831,9 @@ class AppointmentUpdateErrorOuterWrapperSerializer(serializers.Serializer):
 class HttpErrAppointmentUpdateSerializer(HttpErrorResponseSerializer):
 	"""Serializer used for swagger HTTP schema"""
 	data = AppointmentUpdateErrorOuterWrapperSerializer()
+
+
+class DestroyAvailabilityTimeslotErrorInnerWrapperSerializer(serializers.Serializer):
+	dropped_appointments = AppointmentReadSerializer(many=True, allow_null=True)
+class HttpErrorAvailabilityTimeslotDestroyErrorResponse(HttpErrorSerializer):
+	data = DestroyAvailabilityTimeslotErrorInnerWrapperSerializer()
