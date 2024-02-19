@@ -1,4 +1,3 @@
-from turtle import st
 from rest_framework.viewsets import ViewSet
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -93,7 +92,11 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
     @action(methods=['POST'], detail=False)
     def logout(self, request):
         """logout a user by blacklisting his refresh token"""
-        AuthService.logout(request.data['refresh'])
+        try:
+            AuthService.logout(request.data['refresh'])
+        except:
+            raise ValidationError(TOKEN_INVALID)
+
         return Response(status=status.HTTP_200_OK)
 
 class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
