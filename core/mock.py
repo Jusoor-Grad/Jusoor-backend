@@ -22,7 +22,6 @@ class UserMock:
             email = faker.ascii_free_email()
             password= faker.password(length=12)
 
-            print(email, password)
             users.append(
                 User.objects.create_user(
                     username= faker.name(),
@@ -57,7 +56,7 @@ class TherapistMock:
 
         therapists = Therapist.objects.bulk_create(therapists)
 
-        gr = Group.objects.get(name=UserRole.THERAPIST.value)
+        gr , _= Group.objects.get_or_create(name=UserRole.THERAPIST.value)
         for therapist in therapists:
             gr.user_set.add(therapist.user)
         
@@ -75,7 +74,7 @@ class PatientMock:
         patients = []
         random_department = KFUPMDepartment.objects.all().order_by('?').first()
         users = UserMock.mock_instances(n=n)
-        gr = Group.objects.get(name=UserRole.PATIENT.value)
+        gr, _ = Group.objects.get_or_create(name=UserRole.PATIENT.value)
 
         for i in range(n):
             patients.append(

@@ -16,7 +16,7 @@ class EmailAuthBackend(BaseBackend):
         """
         Authenticate the user by looking up the email hash
         """
-        print('IN BACKEND AUTH')
+        
 
         user = get_user_model().objects.get(email=username)
         if user.check_password(password):

@@ -36,7 +36,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """Central function that handles all incoming message traffic"""
 
         # recieving the data from the websocket
-        print('RECIEVED DATA', text_data)
+        
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
         # send message to the room group
@@ -49,7 +49,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def chat_message(self, event):
         # recieve the message from any other members of the groups
-        print('AHHHH')
+        
         message = event['message']
 
         chat_agent=  ChatGPTAgent()

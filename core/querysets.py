@@ -288,7 +288,6 @@ class QSWrapper:
 
         last_mapper_keys = self._get_last_prerequisites()
 
-        print('LAST MAPPER KEYS', last_mapper_keys, '\nPASSED KEYS',  keys)
         
         if not all([key in last_mapper_keys for key in keys]) and len(last_mapper_keys) > 0:
             raise ValueError('Invalid keys passed for filtering')

@@ -20,7 +20,7 @@ def get_user(validated_token: str):
         
         return user
     except get_user_model().DoesNotExist:
-        print(f'User does not exist')
+        
         return AnonymousUser()
 
 
@@ -38,14 +38,14 @@ class JWTAuthMiddleware(BaseMiddleware):
     
 
         # get token form the WebSocket security protocol header
-        print((scope['headers']))
+        
         token = re.split(r'\s*,\s*', (dict(scope['headers'])[b'sec-websocket-protocol']).decode('utf-8'))[1]
         
         dict(scope['headers']).pop(b'sec-websocket-protocol')
         try:
             UntypedToken(token)
         except (InvalidToken, TokenError) as e:
-            print('Invalid token')
+            
             return None
         else:
 

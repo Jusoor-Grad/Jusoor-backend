@@ -33,7 +33,7 @@ class TimeUtil:
 
         schedule_dict = dict(schedule) ## convert into a dict to iterate over all keys
         schedule_end = schedule_interval.end_at
-        print(schedule, schedule_interval)
+        
 
         for day in [ key for key in  schedule_dict.keys() if schedule_dict[key] is not None]:
             for interval in schedule_dict[day]:

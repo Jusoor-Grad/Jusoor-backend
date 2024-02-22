@@ -129,7 +129,7 @@ class ChatGPTAgent(ChatAIAgent):
         chat_template = self.construct_prompt(user_id, message)
 
         reference_messages= self.vector_store.similarity_search(message, k=2)
-        print(reference_messages)
+        
         reference_message = "\n".join([f"- {message}" for message in reference_messages])
         
 
