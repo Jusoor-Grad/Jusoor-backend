@@ -5,7 +5,8 @@ from django.utils.translation import gettext_lazy as _
 PENDING_THERAPIST = 'PENDING_THERAPIST'
 PENDING_PATIENT = 'PENDING_PATIENT'
 CONFIRMED = 'CONFIRMED'
-CANCELLED = 'CANCELLED'
+CANCELLED_BY_THERAPIST = 'CANCELLED_BY_THERAPIST'
+CANCELLED_BY_PATIENT = 'CANCELLED_BY_PATIENT'
 REJECTED = 'REJECTED'
 COMPLETED = 'COMPLETED'
 MISSED = 'MISSED'
@@ -15,11 +16,10 @@ APPOINTMENT_STATUS_CHOICES = {
     'PENDING_THERAPIST': _('Pending Therapist'), ## waiting for the therapist to confirm the patient request
     'PENDING_PATIENT': _('Pending Patient'), ## waiting for the patient to confirm therapist's invite
     'CONFIRMED': _('Confirmed'), ## both parties confirmed the appointment
-    'CANCELLED': _('Cancelled'), ## one party cancelled the appointment after it was confirmed
-    'REJECTED': _('Rejected'), ## the invited party rejected the invitation
+    'CANCELLED_BY_PATIENT': _('Cancelled By Patient'), ## patient cancelled the appointment
+    'CANCELLED_BY_THERAPIST': _('Cancelled By Therapist'), ## therapist cancelled the appointment
     'COMPLETED': _('Completed'), ## both parties showed up and the appointment was completed
-    'MISSED': _('Missed'), ## one of the parties did not show up
-}
+    }
 
 UPDATEABLE_APPOINTMENT_STATI = [
     'PENDING_THERAPIST',
@@ -39,11 +39,11 @@ REFERRAL_STATUS_CHOICES = {
 }
 
 ACTIVE = 'ACTIVE'
-REJECTED = 'REJECTED'
+INACTIVE = 'INACTIVE'
 # stati of a therapist assignment
 THERAPIST_ASSIGNMENT_STATUS_CHOICES = {
     ACTIVE: _('Active'), ## waiting for the therapist to accept or reject the assignment
-    REJECTED: _('Rejected'), ## the therapist accepted
+    INACTIVE: _('Inactive'), ## the therapist accepted
 }
 
 
