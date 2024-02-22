@@ -219,7 +219,11 @@ class AppointmentsTests(TestCase):
         patient = PatientMock.mock_instances(n=1)[0]
         # mock timeslot
         # create an existing conflicting appointment
-        appointment = AppointmentMocker.mock_instances(n=1, fixed_patient=patient, fixed_therapist=therapists[0])[0]    
+        appointment = Appointment.objects.create(
+            patient=patient,
+            timeslot=AvailabilityTimeslotMocker.mock_instances(n=1, fixed_therapist=therapists[0])[0],
+            start_at=timezone.now() + timedelta(days=1),
+            end_at=timezone.now() + timedelta(days=1, hours=1))   
       
         start_at = self.faker.date_time_between(start_date=appointment.start_at, end_date=appointment.end_at)
         # mock an valid JSON within the timeslot boundaries        
@@ -244,9 +248,19 @@ class AppointmentsTests(TestCase):
         #  mock patient
         patient = PatientMock.mock_instances(n=1)[0]
         # mock appointments
-        appointment = AppointmentMocker.mock_instances(n=1, fixed_patient=patient)[0]
+        timeslot = AvailabilityTimeSlot.objects.create(
+            therapist=TherapistMock.mock_instances(n=1)[0],
+            start_at=datetime.now()+ timedelta(days=1),
+            end_at=datetime.now() + timedelta(days=1, hours=3))
+        
+        appointment = Appointment.objects.create(
+            patient=patient,
+            timeslot= timeslot,
+            start_at=timezone.now() + timedelta(days=1),
+            end_at=timezone.now() + timedelta(days=1, hours=1))
+        
         # mock a valid JSON within the timeslot boundaries        
-        start_at = self.faker.date_time_between(start_date=appointment.start_at, end_date=appointment.timeslot.end_at)
+        start_at = self.faker.date_time_between(start_date=appointment.timeslot.start_at, end_date=appointment.timeslot.end_at)
         end_at =self.faker.date_time_between(start_date=start_at, end_date=appointment.timeslot.end_at )
 
         body = {
@@ -258,7 +272,6 @@ class AppointmentsTests(TestCase):
         request = auth_request(APIRequestFactory().put, f'appointments/{appointment.id}/', user=patient.user, body=body)
         response = self.update(request, pk=appointment.id)
 
-        
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(Appointment.objects.filter(id=appointment.id, start_at=start_at, end_at=end_at).exists())
@@ -270,9 +283,17 @@ class AppointmentsTests(TestCase):
         therapist =TherapistMock.mock_instances(n=1)[0]
         patient = PatientMock.mock_instances(n=1)[0]
         # mock appointments
-        appointment = AppointmentMocker.mock_instances(n=1, fixed_patient=patient, fixed_therapist=therapist)[0]
+        timeslot = AvailabilityTimeSlot.objects.create(
+            therapist=therapist,
+            start_at=datetime.now()+ timedelta(days=1),
+            end_at=datetime.now() + timedelta(days=1, hours=3))
+        appointment = Appointment.objects.create(
+            patient=patient,
+            timeslot= timeslot,
+            start_at=timezone.now() + timedelta(days=1),
+            end_at=timezone.now() + timedelta(days=1, hours=1))
         # mock a valid JSON within the timeslot boundaries
-        start_at = self.faker.date_time_between(start_date=appointment.start_at, end_date=appointment.timeslot.end_at)
+        start_at = self.faker.date_time_between(start_date=appointment.timeslot.start_at, end_date=appointment.timeslot.end_at)
         end_at =self.faker.date_time_between(start_date=start_at, end_date=appointment.timeslot.end_at )
 
         body = {
@@ -284,7 +305,6 @@ class AppointmentsTests(TestCase):
         request = auth_request(APIRequestFactory().put, f'appointments/{appointment.id}/', user=therapist.user, body=body)
         response = self.update(request, pk=appointment.id)
 
-        
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(Appointment.objects.filter(id=appointment.id, start_at=start_at, end_at=end_at).exists())
@@ -296,7 +316,11 @@ class AppointmentsTests(TestCase):
         therapist =TherapistMock.mock_instances(n=1)[0]
         patient = PatientMock.mock_instances(n=1)[0]
         # mock appointments
-        appointment = AppointmentMocker.mock_instances(n=1, fixed_patient=patient, fixed_therapist=therapist)[0]
+        appointment = Appointment.objects.create(
+            patient=patient,
+            timeslot=AvailabilityTimeslotMocker.mock_instances(n=1, fixed_therapist=therapist)[0],
+            start_at=timezone.now() + timedelta(days=1),
+            end_at=timezone.now() + timedelta(days=1, hours=1))
         # mock a valid JSON within the timeslot boundaries
         start_at = self.faker.date_time_between(start_date=appointment.timeslot.start_at + timedelta(days=1), end_date=appointment.timeslot.end_at + timedelta(days=1))
         end_at =self.faker.date_time_between(start_date=start_at, end_date=appointment.timeslot.end_at + timedelta(days=1))
@@ -375,7 +399,11 @@ class AppointmentsTests(TestCase):
         therapists =TherapistMock.mock_instances(n=2)
         patient = PatientMock.mock_instances(n=1)[0]
         # mock appointments
-        appointment = AppointmentMocker.mock_instances(n=1, fixed_patient=patient, fixed_therapist=therapists[0])[0]
+        appointment = Appointment.objects.create(
+            patient=patient,
+            timeslot=AvailabilityTimeslotMocker.mock_instances(n=1, fixed_therapist=therapists[0])[0],
+            start_at=timezone.now() + timedelta(days=1),
+            end_at=timezone.now() + timedelta(days=1, hours=1))
         # mock a valid JSON within the timeslot boundaries
         start_at = self.faker.date_time_between(start_date=appointment.start_at, end_date=appointment.timeslot.end_at)
         end_at =self.faker.date_time_between(start_date=start_at, end_date=appointment.timeslot.end_at )
