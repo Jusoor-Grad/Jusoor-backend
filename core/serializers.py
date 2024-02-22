@@ -15,11 +15,14 @@ class HttpSuccessResponeSerializer(serializers.Serializer):
 class HttpPaginatedSerializer(serializers.Serializer):
 
     count = serializers.IntegerField()
-    next = serializers.URLField()
-    previous = serializers.URLField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
     results = serializers.ListField(child=serializers.DictField())
+
+class HttpInnerErrorSerialzier(serializers.Serializer):
+    error = serializers.ListSerializer(child=serializers.CharField())
 class HttpErrorSerializer(serializers.Serializer):
-    errors = serializers.DictField(child=serializers.CharField())
+    errors = HttpInnerErrorSerialzier
 
 class HttpErrorResponseSerializer(serializers.Serializer):
     status = serializers.IntegerField()

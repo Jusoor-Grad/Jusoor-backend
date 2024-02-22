@@ -1,16 +1,19 @@
+from functools import partial
 import json
 from multiprocessing import context
+from tkinter import ACTIVE
+from django.utils import timezone
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED, PATIENT_FIELD, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
-from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest
-from .serializers import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeSlotDestroySerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpErrAppointmentCreateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpErrAppointmentUpdateSerializer, HttpErrReferralRequestCreateSerializer, HttpErrReferralRequestReplySerializer, HttpErrorAvailabilityTimeslotDestroyErrorResponse, HttpErrorAvailabilityTimeslotSingleUpdateResponse, HttpReferralRequestCreateResponseSerializer, HttpReferralRequestReplyResponseSerializer, HttpSuccessAppointmentUpdateSerializer, HttpAvailabilityTimeslotUpdateSuccessResponse, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer, AvailabilityTimeslotBatchUpdateSerializer
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED_BY_PATIENT, CANCELLED_BY_THERAPIST, CONFIRMED, INACTIVE, PATIENT_FIELD, PENDING_THERAPIST, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
+from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest, TherapistAssignment
+from .serializers import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeSlotDestroySerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpErrAppointmentCreateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpErrAppointmentUpdateSerializer, HttpErrReferralRequestCreateSerializer, HttpErrReferralRequestReplySerializer, HttpErroReferralRequestUpdateSerializer, HttpErrorAvailabilityTimeslotDestroyErrorResponse, HttpErrorAvailabilityTimeslotSingleUpdateResponse, HttpReferralRequestCreateResponseSerializer, HttpReferralRequestReplyResponseSerializer, HttpSuccessAppointmentUpdateSerializer, HttpAvailabilityTimeslotUpdateSuccessResponse, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpSuccessReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer, AvailabilityTimeslotBatchUpdateSerializer
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
 from core.enums import QuerysetBranching, UserRole
-from core.http import Response
+from core.http import Response, ValidationError
 from core.mixins import QuerysetMapperMixin, SerializerMapperMixin
 from authentication.permissions import IsPatient, IsTherapist
 from core.types import DatetimeInterval, WeeklyTimeSchedule
@@ -23,6 +26,8 @@ from core.renderer import FormattedJSONRenderrer
 from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSerializer
 from core.http import Response
 from django.utils.translation import gettext as _
+
+# TODO: use transactions for intensive operations
 
 class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin):
     """View for appointments functionality"""
@@ -87,7 +92,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         ),
-        'cancel': QSWrapper(Appointment.objects.all())\
+        'cancel': QSWrapper(Appointment.objects.filter(status=CONFIRMED))\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient']),
                         UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['timeslot__therapist'])
@@ -115,7 +120,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         return super().update(request, *args, **kwargs)
     
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpSuccessAppointmentUpdateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrAppointmentUpdateSerializer()})
-    def paginate_queryset(self, queryset):
+    def partial_update(self, queryset):
         return super().paginate_queryset(queryset)
 
     @swagger_auto_schema(responses={200: HttpSuccessResponeSerializer()})    
@@ -124,8 +129,16 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         """
             Cancel an appointment
         """
+        # TODO: convert into a serializer
         instance: Appointment = self.get_object()
-        instance.status = CANCELLED
+        if hasattr(request.user, 'therapist_profile'):
+            instance.status = CANCELLED_BY_THERAPIST
+        elif hasattr(request.user, 'patient_profile'):
+            instance.status = CANCELLED_BY_PATIENT
+        else:
+            raise ValidationError(_('Only patients and therapists can cancel appointments'))
+        
+        TherapistAssignment.objects.filter(therapist_timeslot=instance.timeslot, status=ACTIVE).update(status=INACTIVE)
         instance.save()
 
         return Response(data=None, status=status.HTTP_200_OK, message=_('Appointment cancelled successfully'))
@@ -139,6 +152,7 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
     ordering = ['start_at']
     filterset_fields = {
         'start_at': ['gte', 'lte'],
+        'end_at': ['gte', 'lte'],
         'therapist': ['exact']
     }
     
@@ -165,26 +179,26 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
     }
 
     queryset_by_action = {
-        'list': AvailabilityTimeSlot.objects.all().select_related('therapist__user'),
-        'retrieve': AvailabilityTimeSlot.objects.all().prefetch_related('therapist__user', 'linked_appointments__patient__user'),
-        'update': QSWrapper(AvailabilityTimeSlot.objects.all())
+        'list': AvailabilityTimeSlot.objects.filter(active=True).select_related('therapist__user'),
+        'retrieve': AvailabilityTimeSlot.objects.filter(active=True).prefetch_related('therapist__user', 'linked_appointments__patient__user'),
+        'update': QSWrapper(AvailabilityTimeSlot.objects.filter(active=True))
                     .branch({
                         UserRole.THERAPIST.value: TherapistOwnedQS()
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         ),
-        'partial_update': QSWrapper(AvailabilityTimeSlot.objects.all())
+        'partial_update': QSWrapper(AvailabilityTimeSlot.objects.filter(active=True))
                     .branch({
                         UserRole.THERAPIST.value: TherapistOwnedQS()
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         ),
-        'batch_update': QSWrapper(AvailabilityTimeSlot.objects.all())
+        'batch_update': QSWrapper(AvailabilityTimeSlot.objects.filter(active=True))
                         .branch({
                             UserRole.THERAPIST.value: TherapistOwnedQS()
                             },
                             by=QuerysetBranching.USER_GROUP),
-        'destroy': QSWrapper(AvailabilityTimeSlot.objects.all())
+        'destroy': QSWrapper(AvailabilityTimeSlot.objects.filter(active=True))
                         .branch({
                             UserRole.THERAPIST.value: TherapistOwnedQS()
                             },
@@ -231,6 +245,7 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         # 2. generate all matching datetime intervals using rrules
         intervals = TimeUtil.generate_intervals(WeeklyTimeSchedule(**data['weekly_schedule']), DatetimeInterval(start_at=data['start_at'], end_at=data['end_at']))
         # 3. validate the generated data using the create serializer
+        
         conflict_serializer = AvailabilityTimeslotBatchCreateSerializer(data={
             'weekly_schedule': intervals,
             'start_at': data['start_at'],
@@ -255,7 +270,6 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         serializer = self.get_serializer(instance=instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        print('Hello?')
         self.perform_update(serializer)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
     # TODO: add error serializers
@@ -271,19 +285,28 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
     def destroy(self, request, *args, **kwargs):
 
         instance = self.get_object()
-
+        
         serializer = self.get_serializer(instance=instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-
-
+        # when using force_drop flag, drop all linked appointments in the future
         
         if serializer.data.get('force_drop', False):
-            instance.linked_appointments.all().delete()
+            dropped_appointments = instance.linked_appointments.filter(
+                start_at__gt=timezone.now()
+            )
+
+            
+
+            affected_ids = [appointment.id for appointment in dropped_appointments]
+
+            dropped_appointments.update(status=PENDING_THERAPIST, timeslot=None)
+
+            TherapistAssignment.objects.filter(appointment__pk__in=affected_ids).update(status=INACTIVE)
         
-        self.perform_destroy(instance)
+        instance.active = False
+        instance.save()
 
-
-        return Response(data=None, status=status.HTTP_200_OK)
+        return Response(data=None, message=_("Time slot deleted successfully"), status=status.HTTP_200_OK)
     
 
 
@@ -305,7 +328,7 @@ class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMappe
         'list': [IsAuthenticated],
         'retrieve': [IsAuthenticated],
         'create': [IsAuthenticated],
-        'update': [IsPatient()],
+        'update': [IsPatient()], ## discusee if we should include educator roles outside normal user boundaries
         'partial_update': [IsPatient()],
         'reply': [IsTherapist()],
         
@@ -322,13 +345,13 @@ class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMappe
     queryset_by_action = {
         'list': QSWrapper(PatientReferralRequest.objects.all().select_related('responding_therapist__user'))
                     .branch({
-                        UserRole.PATIENT.value: OwnedQS(ownership_fields=REFERRER_OR_REFEREE_FIELD)
+                        UserRole.PATIENT.value: OwnedQS(ownership_fields= [REFERRER_FIELD])
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         pass_through=[UserRole.THERAPIST.value]),
         'retrieve': QSWrapper(PatientReferralRequest.objects.all().select_related('responding_therapist__user'))
                     .branch({
-                        UserRole.PATIENT.value: OwnedQS(ownership_fields=REFERRER_OR_REFEREE_FIELD)
+                        UserRole.PATIENT.value: OwnedQS(ownership_fields=[REFERRER_FIELD])
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         pass_through=[UserRole.THERAPIST.value]),
@@ -358,17 +381,15 @@ class ReferralViewset(ActionBasedPermMixin, SerializerMapperMixin, QuerysetMappe
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-   
-    # TODO: add error serializers
     @swagger_auto_schema(responses={200: HttpReferralRequestCreateResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrReferralRequestCreateSerializer()})
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @swagger_auto_schema(responses={200: HttpReferralRequestUpdateResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrReferralRequestCreateSerializer()})
+    @swagger_auto_schema(responses={200: HttpSuccessReferralRequestUpdateResponseSerializer(), status.HTTP_400_BAD_REQUEST: HttpErroReferralRequestUpdateSerializer()})
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
 
-    @swagger_auto_schema(responses={200: HttpReferralRequestUpdateResponseSerializer(partial=True), status.HTTP_400_BAD_REQUEST: HttpErrReferralRequestCreateSerializer()})
+    @swagger_auto_schema(responses={200: HttpSuccessReferralRequestUpdateResponseSerializer(partial=True), status.HTTP_400_BAD_REQUEST: HttpErroReferralRequestUpdateSerializer()})
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
