@@ -24,6 +24,7 @@ class AvailabilityTimeSlot(TimeStampedModel):
     start_at = models.DateTimeField(null= False, blank=False)
     end_at = models.DateTimeField(null= False, blank=False)
     group   = models.ForeignKey(AvailabilityTimeSlotGroup, on_delete=models.PROTECT, null=True, blank=True)
+    active = models.BooleanField(default=True)
 
     def __str__(self):
         return f'Availability timeslot {self.pk} for therapist {self.therapist.id}'
@@ -37,9 +38,10 @@ class Appointment(TimeStampedModel):
     
     timeslot = models.ForeignKey(AvailabilityTimeSlot, on_delete=models.PROTECT, related_name='linked_appointments', null= True, blank=True)
     patient = models.ForeignKey('core.StudentPatient', on_delete=models.PROTECT, related_name='appointments')
-    status = models.CharField(max_length=20, blank=False, null=False, choices=APPOINTMENT_STATUS_CHOICES.items())
+    status = models.CharField(max_length=40, blank=False, null=False, choices=APPOINTMENT_STATUS_CHOICES.items())
     start_at = models.DateTimeField(null= True, blank=True)
     end_at = models.DateTimeField(null= True, blank=True)
+    
 
 
 
