@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from appointments.constants.enums import ACCEPTED, CONFIRMED, INACTIVE, PENDING, PENDING_THERAPIST, REJECTED, WEEK_DAYS
+from appointments.constants.enums import ACCEPTED, CONFIRMED, INACTIVE, PENDING, PENDING_PATIENT, PENDING_THERAPIST, REJECTED, WEEK_DAYS
 from appointments.models import Appointment, PatientReferralRequest
 from authentication.serializers import UserReadSerializer
 from core.http import ValidationError
@@ -143,7 +143,7 @@ class ReferralRequestReplySerializer(serializers.ModelSerializer):
 		# create an appointment if the status is accepted
 		if validated_data['status'] == ACCEPTED:
 			# TODO: find a way to handle duplicate active appointments
-			appointment = Appointment.objects.create(patient=instance.referee.patient_profile, status=PENDING_THERAPIST)
+			appointment = Appointment.objects.create(patient=instance.referee.patient_profile, status=PENDING_PATIENT)
 			validated_data['appointment'] = appointment
 
 		return super().update(instance, validated_data)

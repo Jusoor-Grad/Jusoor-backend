@@ -27,7 +27,7 @@ class HttpErrorSerializer(serializers.Serializer):
 class HttpErrorResponseSerializer(serializers.Serializer):
     status = serializers.IntegerField()
     message = serializers.CharField()
-    data = HttpErrorSerializer()
+    data = HttpErrorSerializer(allow_null=True)
 
 class KFUPMDepartmentSerializer(serializers.ModelSerializer):
     """Serializer for KFUPMDepartment"""

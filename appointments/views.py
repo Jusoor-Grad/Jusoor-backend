@@ -3,7 +3,7 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED_BY_PATIENT, CANCELLED_BY_THERAPIST, CONFIRMED, INACTIVE, ACTIVE, PATIENT_FIELD, PENDING_THERAPIST, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED_BY_PATIENT, CANCELLED_BY_THERAPIST, COMPLETED, CONFIRMED, INACTIVE, ACTIVE, PATIENT_FIELD, PENDING_PATIENT, PENDING_THERAPIST, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
 from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest, TherapistAssignment
 from .serializers import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeSlotDestroySerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpErrAppointmentCreateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpErrAppointmentUpdateSerializer, HttpErrReferralRequestCreateSerializer, HttpErrReferralRequestReplySerializer, HttpErroReferralRequestUpdateSerializer, HttpErrorAvailabilityTimeslotDestroyErrorResponse, HttpErrorAvailabilityTimeslotSingleUpdateResponse, HttpReferralRequestCreateResponseSerializer, HttpReferralRequestReplyResponseSerializer, HttpSuccessAppointmentUpdateSerializer, HttpAvailabilityTimeslotUpdateSuccessResponse, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpSuccessReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer, AvailabilityTimeslotBatchUpdateSerializer
 from authentication.mixins import ActionBasedPermMixin
@@ -22,6 +22,7 @@ from core.renderer import FormattedJSONRenderrer
 from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSerializer
 from core.http import Response
 from django.utils.translation import gettext as _
+from django.db.models import Q
 
 # TODO: use transactions for intensive operations
 
@@ -35,6 +36,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         'status': ['iexact'],
         'start_at': ['gte', 'lte'],
         'timeslot__therapist': ['exact'],
+        'timeslot': ['isnull', 'exact']
     }
 
 
@@ -44,7 +46,8 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         'create': [IsAuthenticated],
         'update': [IsAuthenticated],
         'partial_update': [IsAuthenticated],
-        'cancel': [IsAuthenticated]
+        'cancel': [IsPatient() | IsTherapist()],
+        'complete': [IsTherapist()]
        
     }
     serializer_class_by_action = {
@@ -88,13 +91,20 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         ),
-        'cancel': QSWrapper(Appointment.objects.filter(status=CONFIRMED))\
+        'cancel': QSWrapper(Appointment.objects.filter(Q(status=CONFIRMED) | Q(status=PENDING_PATIENT)))\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient']),
                         UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['timeslot__therapist'])
                         },
                         by=QuerysetBranching.USER_GROUP, 
-                        )
+                        ),
+        'complete': QSWrapper(Appointment.objects.filter(status=CONFIRMED)
+                        .select_related('timeslot__therapist'))\
+                        .branch({
+                        UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['timeslot__therapist'])
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        ),
         
     }
 
@@ -125,7 +135,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         """
             Cancel an appointment
         """
-        # TODO: convert into a serializer
+
         instance: Appointment = self.get_object()
         if hasattr(request.user, 'therapist_profile'):
             instance.status = CANCELLED_BY_THERAPIST
@@ -139,6 +149,19 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
 
         return Response(data=None, status=status.HTTP_200_OK, message=_('Appointment cancelled successfully'))
 
+    @swagger_auto_schema(responses={200: HttpSuccessResponeSerializer(), 400: HttpErrorResponseSerializer()})
+    @action(methods=['PATCH'], detail=True)
+    def complete(self, request, *args, **kwargs):
+
+        instance = self.get_object()
+
+        if instance.start_at > timezone.now():
+            raise ValidationError(_('You can only complete appointments that have already started'))
+        
+        instance.status = COMPLETED
+        instance.save()
+    
+        return Response(data=None, status=status.HTTP_200_OK, message=_('Appointment completed successfully'))
 
 
 class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin):
@@ -149,7 +172,8 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
     filterset_fields = {
         'start_at': ['gte', 'lte'],
         'end_at': ['gte', 'lte'],
-        'therapist': ['exact']
+        'therapist': ['exact'],
+        'active': ['exact']
     }
     
     action_permissions = {
