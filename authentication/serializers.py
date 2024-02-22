@@ -34,9 +34,9 @@ class PatientSignupSerializer(serializers.Serializer):
 
 class SignupInnerWrapperSerializer(serializers.Serializer):
 	"""Serializer used for Signup credential validation on data level"""
-	email = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150))
-	username = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
-	password = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
+	email = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150), allow_null=True)
+	username = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
+	password = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
 class SignupErrorWrapperSerializer(HttpErrorSerializer):
 	errors = SignupInnerWrapperSerializer()
 

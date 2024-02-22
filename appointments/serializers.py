@@ -123,9 +123,9 @@ class HttpSuccessReferralRequestUpdateResponseSerializer(HttpSuccessResponeSeria
 	data = ReferralRequestUpdateSerializer()
 
 class ReferralUpdateInnerErrorWrapper(serializers.Serializer):
-	referee = serializers.ListSerializer(child=serializers.CharField())
-	reason = serializers.ListSerializer(child=serializers.CharField())
-	error = serializers.ListSerializer(child=serializers.CharField())
+	referee = serializers.ListSerializer(child=serializers.CharField(), allow_null=True)
+	reason = serializers.ListSerializer(child=serializers.CharField(), allow_null=True)
+	error = serializers.ListSerializer(child=serializers.CharField(), allow_null=True)
 
 class ReferralUpdateOuterErrorWrapper(serializers.Serializer):
 	errors = ReferralUpdateInnerErrorWrapper()
@@ -158,8 +158,8 @@ class HttpReferralRequestReplyResponseSerializer(HttpSuccessResponeSerializer):
 
 class ReferralRequestReplyErrorInnerWrapperSerializer(serializers.Serializer):
 	"""Serializer used for Signup credential validation on data level"""
-	status = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150))
-	error = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
+	status = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150), allow_null=True)
+	error = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
 
 class ReferralRequestReplyErrorOuterWrapperSerializer(serializers.Serializer):
 	errors = ReferralRequestReplyErrorInnerWrapperSerializer()
@@ -457,11 +457,11 @@ class SingleTimeslotErrorSerializer(serializers.Serializer):
 	conflicting_timeslots = AvailabilityTimeslotReadSerializer(many=True)
 	
 class SingleCreateErrorContentSerializer(serializers.Serializer):
-	existing_timeslot_conflicts = DatetimeIntervalSerializer(many=True)
-	uploaded_timeslot_conflict_pairs = serializers.ListSerializer(child= SingleTimeslotErrorSerializer())
+	existing_timeslot_conflicts = DatetimeIntervalSerializer(many=True, allow_null=True)
+	uploaded_timeslot_conflict_pairs = serializers.ListSerializer(child= SingleTimeslotErrorSerializer(), allow_null=True)
 
 class BatchCreateErrorContentSerializer(serializers.Serializer):
-	uploaded_timeslot_conflict_pairs = serializers.ListSerializer(child= SingleTimeslotErrorSerializer())
+	uploaded_timeslot_conflict_pairs = serializers.ListSerializer(child= SingleTimeslotErrorSerializer(), allow_null=True)
 
 class CreateErrorInnerWrapperSerializer(serializers.Serializer):
   
@@ -469,11 +469,11 @@ class CreateErrorInnerWrapperSerializer(serializers.Serializer):
 
 class BatchCreateErrorInnerWrapperSerializer(serializers.Serializer):
 	
-	sunday = SingleCreateErrorContentSerializer()
-	monday = SingleCreateErrorContentSerializer()
-	tuesday = SingleCreateErrorContentSerializer()
-	wednesday = SingleCreateErrorContentSerializer()
-	thursday = SingleCreateErrorContentSerializer()
+	sunday = SingleCreateErrorContentSerializer(allow_null=True)
+	monday = SingleCreateErrorContentSerializer(allow_null=True)
+	tuesday = SingleCreateErrorContentSerializer(allow_null=True)
+	wednesday = SingleCreateErrorContentSerializer(allow_null=True)
+	thursday = SingleCreateErrorContentSerializer(allow_null=True)
 
 class CreateErrorOuterWrapperSerializer(serializers.Serializer):
 	data = BatchCreateErrorInnerWrapperSerializer()
@@ -684,7 +684,7 @@ class UpdateErrorInnerWrapperSerializer(serializers.Serializer):
 
 class UpdateErrorOuterWrapperSerializer(serializers.Serializer):
 	data = UpdateErrorInnerWrapperSerializer()
-	error = serializers.ListSerializer(child=serializers.CharField())
+	error = serializers.ListSerializer(child=serializers.CharField(), allow_null=True)
 
 class ErrorAvailabilityTimeslotSingleUpdateFinalResponseWrapper(serializers.Serializer):
 	errors = UpdateErrorOuterWrapperSerializer()
@@ -831,11 +831,11 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 
 class AppointmentCreateErrorInnerWrapperSerializer(serializers.Serializer):
 	"""Serializer used for Signup credential validation on data level"""
-	timeslot = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150))
-	patient = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
-	start_at = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
-	end_at = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
-	error = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
+	timeslot = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150), allow_null=True)
+	patient = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
+	start_at = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
+	end_at = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
+	error = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
 
 class AppointmentCreateErrorOuterWrapperSerializer(serializers.Serializer):
 	errors = AppointmentCreateErrorInnerWrapperSerializer()
@@ -906,10 +906,10 @@ class HttpSuccessAppointmentUpdateSerializer(HttpSuccessResponeSerializer):
 
 class AppointmentUpdateErrorInnerWrapperSerializer(serializers.Serializer):
 	"""Serializer used for Signup credential validation on data level"""
-	timeslot = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150))
-	start_at = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
-	end_at = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
-	error = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128))
+	timeslot = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150), allow_null=True)
+	start_at = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
+	end_at = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
+	error = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
 
 class AppointmentUpdateErrorOuterWrapperSerializer(serializers.Serializer):
 	errors = AppointmentUpdateErrorInnerWrapperSerializer()
