@@ -1,6 +1,4 @@
 from datetime import datetime, timedelta
-from os import replace
-from turtle import st
 from django import conf
 from django.test import TestCase, tag
 from faker import Faker
