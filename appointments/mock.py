@@ -6,9 +6,10 @@ from tracemalloc import start
 from typing import List
 import faker
 import appointments
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, REFERRAL_STATUS_CHOICES
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CONFIRMED, REFERRAL_STATUS_CHOICES
 
 from appointments.models import Appointment,  AvailabilityTimeSlot, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
+from core.mock import PatientMock, TherapistMock
 from core.models import StudentPatient, Therapist
 from django.utils import timezone
 
@@ -23,12 +24,12 @@ class AvailabilityTimeslotMocker:
     """
     
     @staticmethod
-    def mock_availability_timeslots(n: int=5):
+    def mock_instances(n: int=5, fixed_therapist: Therapist = None):
         """
             Mock n availability timeslots
         """
         
-        therapists = Therapist.objects.all()[:2]
+        therapists = [fixed_therapist] if fixed_therapist else TherapistMock.mock_instances(n)
 
         availability_timeslots = []
         slot_groups = []
@@ -39,28 +40,18 @@ class AvailabilityTimeslotMocker:
         )
         for i in range(n):
             # randomizing start and end dates of each slot to be constrained on different days to avoid conflicts
-            start_date = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0) + timezone.timedelta(days=i)
-            end_date = timezone.now().replace(hour=23, minute=0, second=0, microsecond=0) + timezone.timedelta(days=i)
-
+            start_date = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0) + timezone.timedelta(days=i+1) ## adding an extra day to avoid past-date errors in testing validation
+            end_date = timezone.now().replace(hour=23, minute=0, second=0, microsecond=0) + timezone.timedelta(days=i+  1)
             random_start_date = faker.date_time_between(start_date, end_date)
             availability_timeslots.append(
                 AvailabilityTimeSlot(
-                    therapist=therapists[0],
+                    therapist=therapists[i % len(therapists) if len(therapists) > 1 else 0],
                     start_at= random_start_date,
                     end_at= faker.date_time_between(random_start_date, end_date),
                     group=slot_groups[0]
                 )
             )
 
-            random_start_date = faker.date_time_between(start_date, end_date)
-            availability_timeslots.append(
-                AvailabilityTimeSlot(
-                    therapist=therapists[1],
-                    start_at= random_start_date,
-                    end_at= faker.date_time_between(random_start_date, end_date),
-                    group=slot_groups[1]
-                )
-            )
         AvailabilityTimeSlotGroup.objects.bulk_create(slot_groups)
         return AvailabilityTimeSlot.objects.bulk_create(availability_timeslots)
 
@@ -103,15 +94,15 @@ class AppointmentMocker:
     """
     
     @staticmethod
-    def mock_appointments(n: int = 5):
+    def mock_instances(n: int = 5, fixed_patient: StudentPatient = None, fixed_therapist: Therapist = None):
         """
             Mock appointments along their therapist assignments
         """
         # TODO: remove after verifying correctness of initial mocking
         AvailabilityTimeSlot.objects.all().delete()
         Appointment.objects.all().delete()
-        timeslots = AvailabilityTimeslotMocker.mock_availability_timeslots(n)
-        patients = StudentPatient.objects.all()[:n]
+        timeslots = AvailabilityTimeslotMocker.mock_instances(n, fixed_therapist=fixed_therapist)
+        patients = [fixed_patient] if fixed_patient else  PatientMock.mock_instances(n)
         appointments = []
         appoint_assignments = []
         
@@ -119,8 +110,8 @@ class AppointmentMocker:
             appointments.append(
                 Appointment(
                     timeslot=availability_timeslot,
-                    patient=patients[i % n],
-                    status=APPOINTMENT_STATUS_CHOICES['CONFIRMED'],
+                    patient=patients[i % len(patients) if len(patients) > 1 else 0],
+                    status=CONFIRMED,
                     start_at=availability_timeslot.start_at,
                     end_at=availability_timeslot.end_at
                 )
@@ -148,16 +139,18 @@ class ReferralMocker:
     """
     
     @staticmethod
-    def mock_referral_requests(appointments: List[Appointment]):
+    def mock_referral_requests(appointments: List[Appointment], fixed_referrer: StudentPatient = None, fixed_referee: Therapist = None):
         """
             Mock n referral requests, and corresponding appointments
         """
+
+        # TODO: remove dependency on appointments when mocking referral requests
         
         referrals_outs = []
         for appointment in appointments:
             referral_request= PatientReferralRequest(
-                    referee=appointment.patient.user,
-                    referrer=appointment.timeslot.therapist.user,
+                    referee= fixed_referee.user if fixed_referee else appointment.patient.user,
+                    referrer= fixed_referrer.user if fixed_referrer else appointment.timeslot.therapist.user,
                     reason=faker.sentence(),
                     status=REFERRAL_STATUS_CHOICES['PENDING'],
                     responding_therapist=appointment.timeslot.therapist,
