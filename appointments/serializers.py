@@ -1,6 +1,3 @@
-
-from os import write
-from click import group
 from rest_framework import serializers
 from appointments.constants.enums import ACCEPTED, CONFIRMED, INACTIVE, PENDING, PENDING_THERAPIST, REJECTED, WEEK_DAYS
 from appointments.models import Appointment, PatientReferralRequest
