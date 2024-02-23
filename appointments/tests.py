@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from turtle import st
 from django import conf
 from django.test import TestCase, tag
 from faker import Faker
