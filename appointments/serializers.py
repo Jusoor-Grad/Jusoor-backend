@@ -797,11 +797,14 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 			raise ValidationError( _('YOU CANNOT USE ANOTHER THERAPIST\'S TIMESLOT'))
 
 		# 3. validate that the appointment does not conflict with other confirmed appointments if the therapist is the one creating the appointment
-		if timeslot.linked_appointments.filter(
+		conflicting_appointments = timeslot.linked_appointments.filter(
 			Q(status=CONFIRMED) & Q(start_at__lte=end_at, end_at__gte=start_at) &
-			Q(timeslot__therapist= timeslot.therapist)).exists():
+			Q(timeslot__therapist= timeslot.therapist))
+		if conflicting_appointments.exists():
 		
-			raise ValidationError( _('APPOINTMENT TIME CONFLICTS WITH ANOTHER CONFIRMED APPOINTMENT FOR SAME THERAPIST'))
+			raise ValidationError( _('APPOINTMENT TIME CONFLICTS WITH ANOTHER CONFIRMED APPOINTMENT FOR SAME THERAPIST'), data={
+				'conflicting_appointments': RawAppointmentReadSerializer(instance=conflicting_appointments, many=True).data
+			})
 
 
 
@@ -846,6 +849,7 @@ class AppointmentCreateErrorInnerWrapperSerializer(serializers.Serializer):
 	"""Serializer used for Signup credential validation on data level"""
 	timeslot = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=150), allow_null=True)
 	patient = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
+	conflicting_appointments = RawAppointmentReadSerializer(many=True, allow_null=True)
 	start_at = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
 	end_at = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
 	error = serializers.ListSerializer(child=serializers.CharField(allow_blank=True, max_length=128), allow_null=True)
