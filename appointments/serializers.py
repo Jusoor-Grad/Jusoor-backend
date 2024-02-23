@@ -191,9 +191,13 @@ class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 
 	linked_appointments = serializers.SerializerMethodField()
 
-	@swagger_serializer_method(serializer_or_field=RawAppointmentReadSerializer)
+	@swagger_serializer_method(serializer_or_field=RawAppointmentReadSerializer(many=True))
 	def get_linked_appointments(self, instance):
-		return RawAppointmentReadSerializer(instance=instance.linked_appointments, many=True).data
+
+		if hasattr(instance, 'linked_appointments'):
+			return RawAppointmentReadSerializer(instance=instance.linked_appointments, many=True).data
+		else:
+			return []
 
 	@swagger_serializer_method(serializer_or_field=TherapistReadSerializer)
 	def get_therapist(self, instance):
