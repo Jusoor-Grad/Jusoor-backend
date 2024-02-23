@@ -44,6 +44,21 @@ class Therapist(TimeStampedModel):
     def __str__(self) -> str:
         return f'Therapist: {self.user.username}'
 
+class MentalHealthSpecialization(models.Model):
+    """
+    Model to store mental health specializations
+    """
+    name_ar = models.CharField(max_length=100, unique=True)
+    description_ar = models.TextField(null=True, blank=True)
+    name_en = models.CharField(max_length=100, unique=True)
+    description_en = models.TextField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f'{self.name_en}: {self.description_en}'
+    
+class TherapistSpecialization(models.Model):
+    therapist = models.ForeignKey('Therapist', on_delete=models.CASCADE, related_name='specializations')
+    specialization = models.ForeignKey('MentalHealthSpecialization', on_delete=models.PROTECT, related_name='therapists')
 
 class StudentPatient(TimeStampedModel):
 

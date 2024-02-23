@@ -41,3 +41,8 @@ class HttpKFUPMDepartmentResponseSerializer(HttpPaginatedSerializer):
 
 class HttpKFUPMDepartmentDetailResponseSerializer(HttpSuccessResponeSerializer):
     data = KFUPMDepartmentSerializer()
+
+
+class TherapistSpecializationSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    description = serializers.CharField()

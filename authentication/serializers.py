@@ -7,9 +7,10 @@ from authentication.models import User
 from core.http import ValidationError
 from core.models import KFUPMDepartment, StudentPatient
 from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
-from core.serializers import HttpPaginatedSerializer, HttpSuccessResponeSerializer, HttpErrorSerializer
+from core.serializers import HttpPaginatedSerializer, HttpSuccessResponeSerializer, HttpErrorSerializer, TherapistSpecializationSerializer
 from .services.encryption import AESEncryptionService
-
+from drf_yasg.utils import swagger_serializer_method
+from django.utils.translation import get_language
 class UserLoginSerializer(serializers.Serializer):
 	"""Serializer used for login credential validation on data level"""
 
@@ -106,16 +107,26 @@ class HttpPatientListResponseSerializer(HttpPaginatedSerializer):
 class TherapistReadSerializer(UserReadSerializer):
 
 	bio = serializers.SerializerMethodField()
+	specializations = serializers.SerializerMethodField()
 
 	def get_bio(self, instance):
 		return instance.therapist_profile.bio
 
+	@swagger_serializer_method(serializer_or_field=TherapistSpecializationSerializer(many=True))
+	def get_specializations(self, instance):
+
+		if get_language() == 'ar':
+			return [{'name': spec.specialization.name_ar, 'description': spec.specialization.description_ar} for spec in instance.therapist_profile.specializations.all()]
+		elif get_language() == 'en':
+			return [{'name': spec.specialization.name_en, 'description': spec.specialization.description_en} for spec in instance.therapist_profile.specializations.all()]
+		else:
+			return [{'name': spec.specialization.name_en, 'description': spec.specialization.description_en} for spec in instance.therapist_profile.specializations.all()]
 	
 	class Meta:
 
-		model = User
-		
-		fields = ['id', 'username', 'email', 'bio', 'image']
+		model = User	
+		fields = ['id', 'username', 'email', 'bio', 'image', 'specializations']
+
 		
 
 class HttpTherapistReadResponseSerializer(HttpSuccessResponeSerializer):
