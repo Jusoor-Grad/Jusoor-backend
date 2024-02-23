@@ -198,10 +198,10 @@ class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 	def get_linked_appointments(self, instance):
 		return RawAppointmentReadSerializer(instance=instance.linked_appointments, many=True).data
 
-	@swagger_serializer_method(serializer_or_field=TherapistReadSerializer)
+	@swagger_serializer_method(serializer_or_field=UserReadSerializer)
 	def get_therapist(self, instance):
 
-		return TherapistReadSerializer(instance=instance.therapist.user).data
+		return UserReadSerializer(instance=instance.therapist.user).data
 	
 	class Meta:
 		model = AvailabilityTimeSlot

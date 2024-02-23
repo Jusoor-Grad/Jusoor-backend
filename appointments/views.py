@@ -60,7 +60,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
     }
 
     queryset_by_action = {
-        'list': QSWrapper(Appointment.objects.all())\
+        'list': QSWrapper(Appointment.objects.all().prefetch_related('timeslot__therapist'))\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
                         },
