@@ -47,6 +47,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         'update': [IsAuthenticated],
         'partial_update': [IsAuthenticated],
         'cancel': [IsPatient() | IsTherapist()],
+        'confirm': [IsPatient() | IsTherapist()],
         'complete': [IsTherapist()]
        
     }
@@ -91,7 +92,14 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         ),
-        'cancel': QSWrapper(Appointment.objects.filter(Q(status=CONFIRMED) | Q(status=PENDING_PATIENT)))\
+        'cancel': QSWrapper(Appointment.objects.filter(Q(status=CONFIRMED) | Q(status=PENDING_PATIENT) | Q(status=PENDING_THERAPIST)))\
+                        .branch({
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient']),
+                        UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['timeslot__therapist'])
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        ),
+        'confirm': QSWrapper(Appointment.objects.filter(Q(status=PENDING_THERAPIST) | Q(status=PENDING_PATIENT)))\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient']),
                         UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['timeslot__therapist'])
@@ -128,6 +136,25 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpSuccessAppointmentUpdateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrAppointmentUpdateSerializer()})
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
+    
+    # TODO: test the endpoint
+    @swagger_auto_schema(responses={200: HttpSuccessResponeSerializer(), 400: HttpErrorResponseSerializer()})
+    @action(methods=['PATCH'], detail=True)
+    def confirm(self, request, *args, **kwargs):
+        """
+            Confirm a pending appointment
+        """
+        instance: Appointment = self.get_object()
+
+        if hasattr(request.user, 'therapist_profile') and instance.status != PENDING_THERAPIST:
+            raise ValidationError(_('a patient confirm an appointment that is not pending therapist confirmation'))
+
+        if hasattr(request.user, 'patient_profile') and instance.status != PENDING_PATIENT:
+            raise ValidationError(_('a therapist confirm an appointment that is not pending patient confirmation'))
+
+        instance.status = CONFIRMED
+        instance.save()
+        return Response(data=None, status=status.HTTP_200_OK, message=_('Appointment confirmed successfully'))
 
     @swagger_auto_schema(responses={200: HttpSuccessResponeSerializer()})    
     @action(methods=['PATCH'], detail=True)

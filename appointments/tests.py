@@ -4,7 +4,7 @@ from django.test import TestCase, tag
 from faker import Faker
 from django.utils import timezone
 from tomlkit import date
-from appointments.constants.enums import ACTIVE, CANCELLED_BY_PATIENT, CANCELLED_BY_THERAPIST, COMPLETED, CONFIRMED, INACTIVE, PENDING, PENDING_THERAPIST, REJECTED
+from appointments.constants.enums import ACTIVE, CANCELLED_BY_PATIENT, CANCELLED_BY_THERAPIST, COMPLETED, CONFIRMED, INACTIVE, PENDING, PENDING_PATIENT, PENDING_THERAPIST, REJECTED
 from appointments.models import Appointment, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
 from dateutil import rrule
 from core.mock import PatientMock, TherapistMock
@@ -26,6 +26,8 @@ class AppointmentsTests(TestCase):
 		self.partial_update = viewset.as_view({'patch': 'partial_update'})
 		self.cancel = viewset.as_view({'patch': 'cancel'})
 		self.complete = viewset.as_view({'patch': 'complete'})
+		self.confirm = viewset.as_view({'patch': 'confirm'})
+
 		self.faker = Faker(locale='ar_EG')
 
 	
@@ -568,6 +570,101 @@ class AppointmentsTests(TestCase):
 
 
 		self.assertEqual(response.status_code, 400)
+
+	@tag('confirm-apptmnt-valid-patient')
+	def test_confirm_apptmnt_valid_patient(self):
+			
+		# mock patient
+		patient = PatientMock.mock_instances(n=1)[0]
+		therapist = TherapistMock.mock_instances(n=1)[0]
+		
+		# mock appointments
+		appointment = Appointment.objects.create(
+			patient=patient,
+			timeslot=AvailabilityTimeslotMocker.mock_instances(n=1, fixed_therapist= therapist)[0],
+			start_at=timezone.now() - timedelta(days=1),
+			end_at=timezone.now() - timedelta(hours=23),
+			status=PENDING_PATIENT
+			)
+		
+
+		# mock request
+		request = auth_request(APIRequestFactory().patch, f'appointments/{appointment.id}/confirm/', user=patient.user)
+		response = self.confirm(request, pk=appointment.id)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(Appointment.objects.filter(id=appointment.id, status=CONFIRMED).exists())
+
+	@tag('confirm-apptmnt-valid-therapist')
+	def test_confirm_apptmnt_valid_therapist(self):
+			
+		# mock patient
+		patient = PatientMock.mock_instances(n=1)[0]
+		therapist = TherapistMock.mock_instances(n=1)[0]
+		
+		# mock appointments
+		appointment = Appointment.objects.create(
+			patient=patient,
+			timeslot=AvailabilityTimeslotMocker.mock_instances(n=1, fixed_therapist= therapist)[0],
+			start_at=timezone.now() - timedelta(days=1),
+			end_at=timezone.now() - timedelta(hours=23),
+			status=PENDING_THERAPIST
+			)
+		
+
+		# mock request
+		request = auth_request(APIRequestFactory().patch, f'appointments/{appointment.id}/confirm/', user=therapist.user)
+		response = self.confirm(request, pk=appointment.id)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(Appointment.objects.filter(id=appointment.id, status=CONFIRMED).exists())
+
+	@tag('confirm-apptmnt-invalid-not-pending')
+	def test_confirm_apptmnt_invalid_not_pending(self):
+			
+		# mock patient
+		patient = PatientMock.mock_instances(n=1)[0]
+		therapist = TherapistMock.mock_instances(n=1)[0]
+		
+		# mock appointments
+		appointment = Appointment.objects.create(
+			patient=patient,
+			timeslot=AvailabilityTimeslotMocker.mock_instances(n=1, fixed_therapist= therapist)[0],
+			start_at=timezone.now() - timedelta(days=1),
+			end_at=timezone.now() - timedelta(hours=23),
+			status=CONFIRMED
+			)
+		
+
+		# mock request
+		request = auth_request(APIRequestFactory().patch, f'appointments/{appointment.id}/confirm/', user=patient.user)
+		response = self.confirm(request, pk=appointment.id)
+
+		self.assertEqual(response.status_code, 404)
+
+	@tag('confirm-apptmnt-invalid-other-pending')
+	def test_confirm_apptmnt_invalid_other_pending(self):
+			
+		# mock patient
+		patient = PatientMock.mock_instances(n=1)[0]
+		therapist = TherapistMock.mock_instances(n=1)[0]
+		
+		# mock appointments
+		appointment = Appointment.objects.create(
+			patient=patient,
+			timeslot=AvailabilityTimeslotMocker.mock_instances(n=1, fixed_therapist= therapist)[0],
+			start_at=timezone.now() - timedelta(days=1),
+			end_at=timezone.now() - timedelta(hours=23),
+			status=PENDING_THERAPIST
+			)
+		
+
+		# mock request
+		request = auth_request(APIRequestFactory().patch, f'appointments/{appointment.id}/confirm/', user=patient.user)
+		response = self.confirm(request, pk=appointment.id)
+
+		self.assertEqual(response.status_code, 400)
+
 
 
 @tag('referral-requests')
