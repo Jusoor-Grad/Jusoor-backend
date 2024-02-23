@@ -474,19 +474,29 @@ class BatchCreateErrorInnerWrapperSerializer(serializers.Serializer):
 	wednesday = SingleCreateErrorContentSerializer(allow_null=True)
 	thursday = SingleCreateErrorContentSerializer(allow_null=True)
 
-class CreateErrorOuterWrapperSerializer(serializers.Serializer):
+class BatchCreateErrorOuterWrapperSerializer(serializers.Serializer):
 	data = BatchCreateErrorInnerWrapperSerializer()
 	error = serializers.ListSerializer(child=serializers.CharField())
 
-class HttpCreateTimeslotRawErrorSerializer(serializers.Serializer):
-	errors = CreateErrorOuterWrapperSerializer()
+class SingleCreateErrorOuterWrapperSerializer(serializers.Serializer):
+	data = SingleCreateErrorContentSerializer()
+	error = serializers.ListSerializer(child=serializers.CharField())
+
+class HttpCreateTimeslotErrorFinalWrapper(serializers.Serializer):
+	errors = SingleCreateErrorOuterWrapperSerializer()
+
+class HttpErrorSingleCreateTimeslotResponse(HttpErrorResponseSerializer):
+	data = HttpCreateTimeslotErrorFinalWrapper()
+
+class HttpBatchCreateTimeslotRawErrorSerializer(serializers.Serializer):
+	errors = BatchCreateErrorOuterWrapperSerializer()
 
 class BatchCreateFinalWrapperSerializer(serializers.Serializer):
 	errors = BatchCreateErrorInnerWrapperSerializer()
 
 
 class HttpErrorAvailabilityTimeslotBatchCreateResponse(HttpErrorResponseSerializer):
-	data = HttpCreateTimeslotRawErrorSerializer()
+	data = HttpBatchCreateTimeslotRawErrorSerializer()
 	
 class AvailabilityTimeslotBatchUpdateSerializer(TimeIntervalSerializer):
 	"""
