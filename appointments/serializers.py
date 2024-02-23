@@ -186,6 +186,7 @@ class RawAppointmentReadSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Appointment
 		fields = ['id', 'status', 'start_at', 'end_at']
+		ref_name='raw_appointment_serializer'
 
 class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing availability timeslots"""
@@ -193,7 +194,7 @@ class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 
 	linked_appointments = serializers.SerializerMethodField()
 
-	@swagger_serializer_method(serializer_or_field=RawAppointmentReadSerializer)
+	@swagger_serializer_method(serializer_or_field=RawAppointmentReadSerializer())
 	def get_linked_appointments(self, instance):
 		return RawAppointmentReadSerializer(instance=instance.linked_appointments, many=True).data
 
