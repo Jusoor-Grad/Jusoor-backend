@@ -89,6 +89,10 @@ class PatientReadSerializer(UserReadSerializer):
 
 
 	def get_department(self, instance):
+
+		if instance.patient_profile.department is None:
+			return None
+		
 		return instance.patient_profile.department.short_name
 	class Meta:
 

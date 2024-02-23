@@ -4,10 +4,10 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from sqlalchemy import desc
 from authentication.mixins import ActionBasedPermMixin
 from authentication.permissions import IsPatient, IsTherapist
-from core.http import ValidationError
+from core.http import Response, ValidationError
 from core.mixins import SerializerMapperMixin
 from core.viewssets import AugmentedViewSet
-from rest_framework.response import Response
+
 from .serializers import HttpLoginErrorSerializer, HttpSignupErrorSerializer, HttpTokenResponseSerializer, HttpTherapistReadResponseSerializer, HttpTokenRefreshResponseSerializer, HttpPatientReadResponseSerializer, TokenResponseSerializer, TherapistReadSerializer, TokenRefreshBodySerializer, UserLoginSerializer, PatientSignupSerializer, PatientReadSerializer
 from .services.auth import AuthService, User
 from .constants.placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP, TOKEN_INVALID, TOKEN_REFRESHED
@@ -158,7 +158,7 @@ class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
 
 
 
-class UserViewset(AugmentedViewSet):
+class UserViewset(SerializerMapperMixin, ActionBasedPermMixin, GenericViewSet):
 
     serializer_class_by_action = {
         'patient_profile': PatientReadSerializer,
