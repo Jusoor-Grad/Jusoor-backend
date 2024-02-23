@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from turtle import st
 from django import conf
 from django.test import TestCase, tag
 from faker import Faker
@@ -95,7 +96,7 @@ class AppointmentsTests(TestCase):
 
 		body = {
 			'timeslot': timeslot.id,
-			'patient': patient.id,
+			'patient': patient.user.id,
 			'start_at': start_at,
 			'end_at': end_at
 		}
@@ -104,6 +105,7 @@ class AppointmentsTests(TestCase):
 		request = auth_request(APIRequestFactory().post, f'appointments/', user=patient.user, body=body)
 		response = self.create(request)
 
+		
 
 		self.assertEqual(response.status_code, 201)
 		self.assertEqual(response.data['patient'], patient.id)
@@ -122,7 +124,7 @@ class AppointmentsTests(TestCase):
 
 		body = {
 			'timeslot': timeslot.id,
-			'patient': patient.id,
+			'patient': patient.user.id,
 			'start_at': start_at,
 			'end_at': end_at
 		}
@@ -130,6 +132,8 @@ class AppointmentsTests(TestCase):
 		# mock request
 		request = auth_request(APIRequestFactory().post, f'appointments/', user=timeslot.therapist.user, body=body)
 		response = self.create(request)
+
+		
 
 		self.assertEqual(response.status_code, 201)
 		self.assertEqual(response.data['patient'], patient.id)
@@ -147,7 +151,7 @@ class AppointmentsTests(TestCase):
 
 		body = {
 			'timeslot':  145455, ## non-existing appointment id in test db
-			'patient': patient.id,
+			'patient': patient.user.id,
 			'start_at': start_at,
 			'end_at': end_at
 		}
@@ -173,7 +177,7 @@ class AppointmentsTests(TestCase):
 
 		body = {
 			'timeslot': timeslot.id,
-			'patient': patient.id,
+			'patient': patient.user.id,
 			'start_at': start_at,
 			'end_at': end_at
 		}
@@ -198,7 +202,7 @@ class AppointmentsTests(TestCase):
 
 		body = {
 			'timeslot': timeslot.id,
-			'patient': patient.id,
+			'patient': patient.user.id,
 			'start_at': start_at,
 			'end_at': end_at
 		}
@@ -219,19 +223,29 @@ class AppointmentsTests(TestCase):
 		patient = PatientMock.mock_instances(n=1)[0]
 		# mock timeslot
 		# create an existing conflicting appointment
+		timeslot = AvailabilityTimeSlot.objects.create(
+			therapist=therapists[0],
+			start_at=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)+ timedelta(days=1),
+			end_at=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(hours=12, days=1)
+		)
+		apptmnt_start_at = self.faker.date_time_between(start_date=timeslot.start_at, end_date=timeslot.end_at)
+		apptmnt_end_at = self.faker.date_time_between(start_date=apptmnt_start_at, end_date=timeslot.end_at)
 		appointment = Appointment.objects.create(
 			patient=patient,
-			timeslot=AvailabilityTimeslotMocker.mock_instances(n=1, fixed_therapist=therapists[0])[0],
-			start_at=timezone.now() + timedelta(days=1),
-			end_at=timezone.now() + timedelta(days=1, hours=1))   
+			timeslot=timeslot,
+			start_at= apptmnt_start_at,
+			status=CONFIRMED,
+			end_at= apptmnt_end_at)   
 	  
 		start_at = self.faker.date_time_between(start_date=appointment.start_at, end_date=appointment.end_at)
 		# mock an valid JSON within the timeslot boundaries        
 		end_at =self.faker.date_time_between(start_date=start_at, end_date=appointment.end_at)
 
+		
+
 		body = {
 			'timeslot': appointment.timeslot.id,
-			'patient': patient.id,
+			'patient': patient.user.id,
 			'start_at': start_at,
 			'end_at': end_at
 		}
@@ -240,6 +254,8 @@ class AppointmentsTests(TestCase):
 		request = auth_request(APIRequestFactory().post, f'appointments/', user=patient.user, body=body)
 		response = self.create(request)
 
+		
+
 		self.assertEqual(response.status_code, 400)
 
 
@@ -247,17 +263,21 @@ class AppointmentsTests(TestCase):
 	def test_update_appointment_valid_by_patient(self):
 		#  mock patient
 		patient = PatientMock.mock_instances(n=1)[0]
+		therapists = TherapistMock.mock_instances(n=1)
 		# mock appointments
 		timeslot = AvailabilityTimeSlot.objects.create(
-			therapist=TherapistMock.mock_instances(n=1)[0],
-			start_at=datetime.now()+ timedelta(days=1),
-			end_at=datetime.now() + timedelta(days=1, hours=3))
-		
+			therapist=therapists[0],
+			start_at=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)+ timedelta(days=1),
+			end_at=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(hours=12, days=1)
+		)
+		apptmnt_start_at = self.faker.date_time_between(start_date=timeslot.start_at, end_date=timeslot.end_at)
+		apptmnt_end_at = self.faker.date_time_between(start_date=apptmnt_start_at, end_date=timeslot.end_at)
 		appointment = Appointment.objects.create(
 			patient=patient,
-			timeslot= timeslot,
-			start_at=timezone.now() + timedelta(days=1),
-			end_at=timezone.now() + timedelta(days=1, hours=1))
+			timeslot=timeslot,
+			start_at= apptmnt_start_at,
+			status=CONFIRMED,
+			end_at= apptmnt_end_at)   
 		
 		# mock a valid JSON within the timeslot boundaries        
 		start_at = self.faker.date_time_between(start_date=appointment.timeslot.start_at, end_date=appointment.timeslot.end_at)
@@ -272,6 +292,7 @@ class AppointmentsTests(TestCase):
 		request = auth_request(APIRequestFactory().put, f'appointments/{appointment.id}/', user=patient.user, body=body)
 		response = self.update(request, pk=appointment.id)
 
+		
 
 		self.assertEqual(response.status_code, 200)
 		self.assertTrue(Appointment.objects.filter(id=appointment.id, start_at=start_at, end_at=end_at).exists())
@@ -291,14 +312,17 @@ class AppointmentsTests(TestCase):
 			patient=patient,
 			timeslot= timeslot,
 			start_at=timezone.now() + timedelta(days=1),
-			end_at=timezone.now() + timedelta(days=1, hours=1))
+			end_at=timezone.now() + timedelta(days=1, hours=1),
+			status=CONFIRMED
+			)
 		# mock a valid JSON within the timeslot boundaries
 		start_at = self.faker.date_time_between(start_date=appointment.timeslot.start_at, end_date=appointment.timeslot.end_at)
 		end_at =self.faker.date_time_between(start_date=start_at, end_date=appointment.timeslot.end_at )
 
 		body = {
 			'start_at': start_at,
-			'end_at': end_at
+			'end_at': end_at,
+			'timeslot': None
 		}
 
 		# mock request
@@ -316,11 +340,19 @@ class AppointmentsTests(TestCase):
 		therapist =TherapistMock.mock_instances(n=1)[0]
 		patient = PatientMock.mock_instances(n=1)[0]
 		# mock appointments
+		timeslot = AvailabilityTimeSlot.objects.create(
+			therapist=therapist,
+			start_at=datetime.now(),
+			end_at=datetime.now() + timedelta(days=1)
+		)
+		apptmnt_start_at = self.faker.date_time_between(start_date=timeslot.start_at, end_date=timeslot.end_at)
+		apptmnt_end_at = self.faker.date_time_between(start_date=apptmnt_start_at, end_date=timeslot.end_at)
 		appointment = Appointment.objects.create(
 			patient=patient,
-			timeslot=AvailabilityTimeslotMocker.mock_instances(n=1, fixed_therapist=therapist)[0],
-			start_at=timezone.now() + timedelta(days=1),
-			end_at=timezone.now() + timedelta(days=1, hours=1))
+			timeslot=timeslot,
+			start_at= apptmnt_start_at,
+			status=CONFIRMED,
+			end_at= apptmnt_end_at)
 		# mock a valid JSON within the timeslot boundaries
 		start_at = self.faker.date_time_between(start_date=appointment.timeslot.start_at + timedelta(days=1), end_date=appointment.timeslot.end_at + timedelta(days=1))
 		end_at =self.faker.date_time_between(start_date=start_at, end_date=appointment.timeslot.end_at + timedelta(days=1))
@@ -403,7 +435,9 @@ class AppointmentsTests(TestCase):
 			patient=patient,
 			timeslot=AvailabilityTimeslotMocker.mock_instances(n=1, fixed_therapist=therapists[0])[0],
 			start_at=timezone.now() + timedelta(days=1),
-			end_at=timezone.now() + timedelta(days=1, hours=1))
+			end_at=timezone.now() + timedelta(days=1, hours=1),
+			status=CONFIRMED
+			)
 		# mock a valid JSON within the timeslot boundaries
 		start_at = self.faker.date_time_between(start_date=appointment.start_at, end_date=appointment.timeslot.end_at)
 		end_at =self.faker.date_time_between(start_date=start_at, end_date=appointment.timeslot.end_at )
@@ -440,7 +474,7 @@ class AppointmentsTests(TestCase):
 		request = auth_request(APIRequestFactory().patch, f'appointments/{appointment.id}/cancel/', user=patient.user)
 		response = self.cancel(request, pk=appointment.id)
 
-		print(response.data)
+		
 
 		self.assertEqual(response.status_code, 200)
 		self.assertTrue(Appointment.objects.filter(id=appointment.id, status=CANCELLED_BY_PATIENT).exists())

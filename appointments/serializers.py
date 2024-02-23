@@ -1,6 +1,8 @@
+from hmac import new
 from rest_framework import serializers
 from appointments.constants.enums import ACCEPTED, CONFIRMED, INACTIVE, PENDING, PENDING_PATIENT, PENDING_THERAPIST, REJECTED, WEEK_DAYS
 from appointments.models import Appointment, PatientReferralRequest
+from authentication.models import User
 from authentication.serializers import UserReadSerializer
 from core.http import ValidationError
 from core.serializers import HttpErrorSerializer, HttpSuccessResponeSerializer
@@ -16,7 +18,7 @@ from rest_framework import serializers
 from appointments.models import AvailabilityTimeSlot, AvailabilityTimeSlotGroup
 from authentication.serializers import TherapistReadSerializer
 from core.http import ValidationError
-from core.models import Therapist
+from core.models import StudentPatient, Therapist
 from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSerializer, HttpPaginatedSerializer
 from django.db.models import Q
 from core.types import DatetimeInterval
@@ -191,13 +193,9 @@ class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 
 	linked_appointments = serializers.SerializerMethodField()
 
-	@swagger_serializer_method(serializer_or_field=RawAppointmentReadSerializer(many=True))
+	@swagger_serializer_method(serializer_or_field=RawAppointmentReadSerializer)
 	def get_linked_appointments(self, instance):
-
-		if hasattr(instance, 'linked_appointments'):
-			return RawAppointmentReadSerializer(instance=instance.linked_appointments, many=True).data
-		else:
-			return []
+		return RawAppointmentReadSerializer(instance=instance.linked_appointments, many=True).data
 
 	@swagger_serializer_method(serializer_or_field=TherapistReadSerializer)
 	def get_therapist(self, instance):
@@ -761,6 +759,8 @@ class HttpAppointmentListSerializer(HttpSuccessResponeSerializer):
 class AppointmentCreateSerializer(serializers.ModelSerializer):
 	"""Serializer for creating appointments"""
 
+	patient = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=True)
+
 	def validate_start_at(self, value):
 		if value < timezone.now():
 			raise VE(_("APPOINTMENT START TIME CANNOT BE IN THE PAST"))
@@ -808,15 +808,17 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 		# NOTE: not ideal in case of more roles, polymporhism is a better long-term solution
 		if hasattr(self.context['request'].user, 'therapist_profile') :
 			validated_data['status'] = 'PENDING_PATIENT'
-			self.context['request'].user.therapist_profile ## forcing therapist to only create appointments for himself
+		 	## forcing therapist to only create appointments for himself
 
 		elif hasattr(self.context['request'].user, 'patient_profile'):
 			validated_data['status'] = 'PENDING_THERAPIST'
-			validated_data['patient'] = self.context['request'].user.patient_profile ## forcing patient to only create appointments for himself    
+			validated_data['patient'] = self.context['request'].user ## forcing patient to only create appointments for himself    
 
 		# create a therapist assignment for the appointment
 
-		result =  super().create(validated_data)
+		cloned_data = validated_data.copy()
+		cloned_data['patient'] = StudentPatient.objects.get(user=validated_data['patient'])
+		result =  Appointment.objects.create(**cloned_data)
 
 		TherapistAssignment.objects.create(
 			therapist_timeslot=validated_data['timeslot'],
@@ -883,7 +885,10 @@ class AppointmentUpdateSerializer(AppointmentCreateSerializer):
 	def update(self, instance, validated_data):
 		
 		old_timeslot = instance.timeslot.pk
-		new_timeslot = validated_data.get('timeslot', instance.timeslot).pk
+		if validated_data.get('timeslot', None):
+			new_timeslot = validated_data['timeslot'].pk
+		else:
+			new_timeslot = instance.timeslot.pk
 		result =  super().update(instance, validated_data)
 
 		if old_timeslot != new_timeslot:

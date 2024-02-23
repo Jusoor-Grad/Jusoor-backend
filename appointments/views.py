@@ -126,8 +126,8 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         return super().update(request, *args, **kwargs)
     
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpSuccessAppointmentUpdateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrAppointmentUpdateSerializer()})
-    def partial_update(self, queryset):
-        return super().paginate_queryset(queryset)
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
 
     @swagger_auto_schema(responses={200: HttpSuccessResponeSerializer()})    
     @action(methods=['PATCH'], detail=True)
