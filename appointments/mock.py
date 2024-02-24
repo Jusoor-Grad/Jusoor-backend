@@ -99,8 +99,6 @@ class AppointmentMocker:
             Mock appointments along their therapist assignments
         """
         # TODO: remove after verifying correctness of initial mocking
-        AvailabilityTimeSlot.objects.all().delete()
-        Appointment.objects.all().delete()
         timeslots = AvailabilityTimeslotMocker.mock_instances(n, fixed_therapist=fixed_therapist)
         patients = [fixed_patient] if fixed_patient else  PatientMock.mock_instances(n)
         appointments = []
