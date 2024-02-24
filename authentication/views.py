@@ -98,7 +98,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         except:
             raise ValidationError(TOKEN_INVALID)
 
-        return Response(status=status.HTTP_200_OK)
+        return Response(message=_('Logged out successfully.'), status=status.HTTP_200_OK)
 
 class TokenViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
 
