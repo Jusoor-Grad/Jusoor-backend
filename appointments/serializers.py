@@ -1,4 +1,5 @@
 from hmac import new
+from os import read
 from rest_framework import serializers
 from appointments.constants.enums import ACCEPTED, CONFIRMED, INACTIVE, PENDING, PENDING_PATIENT, PENDING_THERAPIST, REJECTED, WEEK_DAYS
 from appointments.models import Appointment, PatientReferralRequest
@@ -744,6 +745,14 @@ class AppointmentReadSerializer(serializers.ModelSerializer):
 		model = Appointment
 		fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at']
 
+class SimplifiedAppointmentReadSerializer(serializers.ModelSerializer):
+	"""Serializer for listing appointments"""
+
+
+	class Meta:
+		model = Appointment
+		fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at']
+
 class RawAppointmentReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing appointments"""
 	
@@ -771,6 +780,7 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 	"""Serializer for creating appointments"""
 
 	patient = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=True)
+	
 
 	def validate_start_at(self, value):
 		if value < timezone.now():
@@ -845,6 +855,7 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Appointment
 		fields = ['timeslot', 'patient', 'start_at', 'end_at', 'id']
+		
 
 class AppointmentCreateErrorInnerWrapperSerializer(serializers.Serializer):
 	"""Serializer used for Signup credential validation on data level"""
@@ -865,7 +876,7 @@ class HttpErrAppointmentCreateSerializer(HttpErrorResponseSerializer):
 
 class HttpAppointmentCreateSerializer(HttpSuccessResponeSerializer):
 	"""Serializer used for swagger HTTP schema"""
-	data = AppointmentReadSerializer()
+	data = SimplifiedAppointmentReadSerializer()
 
 # TODO: create custom validation to exclude the appointment itself from validation
 class AppointmentUpdateSerializer(AppointmentCreateSerializer):
