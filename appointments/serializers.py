@@ -739,11 +739,15 @@ class AppointmentReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing appointments"""
 	
 	timeslot = AvailabilityTimeslotReadSerializer()
+	therapist = serializers.SerializerMethodField()
 
+	@swagger_serializer_method(serializer_or_field=UserReadSerializer)
+	def get_therapist(self, instance):
+		return UserReadSerializer(instance=instance.timeslot.therapist.user).data
 
 	class Meta:
 		model = Appointment
-		fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at']
+		fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at', 'therapist']
 
 class SimplifiedAppointmentReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing appointments"""
@@ -809,7 +813,7 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 
 		# 3. validate that the appointment does not conflict with other confirmed appointments if the therapist is the one creating the appointment
 		conflicting_appointments = timeslot.linked_appointments.filter(
-			Q(status=CONFIRMED) & Q(start_at__lte=end_at, end_at__gte=start_at) &
+			(Q(status=CONFIRMED) | Q(status=PENDING_PATIENT) | Q(status=PENDING_THERAPIST)) & Q(start_at__lte=end_at, end_at__gte=start_at) &
 			Q(timeslot__therapist= timeslot.therapist))
 		if conflicting_appointments.exists():
 		
@@ -897,7 +901,7 @@ class AppointmentUpdateSerializer(AppointmentCreateSerializer):
 		# 2. validate that the appointment does not conflict with other confirmed appointments
 		if timeslot.linked_appointments.filter(
 			~Q(pk=self.instance.pk) &
-			Q(status=CONFIRMED) & Q(start_at__lte=end_at, end_at__gte=start_at) &
+			(Q(status=CONFIRMED) | Q(status=PENDING_PATIENT) | Q(status=PENDING_THERAPIST)) & Q(start_at__lte=end_at, end_at__gte=start_at) &
 			Q(timeslot__therapist=therapist
 							)).exists():
 			raise ValidationError(_('APPOINTMENT TIME CONFLICTS WITH ANOTHER CONFIRMED APPOINTMENT'))

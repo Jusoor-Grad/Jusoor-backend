@@ -82,6 +82,7 @@ class UserReadSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = User
 		fields = ['id', 'username', 'email', 'image']
+		
 
 class PatientReadSerializer(UserReadSerializer):
 
