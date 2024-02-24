@@ -191,6 +191,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'jusoor_backend.wsgi.application'
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME')
 
 AUTH_USER_MODEL = "authentication.User"
 
