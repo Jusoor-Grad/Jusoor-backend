@@ -21,7 +21,7 @@ class FormattedJSONRenderrer(JSONRenderer):
 
         if not str(status_code).startswith('2'):
             response["status"] = status_code
-            response["data"] = data['data']
-            response["message"] = ERROR
+            response["data"] = data.get('data', None) or None
+            response["message"] = data.get('message', None) or ERROR
 
         return super().render(response, accepted_media_type, renderer_context)
