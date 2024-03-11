@@ -136,3 +136,6 @@ class TherapistReadSerializer(UserReadSerializer):
 
 class HttpTherapistReadResponseSerializer(HttpSuccessResponeSerializer):
 	data = TherapistReadSerializer()
+
+class HttpTherapistListResponseSerializer(HttpPaginatedSerializer):
+    results = TherapistReadSerializer(many=True)
