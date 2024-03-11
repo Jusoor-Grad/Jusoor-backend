@@ -6,6 +6,7 @@
 
 from authentication.utils import HasLambdaPerm
 from core.models import StudentPatient, Therapist
+from rest_framework.permissions import IsAuthenticated
 
 
 def IsTherapist():
@@ -14,7 +15,7 @@ def IsTherapist():
     """
 
     def validate_role(request, view):
-        return Therapist.objects.filter(user=request.user).exists()
+        return IsAuthenticated().has_permission(request=request, view=view) and Therapist.objects.filter(user=request.user).exists()
 
     return HasLambdaPerm(validate_role)
 
@@ -24,6 +25,6 @@ def IsPatient():
     """
 
     def validate_role(request, view):
-        return StudentPatient.objects.filter(user=request.user).exists()
+        return IsAuthenticated().has_permission(request=request, view=view) and  StudentPatient.objects.filter(user=request.user).exists()
 
     return HasLambdaPerm(validate_role)
