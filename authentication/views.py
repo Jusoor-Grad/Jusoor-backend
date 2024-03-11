@@ -181,6 +181,10 @@ class UserViewset(SerializerMapperMixin, ActionBasedPermMixin, GenericViewSet):
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpPatientReadResponseSerializer()},manual_parameters=None)
     @action(methods=['GET'], detail=False, url_path='patient', url_name='patient')
     def patient_profile(self, request, *args, **kwargs):
+        """
+            endpoint used to get the personal profile of the patient
+            using the token header
+        """
 
         serializer = self.get_serializer(request.user)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
@@ -188,6 +192,10 @@ class UserViewset(SerializerMapperMixin, ActionBasedPermMixin, GenericViewSet):
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpTherapistReadResponseSerializer()},manual_parameters=None)
     @action(methods=['GET'], detail=False, url_path='therapist', url_name='therapist')
     def therapist_profile(self, request, *args, **kwargs):
+        """
+            endpoint used to ger the personal profile of the therapist
+            using the token header
+        """
         
         serializer = self.get_serializer(instance=request.user)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
