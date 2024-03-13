@@ -2,7 +2,7 @@ from rest_framework.decorators import action
 from yaml import serialize
 from authentication.permissions import IsPatient, IsTherapist
 from chat.agents import ChatGPTAgent, DummyAIAgent
-from chat.chat_serializers.base import ChatBotFullReadSerializer, ChatBotWriteSerializer, ChatMessageCreateSerializer, ChatMessageReadSerializer, ChatRoomCreateSerializer, ChatRoomReadSerializer, ChatRoomReportReadSerializer, ReportChatroomCreateSerializer, ReviewChatRoomFeedbackSerializer
+from chat.chat_serializers.base import ChatBotFullReadSerializer, ChatBotReadSerializer, ChatBotWriteSerializer, ChatMessageCreateSerializer, ChatMessageReadSerializer, ChatRoomCreateSerializer, ChatRoomReadSerializer, ChatRoomReportReadSerializer, ReportChatroomCreateSerializer, ReviewChatRoomFeedbackSerializer
 from chat.chat_serializers.http import ChatBotFullRetrieveHttpSuccessSerializer, ChatBotListHttpSuccessSerializer, ChatBotRetrieveHttpSuccessSerializer, ChatBotWriteSerializerSuccessSerializer, ChatRoomCreateHttpErrorSerializer, ChatRoomListHttpSuccessSerializer, CreateChatRoomReportHttpSuccessSerializer, ChatRoomRetrieveHttpSuccessSerializer, HttpErrorCreateChatMessageSerializer, HttpErrorReportChatRoomFeedbackSerializer, HttpSuccessChatMessageListSerializer, HttpSuccessChatMessageReadSerializer, ListChatRoomFeedbackResponseHttpSuccessSerializer, ListReportChatroomReportHttpSerializer, ListReportChatroomReportHttpSerializer, RetrieveChatRoomFeedbackResponseHttpSuccessSerializer, RetrieveChatRoomReportHttpSerializer, ReviewChatRoomFeedbackHttpErrorSerializer, ReviewChatRoomFeedbackHttpSuccessSerializer
 from chat.models import ChatBot, ChatMessage, ChatRoom, ChatRoomFeedeback
 from core.enums import QuerysetBranching, UserRole
@@ -49,20 +49,26 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
 
     @swagger_auto_schema( responses={200: HttpSuccessChatMessageListSerializer})
     def list(self, request, *args, **kwargs):
+        """list the chat messages between users and chatbots
+        
+        ."""
         return super().list(request, *args, **kwargs)
     
 
     @swagger_auto_schema( responses={200: HttpSuccessChatMessageReadSerializer})
     def retrieve(self, request, *args, **kwargs):
+        """retrieve the details of a certain chat message between a user and a chatbot
+        
+        ."""
         return super().retrieve(request, *args, **kwargs)
     
     
     @transaction.atomic
     @swagger_auto_schema( responses={200: HttpSuccessChatMessageReadSerializer, 400: HttpErrorCreateChatMessageSerializer})
     def create(self, request, *args, **kwargs):
-        """
-            endpoint used to send a message and get a responsew by the chatbot
-        """
+        """send a message and get a responsew by the chatbot
+        
+        ."""
 
         # create the message
         serializer: ChatMessageCreateSerializer = self.get_serializer(data=request.data)
@@ -127,29 +133,31 @@ class ChatRoomViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, Crea
 
     @swagger_auto_schema(responses= {200: ChatRoomListHttpSuccessSerializer})
     def list(self, request, *args, **kwargs):
-        """
-            list the chat rooms between users and chatbots
-        """
+        """list the chat rooms between users and chatbots
+        
+        ."""
         return super().list(request, *args, **kwargs)
     
     @swagger_auto_schema(responses= {200: ChatRoomRetrieveHttpSuccessSerializer})
     def retrieve(self, request, *args, **kwargs):
-        """
-            retrieve the details of a certain chat room between a user and a chatbot
-        """
+        """retrieve the details of a certain chat room between a user and a chatbot
+        
+        .."""
         return super().retrieve(request, *args, **kwargs)
     
     @swagger_auto_schema(responses= {200: CreateChatRoomReportHttpSuccessSerializer, 400: HttpErrorReportChatRoomFeedbackSerializer})
     def create(self, request, *args, **kwargs):
-        """create a new chatroom between authorizxed user and specified bot"""
+        """create a new chatroom between authorizxed user and specified bot
+        
+        ."""
         return super().create(request, *args, **kwargs)
     
 
     @action(detail=True, methods=['post'])
     def review(self, request, *args, **kwargs):
-        """
-            endpoint to review the feedback of a chat room
-        """
+        """endpoint to review the feedback of a chat room
+        
+        ."""
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -195,29 +203,32 @@ class ChatRoomFeedbackViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMix
 
     @swagger_auto_schema(responses= {200: ListReportChatroomReportHttpSerializer})
     def list(self, request, *args, **kwargs):
-        """
-            list the chat rooms between users and chatbots
-        """
+        """list feedbacks for given chat room messages by patients
+        
+        ."""
         return super().list(request, *args, **kwargs)
     
     
     @swagger_auto_schema(responses= {200: RetrieveChatRoomReportHttpSerializer})
     def retrieve(self, request, *args, **kwargs) -> Response:
-        """
-            retrieve the details of a certain chat room between a user and a chatbot
-        """
+        """retrieve the details of a certain chat room feedback
+        
+        ."""
         return super().retrieve(request, *args, **kwargs)
     
     @swagger_auto_schema(responses= {200: CreateChatRoomReportHttpSuccessSerializer, 400: HttpErrorReportChatRoomFeedbackSerializer})
     def create(self, request, *args, **kwargs):
-        """create a new chatroom between authorizxed user and specified bot"""
+        """create a new chatroom between authorizxed user and specified bot
+        
+        ."""
         return super().create(request, *args, **kwargs)
     
     @swagger_auto_schema(responses= {200: ReviewChatRoomFeedbackHttpSuccessSerializer, 400: ReviewChatRoomFeedbackHttpErrorSerializer})
     @action(detail=True, methods=['post'])
     def review(self, request, *args, **kwargs):
-        """
-            endpoint to review the feedback of a chat room
+        """endpoint to review the feedback of a chat room
+
+        .
         """
 
         serializer = self.get_serializer(data=request.data)
@@ -227,10 +238,9 @@ class ChatRoomFeedbackViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMix
 
         return Response(serializer.data, status=201)
 
-class ChatRoomFeedbackResponseViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin):
+class ChatRoomFeedbackResponseViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
 
-    """
-        Viewset to manage the feedback on the chat rooms
+    """Viewset to manage the feedback on the chat rooms
     """
 
     ordering_fields = ['created_at']
@@ -259,16 +269,18 @@ class ChatRoomFeedbackResponseViewset(AugmentedViewSet, ListModelMixin, Retrieve
 
     @swagger_auto_schema(responses= {200: RetrieveChatRoomFeedbackResponseHttpSuccessSerializer })
     def list(self, request, *args, **kwargs):
-        """
-            list the chat room feedbacks
+        """list the chat room feedback responses
+
+        .
         """
         return super().list(request, *args, **kwargs)
     
     
     @swagger_auto_schema(responses= {200: ListChatRoomFeedbackResponseHttpSuccessSerializer })
     def retrieve(self, request, *args, **kwargs) -> Response:
-        """
-            retrieve the details of a certain chat room feedback
+        """retrieve the details of a certain chat room feedback
+
+        .
         """
         return super().retrieve(request, *args, **kwargs)
 
@@ -292,8 +304,8 @@ class ChatBotViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, Creat
     }
 
     serializer_class_by_action = {
-        'list': ChatBotFullReadSerializer,
-        'retrieve': ChatBotFullReadSerializer,
+        'list': ChatBotReadSerializer,
+        'retrieve': ChatBotReadSerializer,
         'full_retrieve': ChatBotFullReadSerializer,
         'create': ChatBotWriteSerializer,
         'update': ChatBotWriteSerializer,
@@ -305,26 +317,52 @@ class ChatBotViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, Creat
 
     @swagger_auto_schema(responses= {200: ChatBotListHttpSuccessSerializer })
     def list(self, request, *args, **kwargs):
+        """list all chatbots
+        
+        ."""
         return super().list(request, *args, **kwargs)
     
     @swagger_auto_schema(responses= {200: ChatBotRetrieveHttpSuccessSerializer })
     def retrieve(self, request, *args, **kwargs):
+        """retrieve the details of a certain chatbot
+
+        .
+        """
         return super().list(request, *args, **kwargs)
     
     @swagger_auto_schema(responses= {200: ChatBotFullRetrieveHttpSuccessSerializer })
     def full_retrieve(self, request, *args, **kwargs):
+
+        """fetches extenssive configurations of the chatbot
+
+        .
+        """
         return super().retrieve(request, *args, **kwargs)
     
     @swagger_auto_schema(responses= {200: ChatBotWriteSerializerSuccessSerializer })
     def create(self, request, *args, **kwargs):
+        """create a new chatbot
+
+            .
+        """
         return super().create(request, *args, **kwargs)
 
     @swagger_auto_schema(responses= {200: ChatBotWriteSerializerSuccessSerializer })
     def update(self, request, *args, **kwargs):
+        """update the chatbot configurations
+        
+        
+        .
+        """
         return super().update(request, *args, **kwargs)
     
     @swagger_auto_schema(responses= {200: ChatBotWriteSerializerSuccessSerializer(partial=True) })
     def partial_update(self, request, *args, **kwargs):
+        """partially update the chatbot configurations
+        
+        
+        .
+        """
         return super().partial_update(request, *args, **kwargs)
     
 
