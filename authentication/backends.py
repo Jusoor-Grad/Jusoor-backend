@@ -17,8 +17,8 @@ class EmailAuthBackend(BaseBackend):
         Authenticate the user by looking up the email hash
         """
         
-
-        user = get_user_model().objects.get(email=username)
+        ## blocking anyone from using a bot account to login
+        user = get_user_model().objects.get(email=username.lower() , is_bot=False)
         if user.check_password(password):
             return user
         
