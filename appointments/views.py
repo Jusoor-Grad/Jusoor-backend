@@ -19,7 +19,7 @@ import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
 from core.querysets import  OwnedQS, PatientOwnedQS, QSWrapper, TherapistOwnedQS
 from core.renderer import FormattedJSONRenderrer
-from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSerializer
+from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponseSerializer
 from core.http import Response
 from django.utils.translation import gettext as _
 from django.db.models import Q
@@ -138,7 +138,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         return super().partial_update(request, *args, **kwargs)
     
     # TODO: test the endpoint
-    @swagger_auto_schema(responses={200: HttpSuccessResponeSerializer(), 400: HttpErrorResponseSerializer()})
+    @swagger_auto_schema(responses={200: HttpSuccessResponseSerializer(), 400: HttpErrorResponseSerializer()})
     @action(methods=['PATCH'], detail=True)
     def confirm(self, request, *args, **kwargs):
         """
@@ -156,7 +156,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         instance.save()
         return Response(data=None, status=status.HTTP_200_OK, message=_('Appointment confirmed successfully'))
 
-    @swagger_auto_schema(responses={200: HttpSuccessResponeSerializer()})    
+    @swagger_auto_schema(responses={200: HttpSuccessResponseSerializer()})    
     @action(methods=['PATCH'], detail=True)
     def cancel(self, request, *args, **kwargs):
         """
@@ -176,7 +176,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
 
         return Response(data=None, status=status.HTTP_200_OK, message=_('Appointment cancelled successfully'))
 
-    @swagger_auto_schema(responses={200: HttpSuccessResponeSerializer(), 400: HttpErrorResponseSerializer()})
+    @swagger_auto_schema(responses={200: HttpSuccessResponseSerializer(), 400: HttpErrorResponseSerializer()})
     @action(methods=['PATCH'], detail=True)
     def complete(self, request, *args, **kwargs):
 

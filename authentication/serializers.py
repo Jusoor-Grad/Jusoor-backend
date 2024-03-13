@@ -7,7 +7,7 @@ from authentication.models import User
 from core.http import ValidationError
 from core.models import KFUPMDepartment, StudentPatient
 from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
-from core.serializers import HttpPaginatedSerializer, HttpSuccessResponeSerializer, HttpErrorSerializer, TherapistSpecializationSerializer
+from core.serializers import HttpPaginatedSerializer, HttpSuccessResponseSerializer, HttpErrorSerializer, TherapistSpecializationSerializer
 from .services.encryption import AESEncryptionService
 from drf_yasg.utils import swagger_serializer_method
 from django.utils.translation import get_language
@@ -50,7 +50,7 @@ class TokenResponseSerializer(serializers.Serializer):
 	access = serializers.CharField()
 	refresh = serializers.CharField()
 
-class HttpTokenResponseSerializer(HttpSuccessResponeSerializer):
+class HttpTokenResponseSerializer(HttpSuccessResponseSerializer):
 	data = TokenResponseSerializer()
 
 
@@ -102,7 +102,7 @@ class PatientReadSerializer(UserReadSerializer):
 		fields = ['id', 'username', 'email', 'department', 'image']
 		
 
-class HttpPatientReadResponseSerializer(HttpSuccessResponeSerializer):
+class HttpPatientReadResponseSerializer(HttpSuccessResponseSerializer):
 	data = PatientReadSerializer()
 
 
@@ -134,7 +134,7 @@ class TherapistReadSerializer(UserReadSerializer):
 
 		
 
-class HttpTherapistReadResponseSerializer(HttpSuccessResponeSerializer):
+class HttpTherapistReadResponseSerializer(HttpSuccessResponseSerializer):
 	data = TherapistReadSerializer()
 
 class HttpTherapistListResponseSerializer(HttpPaginatedSerializer):

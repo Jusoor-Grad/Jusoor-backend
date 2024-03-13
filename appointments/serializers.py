@@ -6,13 +6,13 @@ from appointments.models import Appointment, PatientReferralRequest
 from authentication.models import User
 from authentication.serializers import UserReadSerializer
 from core.http import ValidationError
-from core.serializers import HttpErrorSerializer, HttpSuccessResponeSerializer
+from core.serializers import HttpErrorSerializer, HttpSuccessResponseSerializer
 from rest_framework import serializers
 from appointments.constants.enums import ACTIVE
 from appointments.models import Appointment, AvailabilityTimeSlot, TherapistAssignment
 from core.http import ValidationError
 from django.utils import timezone
-from core.serializers import  HttpSuccessResponeSerializer
+from core.serializers import  HttpSuccessResponseSerializer
 from django.db.models import Q, F
 from django.utils import timezone
 from rest_framework import serializers
@@ -20,7 +20,7 @@ from appointments.models import AvailabilityTimeSlot, AvailabilityTimeSlotGroup
 from authentication.serializers import TherapistReadSerializer
 from core.http import ValidationError
 from core.models import StudentPatient, Therapist
-from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSerializer, HttpPaginatedSerializer
+from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponseSerializer, HttpPaginatedSerializer
 from django.db.models import Q
 from core.types import DatetimeInterval
 from core.utils.time import TimeUtil
@@ -44,11 +44,11 @@ class ReferralRequestReadSerializer(serializers.ModelSerializer):
 		fields = ['id', 'referrer', 'referee', 'reason', 'status', 'responding_therapist', 'appointment']
 		depth = 1
 
-class HttpReferralRequestListSerializer(HttpSuccessResponeSerializer):
+class HttpReferralRequestListSerializer(HttpSuccessResponseSerializer):
 	"""Serializer for listing referral requests"""
 	data = ReferralRequestReadSerializer(many=True)
 
-class HttpReferralRequestRetrieveSerializer(HttpSuccessResponeSerializer):
+class HttpReferralRequestRetrieveSerializer(HttpSuccessResponseSerializer):
 	"""Serializer for listing referral requests"""
 	data = ReferralRequestReadSerializer()
 
@@ -79,7 +79,7 @@ class ReferralRequestCreateSerializer(serializers.ModelSerializer):
 		
 		return super().create(validated_data)
 
-class HttpReferralRequestCreateResponseSerializer(HttpSuccessResponeSerializer):
+class HttpReferralRequestCreateResponseSerializer(HttpSuccessResponseSerializer):
 	"""Serializer for creating referral requests"""
 	data = ReferralRequestCreateSerializer()
 
@@ -118,7 +118,7 @@ class ReferralRequestUpdateSerializer(serializers.ModelSerializer):
 		fields = ['referee', 'reason']
 
 
-class HttpSuccessReferralRequestUpdateResponseSerializer(HttpSuccessResponeSerializer):
+class HttpSuccessReferralRequestUpdateResponseSerializer(HttpSuccessResponseSerializer):
 	"""Serializer for updating referral requests"""
 	data = ReferralRequestUpdateSerializer()
 
@@ -152,7 +152,7 @@ class ReferralRequestReplySerializer(serializers.ModelSerializer):
 		return super().update(instance, validated_data)
 	
 
-class HttpReferralRequestReplyResponseSerializer(HttpSuccessResponeSerializer):
+class HttpReferralRequestReplyResponseSerializer(HttpSuccessResponseSerializer):
 	"""Serializer for updating referral requests"""
 	data = ReferralRequestReplySerializer()
 
@@ -212,11 +212,11 @@ class HttpPaginatedAvailabilityTimeslotListSerializer(HttpPaginatedSerializer):
 	"""Serializer for listing availability timeslots"""
 	results = AvailabilityTimeslotReadSerializer(many=True)
 
-class HttpAvailabilityTimeslotListSerializer(HttpSuccessResponeSerializer):
+class HttpAvailabilityTimeslotListSerializer(HttpSuccessResponseSerializer):
 	"""Serializer for listing availability timeslots"""
 	data = HttpPaginatedAvailabilityTimeslotListSerializer()    
 
-class HttpAvailabilityTimeslotRetrieveSerializer(HttpSuccessResponeSerializer):
+class HttpAvailabilityTimeslotRetrieveSerializer(HttpSuccessResponseSerializer):
 	"""Serializer for listing availability timeslots"""
 	data = AvailabilityTimeslotReadSerializer()
 
@@ -704,7 +704,7 @@ class ErrorAvailabilityTimeslotSingleUpdateFinalResponseWrapper(serializers.Seri
 class HttpErrorAvailabilityTimeslotSingleUpdateResponse(HttpErrorResponseSerializer):
 	data = ErrorAvailabilityTimeslotSingleUpdateFinalResponseWrapper()
 
-class HttpAvailabilityTimeslotUpdateSuccessResponse(HttpSuccessResponeSerializer):
+class HttpAvailabilityTimeslotUpdateSuccessResponse(HttpSuccessResponseSerializer):
 	data = AvailabilityTimeslotSingleUpdateSerializer()
 
 
@@ -766,7 +766,7 @@ class RawAppointmentReadSerializer(serializers.ModelSerializer):
 		model = Appointment
 		fields = ['id', 'status', 'start_at', 'end_at']
 
-class HttpAppointmentRetrieveSerializer(HttpSuccessResponeSerializer):
+class HttpAppointmentRetrieveSerializer(HttpSuccessResponseSerializer):
 	"""Serializer used for swagger HTTP schema"""
 	data = (AppointmentReadSerializer())
 
@@ -774,7 +774,7 @@ class PaginatedAppointmentReadSerializer(serializers.Serializer):
 	"""Serializer for paginated appointment list"""
 	results = AppointmentReadSerializer(many=True)
 
-class HttpAppointmentListSerializer(HttpSuccessResponeSerializer):
+class HttpAppointmentListSerializer(HttpSuccessResponseSerializer):
 	"""Serializer used for swagger HTTP schema"""
 	data = PaginatedAppointmentReadSerializer()
 
@@ -878,7 +878,7 @@ class HttpErrAppointmentCreateSerializer(HttpErrorResponseSerializer):
 	data = AppointmentCreateErrorOuterWrapperSerializer()
 
 
-class HttpAppointmentCreateSerializer(HttpSuccessResponeSerializer):
+class HttpAppointmentCreateSerializer(HttpSuccessResponseSerializer):
 	"""Serializer used for swagger HTTP schema"""
 	data = SimplifiedAppointmentReadSerializer()
 
@@ -935,7 +935,7 @@ class AppointmentUpdateSerializer(AppointmentCreateSerializer):
 		fields = ['timeslot', 'start_at', 'end_at', 'id']
 
 
-class HttpSuccessAppointmentUpdateSerializer(HttpSuccessResponeSerializer):
+class HttpSuccessAppointmentUpdateSerializer(HttpSuccessResponseSerializer):
 	"""Serializer used for swagger HTTP schema"""
 	data = AppointmentUpdateSerializer()
 

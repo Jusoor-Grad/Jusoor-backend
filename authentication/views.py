@@ -13,7 +13,7 @@ from .services.auth import AuthService, User
 from .constants.placeholders import INVALID_CREDENTIALS, LOGGED_IN, SIGNED_OUT, SIGNED_UP, TOKEN_INVALID, TOKEN_REFRESHED
 from core.placeholders import ERROR, SUCCESS, CREATED
 from django.contrib.auth import authenticate, login
-from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponeSerializer
+from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponseSerializer
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import UpdateModelMixin
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
@@ -89,7 +89,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         return Response(data=tokens.model_dump(),
         message= SIGNED_UP, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpSuccessResponeSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpSuccessResponseSerializer()})
     @action(methods=['POST'], detail=False)
     def logout(self, request):
         """logout a user by blacklisting his refresh token"""

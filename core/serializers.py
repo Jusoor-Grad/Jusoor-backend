@@ -3,7 +3,7 @@ from core.models import KFUPMDepartment
 
 
 #  ------- Utility serializers ---------
-class HttpSuccessResponeSerializer(serializers.Serializer):
+class HttpSuccessResponseSerializer(serializers.Serializer):
     """
     Serializer for non-paginated HTTP response
     """
@@ -39,7 +39,7 @@ class KFUPMDepartmentSerializer(serializers.ModelSerializer):
 class HttpKFUPMDepartmentResponseSerializer(HttpPaginatedSerializer):
     results = KFUPMDepartmentSerializer(many=True)
 
-class HttpKFUPMDepartmentDetailResponseSerializer(HttpSuccessResponeSerializer):
+class HttpKFUPMDepartmentDetailResponseSerializer(HttpSuccessResponseSerializer):
     data = KFUPMDepartmentSerializer()
 
 
