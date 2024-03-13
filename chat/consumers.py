@@ -55,10 +55,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chat_agent=  ChatGPTAgent()
 
         
-        await self.send(text_data=json.dumps({"message": "START", 'type':'chat.message_start'}))
+        await self.send(text_data=json.dumps({"message": chat_agent.answer(self.user.pk, message).content, 'type':'chat.message_content'}))
 
-        async for chunk in chat_agent.answer(self.user.pk, message):
-            # send the message to the recieving consumer websocket
-            await self.send(text_data=json.dumps({"message": chunk.content, 'type':'chat.message_content'}))
-
-        await self.send(text_data=json.dumps({"message": "Chatbot has left the chat", 'type':'chat.message_end'}))
