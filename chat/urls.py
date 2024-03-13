@@ -1,8 +1,12 @@
-from django.urls import path
+from rest_framework.routers import SimpleRouter
+from .views import ChatMessageViewset, ChatRoomFeedbackResponseViewset, ChatRoomFeedbackViewset, ChatRoomViewset, ChatBotViewset
 
-from . import views
+router = SimpleRouter()
 
-urlpatterns = [
-    path('', views.index, name='index'),
-#     path('<str:room_name>/', views.room, name='room')
-]
+router.register(r'messages', ChatMessageViewset, basename='chat-messages')
+router.register(r'rooms', ChatRoomViewset, basename='chat-rooms')
+router.register(r'chatbots', ChatBotViewset, basename='chat-bots')
+router.register(prefix=r'reports', viewset=ChatRoomFeedbackViewset, basename='reports')
+router.register('report-responses', ChatRoomFeedbackResponseViewset, basename='report-responses')
+
+urlpatterns = router.urls
