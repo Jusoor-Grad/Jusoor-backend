@@ -40,10 +40,10 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
 
     queryset_by_action = {
         'list': QSWrapper(ChatMessage.objects.all()).branch( {
-            UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['sender', 'receiver']),
+            UserRole.PATIENT.value: OwnedQS(ownership_fields=['sender', 'receiver']),
         }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  ),
         'retrieve': QSWrapper(ChatMessage.objects.all()).branch( {
-            UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['sender', 'receiver']),
+            UserRole.PATIENT.value: OwnedQS(ownership_fields=['sender', 'receiver']),
         }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  ),
     }
 
