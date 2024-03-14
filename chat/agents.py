@@ -85,8 +85,8 @@ class ChatGPTAgent(ChatAIAgent):
         self.chat_model = chat_model(model_name= model_name, openai_api_key=env('OPENAI_KEY'))
         self.embeddings = embeddings(openai_api_key=env('OPENAI_KEY'))
         self.history_len = history_len
-        self.temperature = temperature
-        self.top_p = top_p
+        self.temperature = float(temperature)
+        self.top_p = float(top_p)
         self.prompt = prompt
 
         # 2. configure the PostgreSQL vector store
@@ -117,7 +117,7 @@ class ChatGPTAgent(ChatAIAgent):
             (Q(sender__id=user_id) | Q(receiver__id=user_id)) & Q(chat_room__id=chat_room_id))\
         .order_by('-created_at')[:min(self.history_len, ChatMessage.objects.filter(chat_room__id=chat_room_id).count())]
 
-        print
+        
         # inject messages into messages
         messages = []
         for message in history:
@@ -172,7 +172,6 @@ class ChatGPTAgent(ChatAIAgent):
             reference_message= reference_message
         )
 
-        print(chat_template)
         return self.chat_model.invoke(messages, temperature= self.temperature, top_p= self.top_p)
 
 class DummyAIAgent(ChatAIAgent):
