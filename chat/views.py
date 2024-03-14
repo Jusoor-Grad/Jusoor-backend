@@ -93,12 +93,8 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
             content=bot_message.content
         )
 
-        resposne = {
-        'data' : ChatMessageReadSerializer(msg).data,
-        'message': _('Message sent successfully'),
-        }
 
-        return Response(resposne, status=201)
+        return Response( ChatMessageReadSerializer(msg).data, status=201)
 
 
 class ChatRoomViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin):

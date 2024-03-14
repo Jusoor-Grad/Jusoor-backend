@@ -85,8 +85,8 @@ class ChatGPTAgent(ChatAIAgent):
         self.chat_model = chat_model(model_name= model_name, openai_api_key=env('OPENAI_KEY'))
         self.embeddings = embeddings(openai_api_key=env('OPENAI_KEY'))
         self.history_len = history_len
-        self.temperature = 0.8
-        self.top_p = 0.7
+        self.temperature = temperature
+        self.top_p = top_p
         self.prompt = prompt
 
         # 2. configure the PostgreSQL vector store
@@ -111,10 +111,11 @@ class ChatGPTAgent(ChatAIAgent):
     def _retrieve_history(self, user_id: int, chat_room_id: int) -> List[HumanMessagePromptTemplate | AIMessagePromptTemplate]:
         
         # getting the message history
-
+        
+        #FIXME: remove the fixed history
         history = ChatMessage.objects.filter(
             (Q(sender__id=user_id) | Q(receiver__id=user_id)) & Q(chat_room__id=chat_room_id))\
-        .order_by('-created_at')[:min(2, ChatMessage.objects.filter(chat_room__id=chat_room_id).count())]
+        .order_by('-created_at')[:min(self.history_len, ChatMessage.objects.filter(chat_room__id=chat_room_id).count())]
 
         print
         # inject messages into messages
