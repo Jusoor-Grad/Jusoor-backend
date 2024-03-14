@@ -3,7 +3,7 @@ from yaml import serialize
 from authentication.permissions import IsPatient, IsTherapist
 from chat.agents import ChatGPTAgent, DummyAIAgent
 from chat.chat_serializers.base import ChatBotFullReadSerializer, ChatBotReadSerializer, ChatBotWriteSerializer, ChatMessageCreateSerializer, ChatMessageReadSerializer, ChatRoomCreateSerializer, ChatRoomReadSerializer, ChatRoomReportReadSerializer, ReportChatroomCreateSerializer, ReviewChatRoomFeedbackSerializer
-from chat.chat_serializers.http import ChatBotFullRetrieveHttpSuccessSerializer, ChatBotListHttpSuccessSerializer, ChatBotRetrieveHttpSuccessSerializer, ChatBotWriteSerializerSuccessSerializer, ChatRoomCreateHttpErrorSerializer, ChatRoomListHttpSuccessSerializer, CreateChatRoomReportHttpSuccessSerializer, ChatRoomRetrieveHttpSuccessSerializer, HttpErrorCreateChatMessageSerializer, HttpErrorReportChatRoomFeedbackSerializer, HttpSuccessChatMessageListSerializer, HttpSuccessChatMessageReadSerializer, ListChatRoomFeedbackResponseHttpSuccessSerializer, ListReportChatroomReportHttpSerializer, ListReportChatroomReportHttpSerializer, RetrieveChatRoomFeedbackResponseHttpSuccessSerializer, RetrieveChatRoomReportHttpSerializer, ReviewChatRoomFeedbackHttpErrorSerializer, ReviewChatRoomFeedbackHttpSuccessSerializer
+from chat.chat_serializers.http import ChatBotFullRetrieveHttpSuccessSerializer, ChatBotListHttpSuccessResponseSerializer, ChatBotListHttpSuccessSerializer, ChatBotRetrieveHttpSuccessSerializer, ChatBotWriteSerializerSuccessSerializer, ChatRoomCreateHttpErrorSerializer, ChatRoomListHttpResponseSuccessSerializer, ChatRoomListHttpSuccessSerializer, CreateChatRoomReportHttpSuccessSerializer, ChatRoomRetrieveHttpSuccessSerializer, HttpErrorCreateChatMessageSerializer, HttpErrorReportChatRoomFeedbackSerializer, HttpSuccessChatMessageListSerializer, HttpSuccessChatMessageReadSerializer, ListChatMessageHttpSuccessSerializer, ListChatRoomFeedbackResponseHttpSuccessResponseSerializer, ListChatRoomFeedbackResponseHttpSuccessSerializer, ListReportChatroomReportHttpSerializer, ListReportChatroomReportHttpSerializer, ListReportChatroomReportHttpSuccessResposneSerializer, RetrieveChatRoomFeedbackResponseHttpSuccessSerializer, RetrieveChatRoomReportHttpSerializer, ReviewChatRoomFeedbackHttpErrorSerializer, ReviewChatRoomFeedbackHttpSuccessSerializer
 from chat.models import ChatBot, ChatMessage, ChatRoom, ChatRoomFeedeback
 from core.enums import QuerysetBranching, UserRole
 from core.models import Therapist
@@ -48,7 +48,7 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
         }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  ),
     }
 
-    @swagger_auto_schema( responses={200: HttpSuccessChatMessageListSerializer})
+    @swagger_auto_schema( responses={200: ListChatMessageHttpSuccessSerializer})
     def list(self, request, *args, **kwargs):
         """list the chat messages between users and chatbots
         
@@ -132,7 +132,7 @@ class ChatRoomViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, Crea
     
     }
 
-    @swagger_auto_schema(responses= {200: ChatRoomListHttpSuccessSerializer})
+    @swagger_auto_schema(responses= {200: ChatRoomListHttpResponseSuccessSerializer})
     def list(self, request, *args, **kwargs):
         """list the chat rooms between users and chatbots
         
@@ -202,7 +202,7 @@ class ChatRoomFeedbackViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMix
         'review': ChatRoomFeedeback.objects.all(),
     }
 
-    @swagger_auto_schema(responses= {200: ListReportChatroomReportHttpSerializer})
+    @swagger_auto_schema(responses= {200: ListReportChatroomReportHttpSuccessResposneSerializer})
     def list(self, request, *args, **kwargs):
         """list feedbacks for given chat room messages by patients
         
@@ -268,7 +268,7 @@ class ChatRoomFeedbackResponseViewset(AugmentedViewSet, ListModelMixin, Retrieve
         }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  ),
     }
 
-    @swagger_auto_schema(responses= {200: RetrieveChatRoomFeedbackResponseHttpSuccessSerializer })
+    @swagger_auto_schema(responses= {200: ListChatRoomFeedbackResponseHttpSuccessResponseSerializer })
     def list(self, request, *args, **kwargs):
         """list the chat room feedback responses
 
@@ -316,7 +316,7 @@ class ChatBotViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, Creat
 
     queryset = ChatBot.objects.all()
 
-    @swagger_auto_schema(responses= {200: ChatBotListHttpSuccessSerializer })
+    @swagger_auto_schema(responses= {200: ChatBotListHttpSuccessResponseSerializer })
     def list(self, request, *args, **kwargs):
         """list all chatbots
         

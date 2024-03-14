@@ -10,6 +10,9 @@ class HttpSuccessChatMessageReadSerializer(HttpSuccessResponseSerializer):
 class HttpSuccessChatMessageListSerializer(HttpPaginatedSerializer):
     results = ChatMessageReadSerializer(many=True)
 
+class ListChatMessageHttpSuccessSerializer(HttpSuccessResponseSerializer):
+    data = HttpSuccessChatMessageListSerializer()
+
 class ChatMessageCreateErrorSerializer(serializers.Serializer):
     chat = serializers.ListSerializer(child=serializers.CharField())
     error = serializers.ListSerializer(child=serializers.CharField())
@@ -19,9 +22,14 @@ class HttpErrorCreateChatMessageSerializer(HttpErrorResponseSerializer):
     data = ChatMessageCreateErrorSerializer()
 
 # ------------ chat rooms
-    
+
+
+
 class ChatRoomListHttpSuccessSerializer(HttpPaginatedSerializer):
     results = ChatRoomReadSerializer(many=True)
+
+class ChatRoomListHttpResponseSuccessSerializer(HttpSuccessResponseSerializer):
+    data = ChatRoomListHttpSuccessSerializer()
 
 class ChatRoomRetrieveHttpSuccessSerializer(HttpSuccessResponseSerializer):
     data = ChatRoomReadSerializer()
@@ -55,6 +63,9 @@ class RetrieveChatRoomReportHttpSerializer(HttpSuccessResponseSerializer):
 class ListReportChatroomReportHttpSerializer(HttpPaginatedSerializer):
     results = ChatRoomReportReadSerializer(many=True)
 
+class ListReportChatroomReportHttpSuccessResposneSerializer(HttpSuccessResponseSerializer):
+    data = ListReportChatroomReportHttpSerializer()
+
 class ReviewChatRoomFeedbackHttpSuccessSerializer(HttpSuccessResponseSerializer):
     data = ReviewChatRoomFeedbackSerializer()
 
@@ -68,10 +79,16 @@ class RetrieveChatRoomFeedbackResponseHttpSuccessSerializer(HttpSuccessResponseS
 class ListChatRoomFeedbackResponseHttpSuccessSerializer(HttpPaginatedSerializer):
     results = ChatRoomReportResponseReadSerializer(many=True)
 
+class ListChatRoomFeedbackResponseHttpSuccessResponseSerializer(HttpSuccessResponseSerializer):
+    data = ListChatRoomFeedbackResponseHttpSuccessSerializer()
+
 # ------------ chat bots
     
 class ChatBotListHttpSuccessSerializer(HttpPaginatedSerializer):
     results = ChatBotReadSerializer(many=True)
+
+class ChatBotListHttpSuccessResponseSerializer(HttpSuccessResponseSerializer):
+    data = ChatBotListHttpSuccessSerializer()
 
 class ChatBotRetrieveHttpSuccessSerializer(HttpSuccessResponseSerializer):
     data = ChatBotReadSerializer()
