@@ -38,6 +38,7 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
         'create': ChatMessageCreateSerializer,
     }
 
+    # ownership queryset mapping
     queryset_by_action = {
         'list': QSWrapper(ChatMessage.objects.all()).branch( {
             UserRole.PATIENT.value: OwnedQS(ownership_fields=['sender', 'receiver']),
