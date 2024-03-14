@@ -33,7 +33,7 @@ class ChatAIAgent(ABC):
         """
         pass
     
-    def _retrieve_history(self, user_id: int, chat_room_id: int):
+    def _retrieve_history(self, user_id: int):
         """
             retrieve the chat history of the user in the chatroom
 
@@ -41,7 +41,7 @@ class ChatAIAgent(ABC):
             @param: chatroom_id: the id of the chatroom
         """
 
-    def _construct_prompt(self, user_id: int, chat_room_id: int, message: str):
+    def _construct_prompt(self, user_id: int, message: str):
         """Define a dynamic LangChain prompt pipeline
 
         @param: question: the question to be answered (optional)
@@ -52,7 +52,7 @@ class ChatAIAgent(ABC):
     
     
 
-    def answer(self, user_id: int, chat_room_id: int, message: str):
+    def answer(self, user_id: int, message: str):
         """
         Answer a question using the LangChain chat AI model
         and configured setup including prompts and vector database
@@ -108,16 +108,15 @@ class ChatGPTAgent(ChatAIAgent):
 
         self.retriever = self.vector_store.as_retriever()
 
-    def _retrieve_history(self, user_id: int, chat_room_id: int) -> List[HumanMessagePromptTemplate | AIMessagePromptTemplate]:
+    def _retrieve_history(self, user_id: int) -> List[HumanMessagePromptTemplate | AIMessagePromptTemplate]:
         
         # getting the message history
         
-        #FIXME: remove the fixed history
         history = ChatMessage.objects.filter(
-            (Q(sender__id=user_id) | Q(receiver__id=user_id)) & Q(chat_room__id=chat_room_id))\
-        .order_by('-created_at')[:min(self.history_len, ChatMessage.objects.filter(chat_room__id=chat_room_id).count())]
+            (Q(sender__id=user_id) | Q(receiver__id=user_id)))\
+        .order_by('created_at')[:min(self.history_len, ChatMessage.objects.filter((Q(sender__id=user_id) | Q(receiver__id=user_id))).count())]
 
-        
+    
         # inject messages into messages
         messages = []
         for message in history:
@@ -128,7 +127,7 @@ class ChatGPTAgent(ChatAIAgent):
 
         return messages
 
-    def _construct_prompt(self, user_id: int, chat_room_id: int, message: str):
+    def _construct_prompt(self, user_id: int,  message: str):
         
         # 1. TODO: retrieve the user message history using his id
 
@@ -146,7 +145,8 @@ class ChatGPTAgent(ChatAIAgent):
         system_prompt = SystemMessagePromptTemplate.from_template(
             full_prompt)
         
-        history_messages = self._retrieve_history(user_id, chat_room_id)
+        history_messages = self._retrieve_history(user_id)
+
         incoming_message = HumanMessagePromptTemplate.from_template('{user_input}')
         return ChatPromptTemplate.from_messages(
             [
@@ -157,10 +157,10 @@ class ChatGPTAgent(ChatAIAgent):
         )
 
 
-    def answer(self, user_id: int, chat_room_id: int, message: str):
+    def answer(self, user_id: int, message: str):
         
         # 1. get history and reference prompting
-        chat_template = self._construct_prompt(user_id=user_id, chat_room_id=chat_room_id, message=message)
+        chat_template = self._construct_prompt(user_id=user_id, message=message)
 
         reference_messages= self.vector_store.similarity_search(message, k=2)
         
@@ -179,5 +179,5 @@ class DummyAIAgent(ChatAIAgent):
     def __init__(self, chat_model: BaseChatModel = ChatOpenAI, embeddings: Embeddings = OpenAIEmbeddings, history_len: int = 8, collection_name: str = env('EMBEDDING_COLLECTION_NAME'), *args, **kwargs):
         super().__init__(chat_model, embeddings, history_len, collection_name, *args, **kwargs)
 
-    def answer(self, user_id: int, chat_room_id: int, message: str):
+    def answer(self, user_id: int, message: str):
         return "I am a dummy agent. I am not configured to answer questions yet."
