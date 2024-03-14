@@ -45,25 +45,25 @@ class ChatBot(TimeStampedModel):
         }
 
 # TODO: we might add sentiment analysis to the chat rooms    
-class ChatRoom(TimeStampedModel):
-    """
-        record to save the chat rooms between a user and certain bot characters
-        we may use it in the future to create aggregate sentiment stats of the user
-        interactions within each room
-    """
+# class ChatRoom(TimeStampedModel):
+#     """
+#         record to save the chat rooms between a user and certain bot characters
+#         we may use it in the future to create aggregate sentiment stats of the user
+#         interactions within each room
+#     """
 
-    user = models.ForeignKey(get_user_model(), on_delete=models.PROTECT, related_name='chat_rooms')
-    bot = models.ForeignKey(ChatBot, on_delete=models.PROTECT, related_name='bot_rooms')
+#     user = models.ForeignKey(get_user_model(), on_delete=models.PROTECT, related_name='chat_rooms')
+#     bot = models.ForeignKey(ChatBot, on_delete=models.PROTECT, related_name='bot_rooms')
 
-    def __str__(self):
-        return f'{self.user} - {self.bot}'
+#     def __str__(self):
+#         return f'{self.user} - {self.bot}'
     
-    def get_agent(self, agent_cls):
-        """
-            Method to get the chatbot agent
-        """
+#     def get_agent(self, agent_cls):
+#         """
+#             Method to get the chatbot agent
+#         """
 
-        return self.bot.get_agent(agent_cls)
+#         return self.bot.get_agent(agent_cls)
 
 class ChatMessage(TimeStampedModel):
     """
@@ -73,7 +73,7 @@ class ChatMessage(TimeStampedModel):
     content = models.TextField()
     sender = models.ForeignKey(get_user_model(), on_delete=models.PROTECT, related_name='sent_messages')
     receiver = models.ForeignKey(get_user_model(), on_delete=models.PROTECT, related_name='received_messages')
-    chat_room = models.ForeignKey(ChatRoom, on_delete=models.PROTECT, related_name='messages')
+    # chat_room = models.ForeignKey(ChatRoom, on_delete=models.PROTECT, related_name='messages')
     read = models.BooleanField(default=False)
 
 
@@ -93,7 +93,6 @@ class ChatMessage(TimeStampedModel):
 
 class ChatRoomFeedeback(TimeStampedModel):
 
-    chat_room = models.ForeignKey(ChatRoom, on_delete=models.PROTECT, related_name='feedbacks')
     patient = models.ForeignKey(StudentPatient, on_delete=models.PROTECT, related_name='feedbacks')
     status = models.CharField(choices=FEEDBACK_STATUSES.items(), default='PENDING', max_length=255)
     feedback = models.TextField() # feedback from the patient

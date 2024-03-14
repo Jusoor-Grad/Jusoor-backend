@@ -1,4 +1,4 @@
-from chat.chat_serializers.base import ChatBotFullReadSerializer, ChatBotReadSerializer, ChatBotWriteSerializer, ChatMessageReadSerializer, ChatMessageCreateSerializer, ChatRoomCreateSerializer, ChatRoomReadSerializer, ChatRoomReportReadSerializer, ChatRoomReportResponseReadSerializer, ReviewChatRoomFeedbackSerializer
+from chat.chat_serializers.base import ChatBotFullReadSerializer, ChatBotReadSerializer, ChatBotWriteSerializer, ChatMessageReadSerializer,  ChatRoomReportReadSerializer, ChatRoomReportResponseReadSerializer, ReviewChatRoomFeedbackSerializer
 from core.serializers import HttpErrorResponseSerializer, HttpErrorSerializer, HttpSuccessResponseSerializer, HttpPaginatedSerializer
 from rest_framework import serializers
 
@@ -25,14 +25,14 @@ class HttpErrorCreateChatMessageSerializer(HttpErrorResponseSerializer):
 
 
 
-class ChatRoomListHttpSuccessSerializer(HttpPaginatedSerializer):
-    results = ChatRoomReadSerializer(many=True)
+# class ChatRoomListHttpSuccessSerializer(HttpPaginatedSerializer):
+#     results = ChatRoomReadSerializer(many=True)
 
-class ChatRoomListHttpResponseSuccessSerializer(HttpSuccessResponseSerializer):
-    data = ChatRoomListHttpSuccessSerializer()
+# class ChatRoomListHttpResponseSuccessSerializer(HttpSuccessResponseSerializer):
+#     data = ChatRoomListHttpSuccessSerializer()
 
-class ChatRoomRetrieveHttpSuccessSerializer(HttpSuccessResponseSerializer):
-    data = ChatRoomReadSerializer()
+# class ChatRoomRetrieveHttpSuccessSerializer(HttpSuccessResponseSerializer):
+#     data = ChatRoomReadSerializer()
 
 
 class ChatRoomInnerErrorSerializer(serializers.Serializer):
@@ -55,7 +55,7 @@ class HttpErrorReportChatRoomFeedbackSerializer(HttpErrorResponseSerializer):
     data = ChatRoomReportErrorSerializer()
 
 class CreateChatRoomReportHttpSuccessSerializer(HttpPaginatedSerializer):
-    results = ChatRoomCreateSerializer()
+    results = ReviewChatRoomFeedbackSerializer()
 
 class RetrieveChatRoomReportHttpSerializer(HttpSuccessResponseSerializer):
     data = ChatRoomReportReadSerializer()

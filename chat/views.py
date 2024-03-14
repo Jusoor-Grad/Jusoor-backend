@@ -2,9 +2,9 @@ from rest_framework.decorators import action
 from yaml import serialize
 from authentication.permissions import IsPatient, IsTherapist
 from chat.agents import ChatGPTAgent, DummyAIAgent
-from chat.chat_serializers.base import ChatBotFullReadSerializer, ChatBotReadSerializer, ChatBotWriteSerializer, ChatMessageCreateSerializer, ChatMessageReadSerializer, ChatRoomCreateSerializer, ChatRoomReadSerializer, ChatRoomReportReadSerializer, ReportChatroomCreateSerializer, ReviewChatRoomFeedbackSerializer
-from chat.chat_serializers.http import ChatBotFullRetrieveHttpSuccessSerializer, ChatBotListHttpSuccessResponseSerializer, ChatBotListHttpSuccessSerializer, ChatBotRetrieveHttpSuccessSerializer, ChatBotWriteSerializerSuccessSerializer, ChatRoomCreateHttpErrorSerializer, ChatRoomListHttpResponseSuccessSerializer, ChatRoomListHttpSuccessSerializer, CreateChatRoomReportHttpSuccessSerializer, ChatRoomRetrieveHttpSuccessSerializer, HttpErrorCreateChatMessageSerializer, HttpErrorReportChatRoomFeedbackSerializer, HttpSuccessChatMessageListSerializer, HttpSuccessChatMessageReadSerializer, ListChatMessageHttpSuccessSerializer, ListChatRoomFeedbackResponseHttpSuccessResponseSerializer, ListChatRoomFeedbackResponseHttpSuccessSerializer, ListReportChatroomReportHttpSerializer, ListReportChatroomReportHttpSerializer, ListReportChatroomReportHttpSuccessResposneSerializer, RetrieveChatRoomFeedbackResponseHttpSuccessSerializer, RetrieveChatRoomReportHttpSerializer, ReviewChatRoomFeedbackHttpErrorSerializer, ReviewChatRoomFeedbackHttpSuccessSerializer
-from chat.models import ChatBot, ChatMessage, ChatRoom, ChatRoomFeedeback
+from chat.chat_serializers.base import ChatBotFullReadSerializer, ChatBotReadSerializer, ChatBotWriteSerializer, ChatMessageCreateSerializer, ChatMessageReadSerializer, ChatRoomReportReadSerializer, ReportChatroomCreateSerializer, ReviewChatRoomFeedbackSerializer
+from chat.chat_serializers.http import ChatBotFullRetrieveHttpSuccessSerializer, ChatBotListHttpSuccessResponseSerializer, ChatBotRetrieveHttpSuccessSerializer, ChatBotWriteSerializerSuccessSerializer, CreateChatRoomReportHttpSuccessSerializer,  HttpErrorCreateChatMessageSerializer, HttpErrorReportChatRoomFeedbackSerializer, HttpSuccessChatMessageReadSerializer, ListChatMessageHttpSuccessSerializer, ListChatRoomFeedbackResponseHttpSuccessResponseSerializer, ListChatRoomFeedbackResponseHttpSuccessSerializer,  ListReportChatroomReportHttpSuccessResposneSerializer, RetrieveChatRoomReportHttpSerializer, ReviewChatRoomFeedbackHttpErrorSerializer, ReviewChatRoomFeedbackHttpSuccessSerializer
+from chat.models import ChatBot, ChatMessage,  ChatRoomFeedeback
 from core.enums import QuerysetBranching, UserRole
 from core.models import Therapist
 from core.querysets import OwnedQS, PatientOwnedQS, QSWrapper
@@ -24,7 +24,7 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
     
     ordering_fields = ['created_at']
     ordering = ['-created_at']
-    filterset_fields = ['chat_room', 'sender', 'receiver', 'created_at']
+    filterset_fields = ['sender', 'receiver', 'created_at']
     pagination_class = CustomPagination
     action_permissions = {
         'list': [IsTherapist() | (IsPatient())],
@@ -53,6 +53,7 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
         """list the chat messages between users and chatbots
         
         ."""
+
         return super().list(request, *args, **kwargs)
     
 
@@ -72,24 +73,31 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
         ."""
 
         # create the message
+        bot = ChatBot.objects.get(id=ChatBot.objects.first().id)
         serializer: ChatMessageCreateSerializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+
+        data = serializer.data
+
+        
+        
+        message = ChatMessage.objects.create(
+            sender=request.user,
+            receiver=bot.user_profile,
+            content=data['content']
+            )
 
         # return a resposne from the chatbot
-        chatroom: ChatRoom = serializer.instance['chat_room']
-        agent = chatroom.get_agent(ChatGPTAgent if env('CONTEXT') != 'test' else DummyAIAgent)
+        agent = bot.get_agent(ChatGPTAgent if env('CONTEXT') != 'test' else DummyAIAgent)
         bot_message = agent.answer(
             user_id=request.user.id,
-            chat_room_id=chatroom.id,
-            message=serializer.instance['content']
+            message=data['content']
 
         )
         # create the bot message
-        msg = ChatMessage.objects.create(
-            sender=chatroom.bot.user_profile,
+        msg: ChatMessage = ChatMessage.objects.create(
+            sender=bot.user_profile,
             receiver=request.user,
-            chat_room=chatroom,
             content=bot_message.content
         )
 
@@ -97,71 +105,59 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
         return Response( ChatMessageReadSerializer(msg).data, status=201)
 
 
-class ChatRoomViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin):
-    """
-        viewset used to manage chatroom, as well as feedbakc mechanism on the chatbot
-    """
+# class ChatRoomViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin):
+#     """
+#         viewset used to manage chatroom, as well as feedbakc mechanism on the chatbot
+#     """
     
-    ordering_fields = ['created_at']
-    filterset_fields = ['user', 'bot', 'last_updated_at']
+#     ordering_fields = ['created_at']
+#     filterset_fields = ['user', 'bot', 'last_updated_at']
 
-    action_permissions = {
-        'list': [IsTherapist() | IsPatient()],
-        'retrieve': [IsTherapist() | IsPatient()],
-        'create': [(IsPatient())],
-    }
+#     action_permissions = {
+#         'list': [IsTherapist() | IsPatient()],
+#         'retrieve': [IsTherapist() | IsPatient()],
+#         # 'create': [(IsPatient())],
+#     }
 
-    serializer_class_by_action = {
-        'list': ChatRoomReadSerializer,
-        'retrieve': ChatRoomReadSerializer,
-        'create': ChatRoomCreateSerializer,
+#     serializer_class_by_action = {
+#         'list': ChatRoomReadSerializer,
+#         'retrieve': ChatRoomReadSerializer,
+#         # 'create': ChatRoomCreateSerializer,
         
-    }
+#     }
 
-    queryset_by_action = {
-        'list': QSWrapper(ChatRoom.objects.all()).branch( {
-            UserRole.PATIENT.value: OwnedQS(ownership_fields=['user']),
-        }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  ),
-        'retrieve': QSWrapper(ChatRoom.objects.all()).branch( {
-            UserRole.PATIENT.value: OwnedQS(ownership_fields=['user']),
-        }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  )
+#     queryset_by_action = {
+#         'list': QSWrapper(ChatRoom.objects.all()).branch( {
+#             UserRole.PATIENT.value: OwnedQS(ownership_fields=['user']),
+#         }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  ),
+#         'retrieve': QSWrapper(ChatRoom.objects.all()).branch( {
+#             UserRole.PATIENT.value: OwnedQS(ownership_fields=['user']),
+#         }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  )
     
-    }
+#     }
 
-    @swagger_auto_schema(responses= {200: ChatRoomListHttpResponseSuccessSerializer})
-    def list(self, request, *args, **kwargs):
-        """list the chat rooms between users and chatbots
+#     @swagger_auto_schema(responses= {200: ChatRoomListHttpResponseSuccessSerializer})
+#     def list(self, request, *args, **kwargs):
+#         """list the chat rooms between users and chatbots
         
-        ."""
-        return super().list(request, *args, **kwargs)
+#         ."""
+#         return super().list(request, *args, **kwargs)
     
-    @swagger_auto_schema(responses= {200: ChatRoomRetrieveHttpSuccessSerializer})
-    def retrieve(self, request, *args, **kwargs):
-        """retrieve the details of a certain chat room between a user and a chatbot
+#     @swagger_auto_schema(responses= {200: ChatRoomRetrieveHttpSuccessSerializer})
+#     def retrieve(self, request, *args, **kwargs):
+#         """retrieve the details of a certain chat room between a user and a chatbot
         
-        .."""
-        return super().retrieve(request, *args, **kwargs)
+#         .."""
+#         return super().retrieve(request, *args, **kwargs)
     
-    @swagger_auto_schema(responses= {200: CreateChatRoomReportHttpSuccessSerializer, 400: HttpErrorReportChatRoomFeedbackSerializer})
-    def create(self, request, *args, **kwargs):
-        """create a new chatroom between authorizxed user and specified bot
+#     # @swagger_auto_schema(responses= {200: CreateChatRoomReportHttpSuccessSerializer, 400: HttpErrorReportChatRoomFeedbackSerializer})
+#     # def create(self, request, *args, **kwargs):
+#     #     """create a new chatroom between authorizxed user and specified bot
         
-        ."""
-        return super().create(request, *args, **kwargs)
+#     #     ."""
+#     #     return super().create(request, *args, **kwargs)
     
 
-    @action(detail=True, methods=['post'])
-    def review(self, request, *args, **kwargs):
-        """endpoint to review the feedback of a chat room
-        
-        ."""
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        self.perform_create(serializer)
-
-        return Response(serializer.data, status=201)
         
 
 
