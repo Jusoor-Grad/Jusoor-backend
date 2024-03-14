@@ -73,7 +73,7 @@ class ChatRoomReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = chat.models.ChatRoom
-        fields = ['bot', 'user', 'unread_messages', 'last_updated_at']
+        fields = ['bot', 'user', 'unread_messages', 'last_updated_at', "id"]
 
 
 class ChatRoomCreateSerializer(serializers.ModelSerializer):
