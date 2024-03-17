@@ -2,7 +2,7 @@ import faker
 from authentication.models import User
 from faker import Faker
 from django.contrib.auth import get_user_model
-from chat.models import ChatBot, ChatMessage, ChatRoom
+from chat.models import ChatBot, ChatMessage
 
 faker = Faker()
 
@@ -37,20 +37,19 @@ class ChatMessageMocker:
     @staticmethod
     def mock_instances(n_msg_pairs: int, user: User, bot: ChatBot):
 
-        chatroom, _ = ChatRoom.objects.get_or_create(user=user, bot=bot)
         messages = []
         for i in range(2*n_msg_pairs):
             messages.extend([ChatMessage(
                 content=faker.text(),
                 sender=user,
                 receiver=bot.user_profile,
-                chat_room=chatroom
+                
             ),
             ChatMessage(
                 content=faker.text(),
                 sender=bot.user_profile,
                 receiver=user,
-                chat_room=chatroom
+                
             )])
 
         return ChatMessage.objects.bulk_create(messages)
