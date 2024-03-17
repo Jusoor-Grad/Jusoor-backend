@@ -3,22 +3,45 @@ from pydantic import BaseModel, model_validator
 from typing import List, Optional, Generic, TypeVar, Union
 from django.utils.translation import gettext_lazy as _
 
-QuestionResposneSchema = TypeVar('QuestionResposneSchema')
+from surveys.enums import SurveyQuestionTypes
 
+QuestionSchema = TypeVar('QuestionSchema')
+AnswerSchema = TypeVar('AnswerSchema')
 
-class MultipleChoiceAnswerSchema(BaseModel):
+class SurveyQuestionSchema(BaseModel, Generic[QuestionSchema]):
+    """Generic representation of a survey question"""
+    id: int
+    description: str
+    image: Optional[str]
+    schema: QuestionSchema
+    type: SurveyQuestionTypes
+
+class SurveyQuestionResponseSchema(BaseModel, Generic[QuestionSchema, AnswerSchema]):
+    """Generic representation of a survey question response"""
+    question: SurveyQuestionSchema[QuestionSchema]
+    answer: AnswerSchema
+
+class MultipleChoiceQuestionBodySchema(BaseModel):
+    """
+        Type for the form of the multiple choice question
+    """
     options: List[str]
     allow_multiple: bool
+    id: int
 
     @model_validator(mode='after')
     def validate_options(cls, data):
         if len(data['options']) < 2:
             raise ValueError(_('Must have at least 2 options'))
         return data
+    
+class MultipleChoiceQuestionSchema(SurveyQuestionSchema[MultipleChoiceQuestionBodySchema], Generic[QuestionSchema]):
+    """Representation of a multiple choice question"""
+    type: SurveyQuestionTypes = SurveyQuestionTypes.MULTIPLE_CHOICE
+    
 
-class MultipleChoiceAnswerRawRespsonse(BaseModel):
-    schema_question_id = int
-    answer: List[str]
+class MultipleChoiceFieldAnswerSchema(SurveyQuestionResponseSchema[MultipleChoiceQuestionBodySchema, List[int]], Generic[QuestionSchema, AnswerSchema]):
+    """Representation of the answer to a multiple choice question"""
 
 
     @model_validator(mode='after')
@@ -26,12 +49,12 @@ class MultipleChoiceAnswerRawRespsonse(BaseModel):
         if len(data['answer']) < 1:
             raise ValueError(_('Must have at least 1 answer'))
         
-        if len(data['answer']) > 1 and not data['allow_multiple']:
+        if len(data['answer']) > 1 and not data['question'].schema.allow_multiple:
             raise ValueError(_('Only one answer is allowed'))
         return data
 
-class TextOnlyAnswerSchema(BaseModel):
-    max_length: Optional[int] 
+class TextOnlyQuestionBodySchema(BaseModel):
+    max_length: Optional[int] = 300
     min_length: Optional[int] = 10
 
     @model_validator(mode='after')
@@ -39,39 +62,28 @@ class TextOnlyAnswerSchema(BaseModel):
         if data['max_length'] and data['min_length'] and data['max_length'] < data['min_length']:
             raise ValueError(_('Max length must be greater than min length'))
         return data
-    
-class TextOnlyAnswerRawResponse(BaseModel):
-    schema_question_id: int
-    answer: str
 
-class SurveyQuestion(BaseModel, Generic[QuestionResposneSchema]):
-    id: int
-    question: str
-    image: Optional[str]
-    type: QuestionResposneSchema
+class TextOnlyQuestionSchema(SurveyQuestionSchema[TextOnlyQuestionBodySchema], Generic[QuestionSchema]):
+    """Representation of a text only question"""
+    type: SurveyQuestionTypes = SurveyQuestionTypes.TEXT
 
 
-class SurveyQuestionFullResponse(BaseModel, Generic[QuestionResposneSchema]):
-    response: QuestionResposneSchema
-    question: SurveyQuestion[QuestionResposneSchema]
-    
-
-class TherapistSurvey(BaseModel):
-    name: str
-    description: str
-    questions: List[SurveyQuestion]
-
-
-GenericSurveyQuestion = SurveyQuestion[Union[MultipleChoiceAnswerSchema, TextOnlyAnswerSchema]]
-RawSurveyAnswer = Union[MultipleChoiceAnswerRawRespsonse, TextOnlyAnswerRawResponse]
-
-class TherapistSurveyRawResponse(BaseModel):
-    therapist_survey_id: int
-    answers: List[RawSurveyAnswer]
+class TextOnlyFieldAnswerSchema(SurveyQuestionResponseSchema[TextOnlyQuestionSchema, List[int]], Generic[QuestionSchema, AnswerSchema]):
+    """Representation of the answer to a text only question"""
     @model_validator(mode='after')
-    def validate_answers(cls, data):
-        survey = TherapistSurvey.objects.get(id=data['therapist_survey_id'])
-        if len(data['answers']) != len(survey.questions):
-            raise ValueError(_('All questions must be answered'))
+    def validate_resposnse_length(cls, data):
+        if data['question'].schema.max_length < len(data['answer']) or  data['question'].schema.min_length < len(data['answer']):
+            raise ValueError(_('resposne length must be between min and max length'))
         return data
-    
+
+class TherapistSurveySchema(BaseModel):
+    """dict representation of the survey object created by the therapist"""
+    id: int
+    name: str
+    image: Optional[str]
+    description: str
+    questions: List[SurveyQuestionSchema]
+
+
+GenericSurveyQuestion = SurveyQuestionSchema[Union[MultipleChoiceQuestionSchema, TextOnlyQuestionSchema]]
+GenericSurveyAnswer = Union[MultipleChoiceFieldAnswerSchema, TextOnlyFieldAnswerSchema]
