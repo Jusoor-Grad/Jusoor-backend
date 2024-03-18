@@ -206,7 +206,6 @@ DATABASES = {
         'USER': env('DB_USER'),
         'PASSWORD': env('DB_PASS'),
         'NAME': env('DB_NAME'),
-        
         "TEST": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": "db.sqlite3",

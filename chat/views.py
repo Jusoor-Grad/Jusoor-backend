@@ -168,7 +168,7 @@ class ChatRoomFeedbackViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMix
     """
 
     ordering_fields = ['created_at']
-    filterset_fields = ['chat_room', 'feedback', 'created_at']
+    filterset_fields = [ 'feedback', 'created_at']
 
     action_permissions = {
         'list': [ IsTherapist() | IsPatient()],
@@ -186,10 +186,10 @@ class ChatRoomFeedbackViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMix
 
     queryset_by_action = {
         'list': QSWrapper(ChatRoomFeedeback.objects.all()).branch( {
-            UserRole.PATIENT.value: OwnedQS(ownership_fields=['chat_room__user']),
+            UserRole.PATIENT.value: OwnedQS(ownership_fields=['target_message__sender', 'target_message__receiver']),
         }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  ),
         'retrieve': QSWrapper(ChatRoomFeedeback.objects.all()).branch( {
-            UserRole.PATIENT.value: OwnedQS(ownership_fields=['chat_room__user']),
+            UserRole.PATIENT.value: OwnedQS(ownership_fields=['target_message__sender', 'target_message__receiver']),
         }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  ),
         'review': ChatRoomFeedeback.objects.all(),
     }
@@ -253,10 +253,10 @@ class ChatRoomFeedbackResponseViewset(AugmentedViewSet, ListModelMixin, Retrieve
 
     queryset_by_action = {
         'list': QSWrapper(ChatRoomFeedeback.objects.all()).branch( {
-            UserRole.PATIENT.value: OwnedQS(ownership_fields=['chat_room__user']),
+            UserRole.PATIENT.value: OwnedQS(ownership_fields=['target_message__sender', 'target_message__receiver']),
         }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  ),
         'retrieve': QSWrapper(ChatRoomFeedeback.objects.all()).branch( {
-            UserRole.PATIENT.value: OwnedQS(ownership_fields=['chat_room__user']),
+            UserRole.PATIENT.value: OwnedQS(ownership_fields=['target_message__sender', 'target_message__receiver']),
         }, by=QuerysetBranching.USER_GROUP, pass_through=[UserRole.THERAPIST.value]  ),
     }
 
