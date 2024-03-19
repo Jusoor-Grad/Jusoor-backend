@@ -87,8 +87,19 @@ class TherapistSurveyMocker():
     
     @staticmethod
     def mock_text_q_schema():
-        return fake.sentence()
+        return {
+            'max_length': fake.random_int(11, 300),
+            'min_length': fake.random_int(1, 10)
+        }
     
     @staticmethod
-    def mock_resposne(question_id: int):
+    def mock_resposne(question: TherapistSurveyQuestion, mcq_fixed_args: Dict = None, text_fixed_args: Dict = None):
+        pass
+
+    @staticmethod
+    def mock_mcq_answer(question: TherapistSurveyQuestion, fixed_args: Dict = None):
+        pass
+
+    @staticmethod
+    def mock_text_answer(question: TherapistSurveyQuestion, fixed_args: Dict = None):
         pass
