@@ -1,7 +1,14 @@
+import copy
+from typing import Iterable
 from django.db import models
 
 from core.models import StudentPatient, Therapist, TimeStampedModel
+from surveys.enums import SURVEY_QUESTION_TYPES, SURVEY_RESPONSE_STATUSES, SurveyQuestionTypes
+from rest_framework.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
+from surveys.types import MultipleChoiceQuestionBodySchema, TextOnlyQuestionBodySchema
+from surveys.utils.validation import TherapistSurveyValidators
 # Create your models here.
 
 class TherapistSurvey(TimeStampedModel):
@@ -17,16 +24,20 @@ class TherapistSurvey(TimeStampedModel):
 class TherapistSurveyQuestion(TimeStampedModel):
     survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE)
     description = models.TextField(null=True)
-    # TODO: create a custom validator to be sued for enum char fields
-    question_type = models.CharField(max_length=255, null=False, default='text')
-    # TODO: inject pydantic validation based on the value of question_type
-    answer = models.JSONField(null=True, blank=True)
+    question_type = models.CharField(choices=SURVEY_QUESTION_TYPES.items(), max_length=255, null=False, default='text')
+    schema = models.JSONField(null=True, blank=True)
     active = models.BooleanField(default=False) ## used to activate or deactivate the survey
     ready_to_publish = models.BooleanField(default=False) ## used to indicate if the survey is ready to be published
 
     def __str__(self):
         return f'{self.question} - {self.survey}'
-    
+
+    def save(self, force_insert: bool = ..., force_update: bool = ..., using: str | None = ..., update_fields: Iterable[str] | None = ...) -> None:
+        
+        if self.schema != None:
+            TherapistSurveyValidators.validate_question_schema(self.schema, self.question_type)
+            
+        return super().save(force_insert, force_update, using, update_fields)
 
 class TherapistSurveyResponse(TimeStampedModel):
     """
@@ -35,6 +46,8 @@ class TherapistSurveyResponse(TimeStampedModel):
     """
     survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE, related_name='responses')
     patient = models.ForeignKey(StudentPatient, null=False, on_delete=models.CASCADE, related_name='survey_response_patients')
+    status = models.CharField(choices=SURVEY_RESPONSE_STATUSES.items(), max_length=255, default='PENDING')
+    
     def __str__(self):
         return f'Survey resposne group identiifer #{self.survey} for {self.patient}'
     
@@ -43,6 +56,8 @@ class TherapistSurveyQuestionResponse(TimeStampedModel):
     """
         used to store the resposne of the patient to the survey for a single question
     """
+
+    # grouping field to indicate which group resposne was this question response part of
     survey_response = models.ForeignKey(TherapistSurveyResponse, null=False, on_delete=models.CASCADE, related_name='response_answers')
     survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE, related_name='survey_response_answers')
     question = models.ForeignKey(TherapistSurveyQuestion, null=False, on_delete=models.CASCADE, related_name='question_response_answers')
@@ -50,3 +65,9 @@ class TherapistSurveyQuestionResponse(TimeStampedModel):
 
     def __str__(self):
         return f'Patient answer for {self.question} - {self.survey_response}'
+    
+    def save(self, force_insert: bool = ..., force_update: bool = ..., using: str | None = ..., update_fields: Iterable[str] | None = ...) -> None:
+        
+        TherapistSurveyValidators.validate_answer_schema(self.answer, self.question.question_type)
+        
+        return super().save(force_insert, force_update, using, update_fields)

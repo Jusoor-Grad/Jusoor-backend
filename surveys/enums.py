@@ -1,7 +1,19 @@
 
-from enum import IntEnum
+from enum import Enum
+from django.utils.translation import gettext_lazy as _
 
+class SurveyQuestionTypes(Enum):
+    TEXT = 'text'
+    MULTIPLE_CHOICE = 'multiple_choice'
 
-class SurveyQuestionTypes(IntEnum):
-    TEXT = 1
-    MULTIPLE_CHOICE = 2
+SURVEY_QUESTION_TYPES = {
+    SurveyQuestionTypes.TEXT: _("A question of type raw text"),
+    SurveyQuestionTypes.MULTIPLE_CHOICE: _("A question of type: multiple choice")
+}
+
+PENDING = 'PENDING'
+COMPLETED = 'COMPLETED'
+SURVEY_RESPONSE_STATUSES = {
+    PENDING: _("The survey has not been completed yet"),
+    COMPLETED: _("The survey has been completed")
+}
