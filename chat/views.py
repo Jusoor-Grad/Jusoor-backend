@@ -240,7 +240,7 @@ class ChatRoomFeedbackResponseViewset(AugmentedViewSet, ListModelMixin, Retrieve
     filterset_fields = ['feedback', 'created_at']
 
     action_permissions = {
-        'list': [ IsTherapist() | IsPatient()],
+        'list': [ IsPatient()],
         'retrieve': [ IsTherapist() | IsPatient()],
        
     }
