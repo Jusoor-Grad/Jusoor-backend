@@ -1,4 +1,6 @@
 import copy
+from enum import unique
+from msilib import schema
 from typing import Iterable
 from django.db import models
 
@@ -14,30 +16,36 @@ from surveys.utils.validation import TherapistSurveyValidators
 class TherapistSurvey(TimeStampedModel):
 
     therapist = models.ForeignKey(Therapist, null=False, on_delete=models.PROTECT)
-    name = models.CharField(max_length=255, null=True)
+    name = models.CharField(max_length=255, null=True, unique=True)
     image = models.ImageField(upload_to='surveys/', null=True, blank=True)
     active = models.BooleanField(default=False) ## used to activate or deactivate the survey
-    ready_to_publish = models.BooleanField(default=False) ## used to indicate if the survey is ready to be published
     def __str__(self):
         return f'{self.name} - by {self.therapist}'
+    
+    def publish(self):
+        pass
+    
 
 class TherapistSurveyQuestion(TimeStampedModel):
-    survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE)
+    survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE, related_name='questions')
     description = models.TextField(null=True)
     question_type = models.CharField(choices=SURVEY_QUESTION_TYPES.items(), max_length=255, null=False, default='text')
     schema = models.JSONField(null=True, blank=True)
-    active = models.BooleanField(default=False) ## used to activate or deactivate the survey
-    ready_to_publish = models.BooleanField(default=False) ## used to indicate if the survey is ready to be published
-
+    active = models.BooleanField(default=True) ## used to activate or deactivate the survey
+    index = models.IntegerField(default=0) ## used to order the questions in the survey
+    image = models.ImageField(upload_to='survey-questions/', null=True, blank=True)
     def __str__(self):
         return f'{self.question} - {self.survey}'
 
     def save(self, force_insert: bool = ..., force_update: bool = ..., using: str | None = ..., update_fields: Iterable[str] | None = ...) -> None:
         
-        if self.schema != None:
+        if hasattr(self, 'schema') and self.schema != None:
             TherapistSurveyValidators.validate_question_schema(self.schema, self.question_type)
             
         return super().save(force_insert, force_update, using, update_fields)
+    
+    class Meta:
+        unique_together = [['survey', 'index'], ['survey', 'description']]
 
 class TherapistSurveyResponse(TimeStampedModel):
     """
