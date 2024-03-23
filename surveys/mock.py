@@ -29,7 +29,7 @@ class TherapistSurveyMocker():
         questions = []
         for survey in surveys:
             for _ in range(question_n):
-                questions.append(TherapistSurveyMocker.mock_question(survey, fake.random.choice([SurveyQuestionTypes.TEXT, SurveyQuestionTypes.MULTIPLE_CHOICE]),question_fixed_args))
+                questions.append(TherapistSurveyMocker.mock_question(survey, fake.random.choice([SurveyQuestionTypes.TEXT.value, SurveyQuestionTypes.MULTIPLE_CHOICE.value]),question_fixed_args))
         TherapistSurveyQuestion.objects.bulk_create(questions)
 
     @staticmethod
@@ -56,7 +56,7 @@ class TherapistSurveyMocker():
             'survey': survey,
             'description': fake.sentence(),
             'question_type': type.value,
-            'answer': TherapistSurveyMocker.mock_q_schema(type),
+            'answer': TherapistSurveyMocker.mock_q_schema(type.value),
             'active': False,
             'ready_to_publish': fake.boolean()
         }
@@ -70,9 +70,9 @@ class TherapistSurveyMocker():
     @staticmethod
     def mock_q_schema(question_type: SurveyQuestionTypes):
         
-        if question_type == SurveyQuestionTypes.MULTIPLE_CHOICE:
+        if question_type == SurveyQuestionTypes.MULTIPLE_CHOICE.value:
             return TherapistSurveyMocker.mock_mcq_schema()
-        elif question_type == SurveyQuestionTypes.TEXT:
+        elif question_type == SurveyQuestionTypes.TEXT.value:
             return TherapistSurveyMocker.mock_text_q_schema()
         else:
             raise ValueError('Invalid question type')

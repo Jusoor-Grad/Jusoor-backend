@@ -6,9 +6,9 @@ class SurveyQuestionTypes(Enum):
     TEXT = 'text'
     MULTIPLE_CHOICE = 'multiple_choice'
 
-SURVEY_QUESTION_TYPES = {
-    SurveyQuestionTypes.TEXT: _("A question of type raw text"),
-    SurveyQuestionTypes.MULTIPLE_CHOICE: _("A question of type: multiple choice")
+SURVEY_QUESTION_TYPES: dict[SurveyQuestionTypes, str] = {
+    SurveyQuestionTypes.TEXT.value: _("A question of type raw text"),
+    SurveyQuestionTypes.MULTIPLE_CHOICE.value: _("A question of type: multiple choice")
 }
 
 PENDING = 'PENDING'
