@@ -132,7 +132,13 @@ class TherapistReadSerializer(UserReadSerializer):
 		model = User	
 		fields = ['id', 'username', 'email', 'bio', 'image', 'specializations']
 
-		
+
+class TherapisyMinifiedReadSerializer(TherapistReadSerializer):
+
+	class Meta:
+
+		model = User
+		fields = ['id', 'username', 'image']
 
 class HttpTherapistReadResponseSerializer(HttpSuccessResponseSerializer):
 	data = TherapistReadSerializer()
