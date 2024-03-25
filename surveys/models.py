@@ -15,12 +15,13 @@ from surveys.utils.validation import TherapistSurveyValidators
 
 class TherapistSurvey(TimeStampedModel):
 
-    therapist = models.ForeignKey(Therapist, null=False, on_delete=models.PROTECT)
-    name = models.CharField(max_length=255, null=True, unique=True)
+    created_by = models.ForeignKey(Therapist, null=False, on_delete=models.PROTECT, related_name='created_surveys')
+    last_updated_by = models.ForeignKey(Therapist, null=True, on_delete=models.PROTECT, related_name='updated_surveys')
+    name = models.CharField(max_length=255, null=False, unique=True)
     image = models.ImageField(upload_to='surveys/', null=True, blank=True)
     active = models.BooleanField(default=False) ## used to activate or deactivate the survey
     def __str__(self):
-        return f'{self.name} - by {self.therapist}'
+        return f'{self.name} - by {self.created_by}'
     
     def publish(self):
         pass
@@ -28,7 +29,7 @@ class TherapistSurvey(TimeStampedModel):
 
 class TherapistSurveyQuestion(TimeStampedModel):
     survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE, related_name='questions')
-    description = models.TextField(null=True)
+    description = models.TextField(null=False)
     question_type = models.CharField(choices=SURVEY_QUESTION_TYPES.items(), max_length=255, null=False, default='text')
     schema = models.JSONField(null=True, blank=True)
     active = models.BooleanField(default=True) ## used to activate or deactivate the survey

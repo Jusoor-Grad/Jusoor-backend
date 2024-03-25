@@ -95,7 +95,7 @@ class TherapistSurveyFullReadSerializer(serializers.ModelSerializer):
         return TherapistSurveyQuestionMiniReadSerializer(instance.questions.all().order_by('index'), many=True).data
 
     def get_therapist(self, instance: TherapistSurvey):
-        return TherapisyMinifiedReadSerializer(instance.therapist.user).data
+        return TherapisyMinifiedReadSerializer(instance.created_by.user).data
 
     class Meta:
         fields = [*[f.name for f in TherapistSurvey._meta.fields], 'questions']
@@ -108,7 +108,7 @@ class TherapistSurveyMiniReadSerializer(serializers.ModelSerializer):
     therapist = serializers.SerializerMethodField()
 
     def get_therapist(self, instance: TherapistSurvey):
-        return TherapisyMinifiedReadSerializer(instance.therapist.user).data
+        return TherapisyMinifiedReadSerializer(instance.created_by.user).data
     class Meta:
         fields = '__all__'
         model = TherapistSurvey
@@ -117,16 +117,14 @@ class TherapistSurveyWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = ['name', 'image']
-        model = TherapistSurvey
-
-        
+        model = TherapistSurvey     
 
     def create(self, validated_data):
 
-        validated_data['therapist'] = self.context['request'].user.therapist_profile
+        validated_data['created_by'] = self.context['request'].user.therapist_profile
 
         return super().create(validated_data)
     
     def update(self, instance, validated_data):
-        validated_data['therapist'] = self.context['request'].user.therapist_profile
+        validated_data['last_updated_by'] = self.context['request'].user.therapist_profile
         return super().update(instance, validated_data)
