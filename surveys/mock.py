@@ -3,18 +3,20 @@
 
 from tomlkit import boolean
 from chat import mock
+from core.mock import PatientMock
 from core.models import Therapist
 from surveys.enums import SurveyQuestionTypes
 from typing import Dict
 from faker import Faker
+from django.db import transaction
 
-from surveys.models import TherapistSurvey, TherapistSurveyQuestion
+from surveys.models import TherapistSurvey, TherapistSurveyQuestion, TherapistSurveyQuestionResponse, TherapistSurveyResponse
 
 fake = Faker()
 
 class TherapistSurveyMocker():
 
-
+    
     @staticmethod
     def mock_instances(survey_n: int, question_n: int, include_responses: bool = False, survey_fixed_args: Dict = None, question_fixed_args: Dict = None):
         """
@@ -32,6 +34,11 @@ class TherapistSurveyMocker():
                 questions.append(TherapistSurveyMocker.mock_question(survey, fake.random.choice([SurveyQuestionTypes.TEXT.value, SurveyQuestionTypes.MULTIPLE_CHOICE.value]),
                                                                      index=i,fixed_args=question_fixed_args))
         TherapistSurveyQuestion.objects.bulk_create(questions)
+
+        # 3. create the responses
+        if include_responses:
+            for survey in surveys:
+                TherapistSurveyMocker.mock_resposne(survey)
 
     @staticmethod
     def mock_survey(fixed_args: Dict = None):
@@ -93,13 +100,43 @@ class TherapistSurveyMocker():
         }
     
     @staticmethod
-    def mock_resposne(question: TherapistSurveyQuestion, mcq_fixed_args: Dict = None, text_fixed_args: Dict = None):
-        pass
+    def mock_resposne(survey: TherapistSurvey):
+        
+        response = TherapistSurveyResponse.objects.create(
+            survey=survey,
+            patient=PatientMock.mock_instances(1)[0],
+        )
+
+        responses = []
+        for question in survey.questions.all():
+            responses.append(TherapistSurveyMocker.mock_resposne_question(question, response))
+        
+        return TherapistSurveyQuestionResponse.objects.bulk_create(responses)
 
     @staticmethod
-    def mock_mcq_answer(question: TherapistSurveyQuestion, fixed_args: Dict = None):
-        pass
+    def mock_resposne_question(question: TherapistSurveyQuestion, response: TherapistSurveyResponse):
+        
+        if question.question_type == SurveyQuestionTypes.MULTIPLE_CHOICE.value:
+            answer= TherapistSurveyMocker.mock_mcq_answer(question)
+        elif question.question_type == SurveyQuestionTypes.TEXT.value:
+            answer=  TherapistSurveyMocker.mock_text_answer(question)
+        else:
+            raise ValueError('Invalid question type')
+        
+        return TherapistSurveyQuestionResponse(
+            survey_response=response,
+            survey=question.survey,
+            question=question,
+            answer=answer
+        )
 
     @staticmethod
-    def mock_text_answer(question: TherapistSurveyQuestion, fixed_args: Dict = None):
-        pass
+    def mock_mcq_answer(question: TherapistSurveyQuestion):
+        
+        return list(set(fake.random_int(0, len(question.schema['options']) - 1) for _ in range(fake.random_int(1, 3))))
+        
+
+    @staticmethod
+    def mock_text_answer(question: TherapistSurveyQuestion):
+        return fake.sentence()
+        
