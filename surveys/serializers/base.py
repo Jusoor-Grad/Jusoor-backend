@@ -1,4 +1,4 @@
-from numpy import require
+
 from rest_framework import serializers
 
 from authentication.serializers import PatientReadSerializer, TherapistMinifiedReadSerializer

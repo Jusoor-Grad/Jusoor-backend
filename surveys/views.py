@@ -1,9 +1,7 @@
-from sqlalchemy import Update
-from yaml import serialize
+
 from authentication.permissions import IsPatient, IsTherapist
 from core.enums import QuerysetBranching, UserRole
-from core.models import Therapist
-from core.querysets import OwnedQS, PatientOwnedQS, QSWrapper, TherapistOwnedQS
+from core.querysets import PatientOwnedQS, QSWrapper
 from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponseSerializer
 from core.viewssets import AugmentedViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin, CreateModelMixin
