@@ -19,7 +19,7 @@ class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
         Viewset for the TherapistSurvey model
     """
 
-    filterset_fields = ['therapist', 'active', 'ready_to_publish', 'created_at', 'last_updated_at']
+    filterset_fields = ['created_by', 'last_updated_by', 'active', 'created_at', 'last_updated_at']
     ordering_fields = ['created_at', 'last_updated_at']
     ordering = ['-last_updated_at']
 
@@ -43,16 +43,7 @@ class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
         "partial_update": TherapistSurveyWriteSerializer
     }
 
-    queryset_by_action = {
-        "list": TherapistSurvey.objects.all(),
-        "retrieve":  TherapistSurvey.objects.all(),
-        "create": QSWrapper(TherapistSurvey.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['therapist'])}, by= QuerysetBranching.USER_GROUP),
-        "update": QSWrapper(TherapistSurvey.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['therapist'])}, by= QuerysetBranching.USER_GROUP),
-        "partial_update": QSWrapper(TherapistSurvey.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['therapist'])}, by= QuerysetBranching.USER_GROUP),
-        "destroy": QSWrapper(TherapistSurvey.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['therapist'])}, by= QuerysetBranching.USER_GROUP),
-        "publish": QSWrapper(TherapistSurvey.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['therapist'])}, by= QuerysetBranching.USER_GROUP),
-        "hide": QSWrapper(TherapistSurvey.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['therapist'])}, by= QuerysetBranching.USER_GROUP)
-    }
+    queryset= TherapistSurvey.objects.all()
 
     @swagger_auto_schema(responses={200: TherapistSurveyInnerListHttpSerializer()})
     def list(self, request, *args, **kwargs):
@@ -117,7 +108,7 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, RetrieveM
         Viewset for the TherapistSurveyQuestion model
     """
 
-    filterset_fields = ['survey', 'question_type', 'active', 'ready_to_publish', 'created_at', 'last_updated_at', 'description']
+    filterset_fields = ['survey', 'question_type', 'active', 'created_at', 'last_updated_at', 'description']
 
     ordering_fields = ['pk', 'created_at', 'last_updated_at']
     ordering_fields = ['pk']
@@ -143,15 +134,7 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, RetrieveM
         "update_mc_question": TherapistSurveyQuestionMCQCreateSerializer,
     }
 
-    queryset_by_action = {
-        "list": TherapistSurveyQuestion.objects.all(),
-        "retrieve":  TherapistSurveyQuestion.objects.all(),
-        "update_mc_question": QSWrapper(TherapistSurveyQuestion.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['survey__therapist'])}, by= QuerysetBranching.USER_GROUP),
-        "update_test_question": QSWrapper(TherapistSurveyQuestion.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['survey__therapist'])}, by= QuerysetBranching.USER_GROUP),
-        "destroy": QSWrapper(TherapistSurveyQuestion.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['survey__therapist'])}, by= QuerysetBranching.USER_GROUP),
-        "publish": QSWrapper(TherapistSurveyQuestion.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['survey__therapist'])}, by= QuerysetBranching.USER_GROUP),
-        "hide": QSWrapper(TherapistSurveyQuestion.objects.all()).branch(qs_mapper={UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['survey__therapist'])}, by= QuerysetBranching.USER_GROUP),
-    }
+    queryset = TherapistSurveyQuestion.objects.all()
 
 
     def list(self, request, *args, **kwargs):
