@@ -20,7 +20,7 @@ class TherapistSurveyQuestionFullReadSerializer(serializers.ModelSerializer):
 class TherapistSurveyQuestionMiniReadSerializer(serializers.ModelSerializer):
     
         class Meta:
-            fields = ['id', 'index', 'ready_to_publish', 'active', 'description', 'question_type']
+            fields = ['id', 'index', 'active', 'description', 'question_type']
             model = TherapistSurveyQuestion
 
 
@@ -98,7 +98,7 @@ class TherapistSurveyFullReadSerializer(serializers.ModelSerializer):
         return TherapisyMinifiedReadSerializer(instance.created_by.user).data
 
     class Meta:
-        fields = [*[f.name for f in TherapistSurvey._meta.fields], 'questions']
+        fields = '__all__'
         model = TherapistSurvey
         
 
