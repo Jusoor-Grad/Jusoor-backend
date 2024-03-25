@@ -28,19 +28,19 @@ class TherapistSurveyMocker():
         # 2. create the questions
         questions = []
         for survey in surveys:
-            for _ in range(question_n):
-                questions.append(TherapistSurveyMocker.mock_question(survey, fake.random.choice([SurveyQuestionTypes.TEXT.value, SurveyQuestionTypes.MULTIPLE_CHOICE.value]),question_fixed_args))
+            for i in range(question_n):
+                questions.append(TherapistSurveyMocker.mock_question(survey, fake.random.choice([SurveyQuestionTypes.TEXT.value, SurveyQuestionTypes.MULTIPLE_CHOICE.value]),
+                                                                     index=i,fixed_args=question_fixed_args))
         TherapistSurveyQuestion.objects.bulk_create(questions)
 
     @staticmethod
     def mock_survey(fixed_args: Dict = None):
         
         body = {
-            'therapist': Therapist.objects.order_by('?').first(),
+            'created_by': Therapist.objects.order_by('?').first(),
             'name': fake.sentence(),
             'image': None,
             'active': False,
-            'ready_to_publish': fake.boolean() 
         }
 
         
@@ -50,15 +50,15 @@ class TherapistSurveyMocker():
         return TherapistSurvey(**body)
 
     @staticmethod
-    def mock_question( survey: TherapistSurvey, type: SurveyQuestionTypes, fixed_args: Dict):
+    def mock_question( survey: TherapistSurvey, type: SurveyQuestionTypes,index: int, fixed_args: Dict):
         
         body = {
             'survey': survey,
             'description': fake.sentence(),
-            'question_type': type.value,
-            'answer': TherapistSurveyMocker.mock_q_schema(type.value),
+            'question_type': type,
+            'schema': TherapistSurveyMocker.mock_q_schema(type),
             'active': False,
-            'ready_to_publish': fake.boolean()
+            'index': index
         }
         
         
