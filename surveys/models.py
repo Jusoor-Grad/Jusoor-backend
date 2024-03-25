@@ -31,7 +31,8 @@ class TherapistSurveyQuestion(TimeStampedModel):
     survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE, related_name='questions')
     description = models.TextField(null=False)
     question_type = models.CharField(choices=SURVEY_QUESTION_TYPES.items(), max_length=255, null=False, default='text')
-    schema = models.JSONField(null=True, blank=True)
+    # TODO: force it to be required
+    schema = models.JSONField(null=False, blank=True)
     active = models.BooleanField(default=True) ## used to activate or deactivate the survey
     index = models.PositiveIntegerField(null=False) ## used to order the questions in the survey
     image = models.ImageField(upload_to='survey-questions/', null=True, blank=True)
@@ -103,6 +104,7 @@ class TherapistSurveyQuestionResponse(TimeStampedModel):
     survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE, related_name='survey_response_answers')
     question = models.ForeignKey(TherapistSurveyQuestion, null=False, on_delete=models.CASCADE, related_name='question_response_answers')
     answer = models.JSONField(null=True, blank=True)
+    
 
     def __str__(self):
         return f'Patient answer for {self.question} - {self.survey_response}'
@@ -112,3 +114,6 @@ class TherapistSurveyQuestionResponse(TimeStampedModel):
         TherapistSurveyValidators.validate_answer_schema(self.answer, self.question.question_type)
         
         return super().save(force_insert, force_update, using, update_fields)
+    
+    class Meta:
+        unique_together = [['survey_response', 'question']]

@@ -28,16 +28,12 @@ class MultipleChoiceFieldAnswerSchema(BaseModel):
     """Representation of the answer to a multiple choice question"""
     
     answer: List[int] # list of indices chosen by the user
-    allow_multiple: bool
-
+    
     @model_validator(mode='after')
     def validate_answer(cls, data):
         if len(data.answer) < 1:
             raise ValueError(_('Must have at least 1 answer'))
-        
-        if len(data.answer) > 1 and not data.allow_multiple:
-            raise ValueError(_('Only one answer is allowed'))
-        return data
+
 
 class TextOnlyQuestionBodySchema(BaseModel):
     max_length: Optional[int] = 300

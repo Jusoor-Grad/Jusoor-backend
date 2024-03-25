@@ -15,6 +15,7 @@ class AvailabilityTimeSlotGroup(TimeStampedModel):
     """
     pass
 
+# TODO: link a created survey to a timeslot
 class AvailabilityTimeSlot(TimeStampedModel):
     """
         Grouping availability timeslots to allow batch editing
