@@ -137,7 +137,6 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
     
-    # TODO: test the endpoint
     @swagger_auto_schema(responses={200: HttpSuccessResponseSerializer(), 400: HttpErrorResponseSerializer()})
     @action(methods=['PATCH'], detail=True)
     def confirm(self, request, *args, **kwargs):
