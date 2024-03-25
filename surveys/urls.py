@@ -5,7 +5,7 @@ from surveys.views import TherapistSurveyViewset, TherapistSurveyQuestionViewset
 
 router = SimpleRouter()
 
-router.register(r'', TherapistSurveyViewset, basename='surveys')
+router.register(r'surveys', TherapistSurveyViewset, basename='surveys')
 router.register(r'survey-questions', TherapistSurveyQuestionViewset, basename='survey-questions')
 router.register(r'survey-responses', TherapistSurveyResponseViewset, basename='survey-responses')
 

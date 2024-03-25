@@ -33,7 +33,7 @@ urlpatterns = [
     path('', include('appointments.urls')),
     # API docs endpoints
     path('chat/', include('chat.urls')),
-    path('surveys/', include('surveys.urls')),
+    path('', include('surveys.urls')),
         re_path(
         r"^swagger(?P<format>\.json|\.yaml)$",
         schema_view.without_ui(cache_timeout=0),
