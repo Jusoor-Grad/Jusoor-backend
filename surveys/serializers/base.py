@@ -32,11 +32,10 @@ class TherapistSurveyQuestionMCQCreateSerializer(serializers.ModelSerializer):
     schema = SurveyMCQQuestionSchemaSerializer()
 
     class Meta:
-        fields = ['description', 'survey', 'schema', 'image']
+        fields = ['description', 'survey', 'schema']
         model = TherapistSurveyQuestion
 
     def create(self, validated_data):
-        validated_data['index'] = validated_data['survey'].questions.aggregate(max_idx=Max('index'))['max_idx'] + 1
         validated_data['question_type'] = SurveyQuestionTypes.MULTIPLE_CHOICE.value
         
         return super().create(validated_data)
@@ -44,7 +43,7 @@ class TherapistSurveyQuestionMCQCreateSerializer(serializers.ModelSerializer):
 class TherapistSurveyMCQUpdateSerializer(TherapistSurveyQuestionMCQCreateSerializer):
 
     class Meta:
-        fields = ['description', 'schema', 'image']
+        fields = ['description', 'schema']
         model = TherapistSurveyQuestion
 
     def update(self, instance, validated_data):
@@ -66,11 +65,10 @@ class TherapistSurveyQuestionTextCreateSerializer(serializers.ModelSerializer):
     schema = SurveyTextQuestionSchemaSerializer()
 
     class Meta:
-        fields = ['description', 'survey', 'schema', 'image']
+        fields = ['description', 'survey', 'schema']
         model = TherapistSurveyQuestion
 
     def create(self, validated_data):
-        validated_data['index'] = validated_data['survey'].questions.aggregate(max_idx=Max('index'))['max_idx'] + 1
         validated_data['question_type'] = SurveyQuestionTypes.TEXT.value
         
         return super().create(validated_data)
@@ -78,11 +76,19 @@ class TherapistSurveyQuestionTextCreateSerializer(serializers.ModelSerializer):
 class TherapistSurveyTextUpdateSerializer(TherapistSurveyQuestionTextCreateSerializer):
     
         class Meta:
-            fields = ['description', 'schema', 'image']
+            fields = ['description', 'schema']
             model = TherapistSurveyQuestion
     
         def update(self, instance, validated_data):
             return super().update(instance, validated_data)
+
+
+class TherapistSurveyQuestionImageUploadSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = ['image']
+        model = TherapistSurveyQuestion
+
 
 # ------------- therapist surveys
 

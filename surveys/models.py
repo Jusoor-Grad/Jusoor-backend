@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from surveys.types import MultipleChoiceQuestionBodySchema, TextOnlyQuestionBodySchema
 from surveys.utils.validation import TherapistSurveyValidators
 # Create your models here.
-
+from django.db import transaction
 class TherapistSurvey(TimeStampedModel):
 
     created_by = models.ForeignKey(Therapist, null=False, on_delete=models.PROTECT, related_name='created_surveys')
@@ -33,17 +33,49 @@ class TherapistSurveyQuestion(TimeStampedModel):
     question_type = models.CharField(choices=SURVEY_QUESTION_TYPES.items(), max_length=255, null=False, default='text')
     schema = models.JSONField(null=True, blank=True)
     active = models.BooleanField(default=True) ## used to activate or deactivate the survey
-    index = models.IntegerField(default=0) ## used to order the questions in the survey
+    index = models.PositiveIntegerField(null=False) ## used to order the questions in the survey
     image = models.ImageField(upload_to='survey-questions/', null=True, blank=True)
     def __str__(self):
         return f'{self.question} - {self.survey}'
 
-    def save(self, force_insert: bool = ..., force_update: bool = ..., using: str | None = ..., update_fields: Iterable[str] | None = ...) -> None:
+    def correct_ordering_index(self, incoming_index: int) -> int:
+        """
+            validate and assign a corrected index for the question to avoid indeixing holes
+        """
+        old_index = TherapistSurveyQuestion.objects.get(pk=self.pk).index if self.pk else None
+
+        # if the incoming index is exceeding question number or is newly created, assign it the latest index
+        if incoming_index == None or incoming_index > self.survey.questions.count() + 1 or self.survey.questions.count() == 0:
+            incoming_index = self.survey.questions.count() + 1
+        # if there is a question with the same index in the same survey, increment the index of all questions with index >= self.index
+        elif TherapistSurveyQuestion.objects.filter(survey=self.survey, index=incoming_index).exists():
+            
+            # if the question is newm simply push everything to the back without caring about old index holes
+            if old_index == None:
+                TherapistSurveyQuestion.objects.filter(survey=self.survey, index__gte=incoming_index).update(index=models.F('index') + 1)
+
+            # if we advance the idnex forwards, we need all items in between to be shifted to the back
+            elif old_index < incoming_index:
+                TherapistSurveyQuestion.objects.filter(survey=self.survey, index__lte=incoming_index, index__gt=old_index).update(index=models.F('index') - 1)
+            # if we re-order the question to the back, we simply increment the index of all questions with larger index than the
+            # the new index and smaller than the old index by 1 to avoid holes
+            elif old_index > incoming_index:
+                TherapistSurveyQuestion.objects.filter(survey=self.survey, index__gte=incoming_index, index__lt=old_index).update(index=models.F('index') + 1)
+        
+
+        
+        return incoming_index
+
+    @transaction.atomic()
+    def save(self, *args, **kwargs) -> None:
         
         if hasattr(self, 'schema') and self.schema != None:
             TherapistSurveyValidators.validate_question_schema(self.schema, self.question_type)
-            
-        return super().save(force_insert, force_update, using, update_fields)
+
+        self.index = self.correct_ordering_index(self.index)
+        
+        print("HUH?")
+        return super().save(*args, **kwargs)
     
     class Meta:
         unique_together = [['survey', 'index'], ['survey', 'description']]

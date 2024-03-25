@@ -1,3 +1,4 @@
+from sqlalchemy import Update
 from authentication.permissions import IsPatient, IsTherapist
 from core.enums import QuerysetBranching, UserRole
 from core.models import Therapist
@@ -7,12 +8,13 @@ from core.viewssets import AugmentedViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin, CreateModelMixin
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
+from surveys.enums import SurveyQuestionTypes
 from surveys.models import TherapistSurvey, TherapistSurveyQuestion, TherapistSurveyQuestionResponse, TherapistSurveyResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from surveys.serializers.base import TherapistSurveyMiniReadSerializer, TherapistSurveyFullReadSerializer, TherapistSurveyQuestionFullReadSerializer, TherapistSurveyQuestionMCQCreateSerializer, TherapistSurveyQuestionMiniReadSerializer, TherapistSurveyQuestionTextCreateSerializer, TherapistSurveyWriteSerializer
-from surveys.serializers.http import TherapistSurveyInnerListHttpSerializer, TherapistSurveyRetrieveHttpSerializer, TherapistSurveyWriteErrorHttpSerializer, TherapistSurveyWriteSuccessHttpSerializer
+from surveys.serializers.base import TherapistSurveyMiniReadSerializer, TherapistSurveyFullReadSerializer, TherapistSurveyQuestionFullReadSerializer, TherapistSurveyQuestionImageUploadSerializer, TherapistSurveyQuestionMCQCreateSerializer, TherapistSurveyQuestionMiniReadSerializer, TherapistSurveyQuestionTextCreateSerializer, TherapistSurveyWriteSerializer
+from surveys.serializers.http import TherapistSurveyInnerListHttpSerializer, TherapistSurveyQuestionUpdateHttpErrorSerializer, TherapistSurveyQuestionUpdateMCQHttpSerializer, TherapistSurveyQuestionCreateHttpErrorSerializer, TherapistSurveyQuestionCreateMCQHttpSerializer, TherapistSurveyQuestionCreateTextHttpSerializer, TherapistSurveyQuestionListHttpSerializer, TherapistSurveyQuestionRetireveMCQHttpSerializer, TherapistSurveyQuestionRetrieveTextHttpSerializer, TherapistSurveyQuestionUpdateTextHttpSerializer, TherapistSurveyRetrieveHttpSerializer, TherapistSurveyWriteErrorHttpSerializer, TherapistSurveyWriteSuccessHttpSerializer
 
 class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin, CreateModelMixin):
     """
@@ -103,67 +105,137 @@ class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
-class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, DestroyModelMixin):
+class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, DestroyModelMixin):
     """
         Viewset for the TherapistSurveyQuestion model
     """
 
-    filterset_fields = ['survey', 'question_type', 'active', 'created_at', 'last_updated_at', 'description']
+    filterset_fields = {
+        'survey': ['exact'],
+        'active': ['exact'],
+        'created_at': ['exact', 'lt', 'gt'],
+        'last_updated_at': ['exact', 'lt', 'gt'],
+        "question_type": ["iexact"],
+        "description": ["icontains"],
+    }
 
     ordering_fields = ['pk', 'created_at', 'last_updated_at']
     ordering_fields = ['pk']
 
     action_permissions = {
         "list": [IsPatient() | IsTherapist()],
-        "retrieve": [IsPatient() | IsTherapist()],
+        "retrieve_mc_question": [IsPatient() | IsTherapist()],
+        "retrieve_text_question": [IsPatient() | IsTherapist()],
         "create_mc_question": [IsTherapist()],
         "create_text_question": [IsTherapist()],
         "update_mc_question": [IsTherapist()],
         "update_text_question": [IsTherapist()],
+        "upload_image": [IsTherapist()],
         "publish": [IsTherapist()],
         "hide": [IsTherapist()],
-        "partial_update": [IsTherapist()],
         "destroy": [IsTherapist()]
     }
 
     serializer_class_by_action = {
         "list": TherapistSurveyQuestionMiniReadSerializer,
-        "retrieve": TherapistSurveyQuestionFullReadSerializer,
+        "retrieve_mc_question": TherapistSurveyQuestionFullReadSerializer,
+        "retrieve_text_question": TherapistSurveyQuestionFullReadSerializer,
         "create_mc_question": TherapistSurveyQuestionMCQCreateSerializer,
         "create_text_question": TherapistSurveyQuestionTextCreateSerializer,
         "update_mc_question": TherapistSurveyQuestionMCQCreateSerializer,
+        "update_text_question": TherapistSurveyQuestionMCQCreateSerializer,
+        "upload_image": TherapistSurveyQuestionImageUploadSerializer,
+
     }
 
-    queryset = TherapistSurveyQuestion.objects.all()
+    queryset_by_action = {
+        "list": TherapistSurveyQuestion.objects.all(),
+        "retrieve_text_question": TherapistSurveyQuestion.objects.filter(question_type=SurveyQuestionTypes.TEXT.value),
+        "update_text_question": TherapistSurveyQuestion.objects.filter(question_type=SurveyQuestionTypes.TEXT.value),
+        "retrieve_mc_question": TherapistSurveyQuestion.objects.filter(question_type=SurveyQuestionTypes.MULTIPLE_CHOICE.value),
+        "update_mc_question": TherapistSurveyQuestion.objects.filter(question_type=SurveyQuestionTypes.MULTIPLE_CHOICE.value),
+        "publish": TherapistSurveyQuestion.objects.all(),
+        "upload_image": TherapistSurveyQuestion.objects.all(),
+        "hide": TherapistSurveyQuestion.objects.all(),
+        "destroy": TherapistSurveyQuestion.objects.all(),
+    }
 
-
+    @swagger_auto_schema(responses={200: TherapistSurveyQuestionListHttpSerializer()})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+    @action(['POST'], detail=True, url_path='upload-image', url_name='upload-image')
+    def upload_image(self, request, *args, **kwargs):
+        
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
     
-    @action('POST', detail=False, url_path='text', url_name='text')
+    @swagger_auto_schema(responses={200: TherapistSurveyQuestionRetireveMCQHttpSerializer()})
+    @action(['GET'], detail=True, url_path='mcq', url_name='mcq')
+    def retrieve_mc_question(self, request, *args, **kwargs):
+        
+        instance = self.get_object()
+        return Response(self.get_serializer(instance).data)
+
+    @swagger_auto_schema(responses={200: TherapistSurveyQuestionRetrieveTextHttpSerializer()})
+    @action(['GET'], detail=True, url_path='text', url_name='text')
+    def retrieve_text_question(self, request, *args, **kwargs):
+        instance = self.get_object()
+        return Response(self.get_serializer(instance).data)
+    
+    @swagger_auto_schema(responses={200: TherapistSurveyQuestionCreateTextHttpSerializer(), 400: TherapistSurveyQuestionCreateHttpErrorSerializer()})
+    @action(['POST'], detail=False, url_path='text', url_name='text')
     def create_text_question(self, request, *args, **kwargs):
-        # return super().create(request, *args, **kwargs)
-        pass
+        """ Create a new text question
+
+        .
+        
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)    
+
     
-    @action('POST', detail=False, url_path='mcq', url_name='mcq')
+    @swagger_auto_schema(responses={200: TherapistSurveyQuestionCreateMCQHttpSerializer(), 400: TherapistSurveyQuestionCreateHttpErrorSerializer()})
+    @action(['POST'], detail=False, url_path='mcq', url_name='mcq')
     def create_mc_question(self, request, *args, **kwargs):
-        # return super().create(request, *args, **kwargs)
-        pass
+        """Create a new MCQ question
+
+            .
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
     
-    @action('PUT', detail=False, url_path='text', url_name='text')
+    
+    @swagger_auto_schema(responses={200: TherapistSurveyQuestionUpdateTextHttpSerializer(), 400: TherapistSurveyQuestionUpdateHttpErrorSerializer()})
+    @action(['PUT'], detail=True, url_path='text', url_name='text')
     def update_text_question(self, request, *args, **kwargs):
         # return super().update(request, *args, **kwargs)
-        pass
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
     
-    @action('PUT', detail=False, url_path='mcq', url_name='mcq')
+    @swagger_auto_schema(responses={200: TherapistSurveyQuestionUpdateMCQHttpSerializer(), 400: TherapistSurveyQuestionUpdateMCQHttpSerializer()})
+    @action(['PUT'], detail=True, url_path='mcq', url_name='mcq')
     def update_mc_question(self, request, *args, **kwargs):
         # return super().update(request, *args, **kwargs)
-        pass
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-    # TODO: question ordering should be preserved when deleting a question
+        return Response(serializer.data)
+
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 

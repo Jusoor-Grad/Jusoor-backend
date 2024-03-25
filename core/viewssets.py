@@ -5,6 +5,7 @@ from core.mixins import QuerysetMapperMixin, SerializerMapperMixin
 from core.renderer import FormattedJSONRenderrer
 from rest_framework.pagination import PageNumberPagination
 
+
 class CustomPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
