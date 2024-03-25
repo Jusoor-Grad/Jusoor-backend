@@ -61,15 +61,12 @@ class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
     
-    @swagger_auto_schema(responses={200: TherapistSurveyWriteSuccessHttpSerializer(), 400: TherapistSurveyWriteErrorHttpSerializer()})
-    def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)
     
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
     
     @swagger_auto_schema({200: HttpSuccessResponseSerializer(), 400: HttpErrorResponseSerializer()})
-    @action('PATCH', detail=True, url_path='publish', url_name='publish')
+    @action(methods=['PATCH'], detail=True, url_path='publish')
     def publish(self, request, pk, *args, **kwargs):
         """
             publish the survey
@@ -82,12 +79,12 @@ class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
         elif survey.questions.filter(active=True).count() == 0:
             raise ValidationError(_("Survey has no questions to publish"))
         else:
-            survey.active = False
+            survey.active = True
             return Response({"message": _("survey activated successfully")}, status=200)
             
 
     @swagger_auto_schema({200: HttpSuccessResponseSerializer(), 400: HttpErrorResponseSerializer()})
-    @action('PATCH', detail=True, url_path='hide', url_name='hide')
+    @action(methods=['PATCH'], detail=True, url_path='hide')
     def hide(self, request, pk, *args, **kwargs):
         """
             hide the survey
@@ -102,6 +99,9 @@ class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
             survey.active = False
             return Response({"message": _("survey hidden successfully")}, status=200)
     
+    @swagger_auto_schema(responses={200: TherapistSurveyWriteSuccessHttpSerializer(), 400: TherapistSurveyWriteErrorHttpSerializer()})
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
 
 class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, DestroyModelMixin):
     """
