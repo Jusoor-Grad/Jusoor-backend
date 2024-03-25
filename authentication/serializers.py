@@ -133,7 +133,7 @@ class TherapistReadSerializer(UserReadSerializer):
 		fields = ['id', 'username', 'email', 'bio', 'image', 'specializations']
 
 
-class TherapisyMinifiedReadSerializer(TherapistReadSerializer):
+class TherapistMinifiedReadSerializer(TherapistReadSerializer):
 
 	class Meta:
 
