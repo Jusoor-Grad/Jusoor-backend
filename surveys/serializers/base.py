@@ -1,9 +1,10 @@
+from numpy import require
 from rest_framework import serializers
 
-from authentication.serializers import TherapisyMinifiedReadSerializer
+from authentication.serializers import PatientReadSerializer, TherapistMinifiedReadSerializer
 from rest_framework.validators import UniqueTogetherValidator
-from surveys.enums import SurveyQuestionTypes
-from surveys.models import TherapistSurvey, TherapistSurveyQuestion
+from surveys.enums import PENDING, SurveyQuestionTypes
+from surveys.models import TherapistSurvey, TherapistSurveyQuestion, TherapistSurveyQuestionResponse, TherapistSurveyResponse
 from django.db.models import Max
 from rest_framework.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -101,7 +102,7 @@ class TherapistSurveyFullReadSerializer(serializers.ModelSerializer):
         return TherapistSurveyQuestionMiniReadSerializer(instance.questions.all().order_by('index'), many=True).data
 
     def get_therapist(self, instance: TherapistSurvey):
-        return TherapisyMinifiedReadSerializer(instance.created_by.user).data
+        return TherapistMinifiedReadSerializer(instance.created_by.user).data
 
     class Meta:
         fields = '__all__'
@@ -114,7 +115,7 @@ class TherapistSurveyMiniReadSerializer(serializers.ModelSerializer):
     therapist = serializers.SerializerMethodField()
 
     def get_therapist(self, instance: TherapistSurvey):
-        return TherapisyMinifiedReadSerializer(instance.created_by.user).data
+        return TherapistMinifiedReadSerializer(instance.created_by.user_profile).data
     class Meta:
         fields = '__all__'
         model = TherapistSurvey
@@ -134,3 +135,109 @@ class TherapistSurveyWriteSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         validated_data['last_updated_by'] = self.context['request'].user.therapist_profile
         return super().update(instance, validated_data)
+    
+#  ----------------- survey responses
+    
+class TherapistSurveyQuestionResponseFullReadSerializer(serializers.ModelSerializer):
+
+    index = serializers.SerializerMethodField()
+    question = TherapistSurveyQuestionFullReadSerializer()
+
+    def get_index(self, instance: TherapistSurveyQuestionResponse):
+        return instance.question.index
+    
+    class Meta:
+        fields = ['id', 'answer', 'survey', 'index', 'question']
+        model = TherapistSurveyQuestionResponse
+
+
+class ThreapistSurveyResponseMiniReadSerializer(serializers.ModelSerializer):
+
+    patient = serializers.SerializerMethodField()
+
+    def get_patient(self, instance: TherapistSurveyResponse):
+        return PatientReadSerializer(instance.patient.user).data
+
+    class Meta:
+        fields = '__all__'
+        model = TherapistSurveyResponse    
+
+class ThreapistSurveyResponseFullReadSerializer(ThreapistSurveyResponseMiniReadSerializer):
+
+    answers = serializers.SerializerMethodField()
+
+    def get_answers(self, instance: TherapistSurveyResponse):
+        return TherapistSurveyQuestionResponseFullReadSerializer(instance.response_answers.all().order_by('question__index'), many=True).data
+
+    class Meta:
+        fields = '__all__'
+        model = TherapistSurveyResponse
+
+class TherapistSurveyResponseCreateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = ['survey']
+        model = TherapistSurveyResponse
+
+    def create(self, validated_data):
+
+        validated_data['patient'] = self.context['request'].user.patient_profile
+        validated_data['status'] = 'PENDING'
+
+        return super().create(validated_data)
+
+class TherapistSurveyQuestionAnswerSerializer(serializers.Serializer):
+    question = serializers.PrimaryKeyRelatedField(queryset=TherapistSurveyQuestion.objects.all())
+    survey = serializers.PrimaryKeyRelatedField(queryset=TherapistSurvey.objects.all())
+
+    
+    def create(self, validated_data):
+        # if we haven't created the survey response, we create it
+        survey_response, _ = TherapistSurveyResponse.objects.get_or_create(
+            survey=validated_data['survey'], patient=self.context['request'].user.patient_profile, status=PENDING).last()
+
+        validated_data['survey_response'] = survey_response
+        # if the parent responsedidn't include this question, we create it. Else, we update it
+        TherapistSurveyQuestionResponse.objects.update_or_create(**validated_data)
+
+        return validated_data
+    
+class TherapistSurveyQuestionMCQResponseSerializer(TherapistSurveyQuestionAnswerSerializer):
+
+    answer = serializers.ListField(child=serializers.IntegerField(), required=True)
+    def validate_answers(self, value):
+
+        if len(value) != len(set(value)):
+            raise ValidationError(_('Answers must be unique'))
+        if len(value) < 1:
+            raise ValidationError(_('Must have at least 1 answer'))
+
+
+    def validate(self, attrs):
+
+        answers = attrs['answers']
+        
+        if len(answers) > 1 and not attrs['allow_multiple']:
+            raise ValidationError(_('Multiple answers are not allowed'))
+
+        if attrs['question'].question_type != SurveyQuestionTypes.MULTIPLE_CHOICE:
+            raise ValidationError(_('Question is not of type multiple choice'))
+
+        if not attrs['survey'].questions.filter(id=attrs['question'].id).exists():
+            raise ValidationError(_('Question does not belong to the targeted survey'))
+
+        return attrs
+
+class TherapistSurveyQuestionTextResponseSerializer(TherapistSurveyQuestionAnswerSerializer):
+
+    answer = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+
+        if attrs['question'].question_type != SurveyQuestionTypes.TEXT:
+            raise ValidationError(_('Question is not of type text'))
+
+        if not attrs['survey'].questions.filter(id=attrs['question'].id).exists():
+            raise ValidationError(_('Question does not belong to the targeted survey'))
+
+        return attrs
