@@ -30,6 +30,9 @@ from datetime import datetime
 from rest_framework.exceptions import ValidationError as VE
 from drf_yasg.utils import swagger_serializer_method
 
+from surveys.models import TherapistSurvey
+from surveys.serializers.base import TherapistSurveyMiniReadSerializer
+
 class ReferralRequestReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing referral requests"""
 
@@ -192,7 +195,7 @@ class RawAppointmentReadSerializer(serializers.ModelSerializer):
 class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing availability timeslots"""
 	therapist = serializers.SerializerMethodField()
-
+	entry_survey = TherapistSurveyMiniReadSerializer()
 	linked_appointments = serializers.SerializerMethodField()
 
 	@swagger_serializer_method(serializer_or_field=RawAppointmentReadSerializer(many=True))
@@ -206,7 +209,7 @@ class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 	
 	class Meta:
 		model = AvailabilityTimeSlot
-		fields = ['id', 'therapist', 'linked_appointments',  'start_at', 'end_at', 'created_at']
+		fields = ['id', 'therapist', 'linked_appointments',  'start_at', 'end_at', 'created_at', 'entry_survey']
 
 class HttpPaginatedAvailabilityTimeslotListSerializer(HttpPaginatedSerializer):
 	"""Serializer for listing availability timeslots"""
@@ -292,6 +295,7 @@ class AvailabilityTimeslotCreateSerializer(serializers.Serializer):
 	"""
 	
 	intervals = DatetimeIntervalSerializer(many=True, allow_null=False, required=True)
+	entry_survey = serializers.PrimaryKeyRelatedField(queryset=TherapistSurvey.objects.all(), allow_null=True, required=False)
 
 
 	def validate(self, attrs):
@@ -348,7 +352,8 @@ class AvailabilityTimeslotCreateSerializer(serializers.Serializer):
 				therapist= Therapist.objects.get(user=self.context['request'].user),
 				start_at=interval['start_at'],
 				end_at=interval['end_at'],
-				group=group
+				group=group,
+				entry_survey=validated_data.get('entry_survey', None)
 			)
 
 		return validated_data
@@ -366,6 +371,7 @@ class AvailabilityTimeslotBatchCreateSerializer(FutureDatetimeIntervalSerializer
 	"""
 
 	weekly_schedule = DateTimeWeeklyRepresentationSerializer(allow_null=False)
+	entry_survey = serializers.PrimaryKeyRelatedField(queryset=TherapistSurvey.objects.all(), allow_null=True, required=False)
 
 	def validate(self, attrs):
 		
@@ -438,7 +444,8 @@ class AvailabilityTimeslotBatchCreateSerializer(FutureDatetimeIntervalSerializer
 						therapist= therapist,
 						start_at=interval['start_at'],
 						end_at=interval['end_at'],
-						group=timeslot_group
+						group=timeslot_group,
+						entry_survey=validated_data.get('entry_survey', None)
 					)
 				)
 		
@@ -619,7 +626,7 @@ class AvailabilityTimeslotSingleUpdateSerializer(TimeIntervalSerializer):
 		Serializer for updating a single availability timeslot
 	"""
 	force_drop = serializers.BooleanField(default=False)
-
+	entry_survey = serializers.PrimaryKeyRelatedField(queryset=TherapistSurvey.objects.all(), allow_null=True, required=False)
 
 	def validate(self, attrs):
 
@@ -683,6 +690,7 @@ class AvailabilityTimeslotSingleUpdateSerializer(TimeIntervalSerializer):
 
 		instance.start_at = start_at
 		instance.end_at = end_at
+		instance.entry_survey = validated_data.get('entry_survey', getattr(instance, 'entry_survey', None))
 		instance.group = None ## detaching the updated instnace from the timeslot group to avoid problems in batch editing
 		instance.save()
 

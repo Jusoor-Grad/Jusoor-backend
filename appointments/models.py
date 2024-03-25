@@ -5,6 +5,7 @@ from pydantic import validator
 from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, REFERRAL_STATUS_CHOICES, THERAPIST_ASSIGNMENT_STATUS_CHOICES
 from django.core.validators import MinValueValidator, MaxValueValidator
 from core.models import Therapist, TimeStampedModel
+from surveys.models import TherapistSurvey
 
 ## ------------------ Core models ------------------ ##
 
@@ -26,6 +27,7 @@ class AvailabilityTimeSlot(TimeStampedModel):
     end_at = models.DateTimeField(null= False, blank=False)
     group   = models.ForeignKey(AvailabilityTimeSlotGroup, on_delete=models.PROTECT, null=True, blank=True)
     active = models.BooleanField(default=True)
+    entry_survey = models.ForeignKey(TherapistSurvey, on_delete=models.PROTECT, null=True, blank=True, related_name='availability_timeslots')
 
     def __str__(self):
         return f'Availability timeslot {self.pk} for therapist {self.therapist.id}'
