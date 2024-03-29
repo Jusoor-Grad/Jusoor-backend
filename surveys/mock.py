@@ -18,7 +18,7 @@ class TherapistSurveyMocker():
 
     @staticmethod
     @transaction.atomic
-    def mock_instances(survey_n: int = 2, question_n: int = 4, include_responses: bool = False, survey_fixed_args: Dict = None, question_fixed_args: Dict = None):
+    def mock_instances(survey_n: int = 2, question_n: int = 4, include_responses: bool = False, survey_fixed_args: Dict = None, question_fixed_args: Dict = None, response_fixed_args: Dict = dict()):
         """
         mocking N surveys with M questions each, while hving optionally fixed arguments
         for the creation of the survey as well as its arguments
@@ -32,13 +32,13 @@ class TherapistSurveyMocker():
         for survey in surveys:
             for i in range(question_n):
                 questions.append(TherapistSurveyMocker.mock_question(survey, fake.random.choice([SurveyQuestionTypes.TEXT.value, SurveyQuestionTypes.MULTIPLE_CHOICE.value]),
-                                                                     index=i,fixed_args=question_fixed_args))
+                index=i,fixed_args=question_fixed_args))
         TherapistSurveyQuestion.objects.bulk_create(questions)
 
         # 3. create the responses
         if include_responses:
             for survey in surveys:
-                TherapistSurveyMocker.mock_resposne(survey)
+                TherapistSurveyMocker.mock_resposne(survey, response_fixed_args)
 
         return surveys
 
@@ -68,7 +68,7 @@ class TherapistSurveyMocker():
             'survey': survey,
             'description': fake.sentence(),
             'question_type': type,
-            'schema': TherapistSurveyMocker.mock_q_schema(type),
+            'schema': None,
             'active': False,
             'index': index
         }
@@ -76,6 +76,8 @@ class TherapistSurveyMocker():
         
         if fixed_args:
             body.update(fixed_args)
+
+        body['schema'] = TherapistSurveyMocker.mock_q_schema(body['question_type'])
 
         return TherapistSurveyQuestion(**body)
     
@@ -105,11 +107,13 @@ class TherapistSurveyMocker():
         }
     
     @staticmethod
-    def mock_resposne(survey: TherapistSurvey):
+    def mock_resposne(survey: TherapistSurvey, fixed_args: Dict = dict()):
         
         response = TherapistSurveyResponse.objects.create(
-            survey=survey,
-            patient=PatientMock.mock_instances(1)[0],
+            **{'survey':survey,
+            'patient':PatientMock.mock_instances(1)[0],
+            **fixed_args
+            }
         )
 
         responses = []
