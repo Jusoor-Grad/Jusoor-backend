@@ -3,7 +3,7 @@ from typing import Iterable
 from django.db import models
 
 from core.models import StudentPatient, Therapist, TimeStampedModel
-from surveys.enums import SURVEY_QUESTION_TYPES, SURVEY_RESPONSE_STATUSES, SurveyQuestionTypes
+from surveys.enums import PENDING, SURVEY_QUESTION_TYPES, SURVEY_RESPONSE_STATUSES, SurveyQuestionTypes
 from rest_framework.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
@@ -27,9 +27,11 @@ class TherapistSurvey(TimeStampedModel):
         pass
     
 
+## WARNING: no question should be created unless its schema is validated through the appropriate pydantic validator
 class TherapistSurveyQuestion(TimeStampedModel):
     survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE, related_name='questions')
     description = models.TextField(null=False)
+    # TODO: rename to type
     question_type = models.CharField(choices=SURVEY_QUESTION_TYPES.items(), max_length=255, null=False, default='text')
     # TODO: force it to be required
     schema = models.JSONField(null=False, blank=True)
@@ -37,7 +39,7 @@ class TherapistSurveyQuestion(TimeStampedModel):
     index = models.PositiveIntegerField(null=False) ## used to order the questions in the survey
     image = models.ImageField(upload_to='survey-questions/', null=True, blank=True)
     def __str__(self):
-        return f'{self.question} - {self.survey}'
+        return f'Q#{self.index}: {self.description}  -> survey #{self.survey.pk}'
 
     def correct_ordering_index(self, incoming_index: int) -> int:
         """
@@ -46,18 +48,19 @@ class TherapistSurveyQuestion(TimeStampedModel):
         old_index = TherapistSurveyQuestion.objects.get(pk=self.pk).index if self.pk else None
 
         # if the incoming index is exceeding question number or is newly created, assign it the latest index
-        if incoming_index == None or incoming_index > self.survey.questions.count() + 1 or self.survey.questions.count() == 0:
-            incoming_index = self.survey.questions.count() + 1
+        if incoming_index == None or incoming_index > self.survey.questions.filter(index__isnull=False).count() + 1 or self.survey.questions.filter(index__isnull=False).count() == 0:
+            incoming_index = self.survey.questions.filter(index__isnull=False).count() + 1
         # if there is a question with the same index in the same survey, increment the index of all questions with index >= self.index
         elif TherapistSurveyQuestion.objects.filter(survey=self.survey, index=incoming_index).exists():
             
-            # if the question is newm simply push everything to the back without caring about old index holes
+            # if the question is new, simply push everything to the back without caring about old index holes
             if old_index == None:
                 TherapistSurveyQuestion.objects.filter(survey=self.survey, index__gte=incoming_index).update(index=models.F('index') + 1)
 
             # if we advance the idnex forwards, we need all items in between to be shifted to the back
             elif old_index < incoming_index:
                 TherapistSurveyQuestion.objects.filter(survey=self.survey, index__lte=incoming_index, index__gt=old_index).update(index=models.F('index') - 1)
+            
             # if we re-order the question to the back, we simply increment the index of all questions with larger index than the
             # the new index and smaller than the old index by 1 to avoid holes
             elif old_index > incoming_index:
@@ -75,7 +78,6 @@ class TherapistSurveyQuestion(TimeStampedModel):
 
         self.index = self.correct_ordering_index(self.index)
         
-        print("HUH?")
         return super().save(*args, **kwargs)
     
     class Meta:
@@ -88,7 +90,7 @@ class TherapistSurveyResponse(TimeStampedModel):
     """
     survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE, related_name='responses')
     patient = models.ForeignKey(StudentPatient, null=False, on_delete=models.CASCADE, related_name='survey_response_patients')
-    status = models.CharField(choices=SURVEY_RESPONSE_STATUSES.items(), max_length=255, default='PENDING')
+    status = models.CharField(choices=SURVEY_RESPONSE_STATUSES.items(), max_length=255, default=PENDING)
     
     def __str__(self):
         return f'Survey resposne group identiifer #{self.survey} for {self.patient}'
@@ -109,11 +111,11 @@ class TherapistSurveyQuestionResponse(TimeStampedModel):
     def __str__(self):
         return f'Patient answer for {self.question} - {self.survey_response}'
     
-    def save(self, force_insert: bool = ..., force_update: bool = ..., using: str | None = ..., update_fields: Iterable[str] | None = ...) -> None:
+    def save(self, *args, **kwargs) -> None:
         
-        TherapistSurveyValidators.validate_answer_schema(self.answer, self.question.question_type)
+        TherapistSurveyValidators.validate_answer_schema({'answer': self.answer}, self.question.question_type)
         
-        return super().save(force_insert, force_update, using, update_fields)
+        return super().save(*args, **kwargs)
     
     class Meta:
         unique_together = [['survey_response', 'question']]
