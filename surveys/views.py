@@ -221,7 +221,7 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, DestroyMo
     @action(['PUT'], detail=True, url_path='text', url_name='text')
     def update_text_question(self, request, *args, **kwargs):
         # return super().update(request, *args, **kwargs)
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data, instance=self.get_object())
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -231,7 +231,7 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, DestroyMo
     @action(['PUT'], detail=True, url_path='mcq', url_name='mcq')
     def update_mc_question(self, request, *args, **kwargs):
         
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data, instance=self.get_object())
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -253,7 +253,8 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, DestroyMo
         if survey_question.active:
             raise ValidationError(_("Survey question already active"))
         else:
-            survey_question.active = False
+            survey_question.active = True
+            survey_question.save()
             return Response({"message": _("Survey question activated successfully")}, status=200)
             
 
@@ -271,6 +272,7 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, DestroyMo
         
         else:
             survey_question.active = False
+            survey_question.save()
             return Response({"message": _("Survey question hidden successfully")}, status=200)
     
 class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateModelMixin, RetrieveModelMixin):

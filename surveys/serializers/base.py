@@ -41,14 +41,12 @@ class TherapistSurveyQuestionMCQCreateSerializer(serializers.ModelSerializer):
         
         return super().create(validated_data)
     
-class TherapistSurveyMCQUpdateSerializer(TherapistSurveyQuestionMCQCreateSerializer):
+class TherapistSurveyMCQUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = ['description', 'schema']
         model = TherapistSurveyQuestion
 
-    def update(self, instance, validated_data):
-        return super().update(instance, validated_data)
 
     
 class SurveyTextQuestionSchemaSerializer(serializers.Serializer):
@@ -74,7 +72,7 @@ class TherapistSurveyQuestionTextCreateSerializer(serializers.ModelSerializer):
         
         return super().create(validated_data)
     
-class TherapistSurveyTextUpdateSerializer(TherapistSurveyQuestionTextCreateSerializer):
+class TherapistSurveyTextUpdateSerializer(serializers.ModelSerializer):
     
         class Meta:
             fields = ['description', 'schema']
@@ -123,7 +121,7 @@ class TherapistSurveyMiniReadSerializer(serializers.ModelSerializer):
 class TherapistSurveyWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
-        fields = ['name', 'image']
+        fields = ['name', 'image', 'description']
         model = TherapistSurvey     
 
     def create(self, validated_data):
