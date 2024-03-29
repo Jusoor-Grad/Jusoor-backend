@@ -2,7 +2,6 @@
 from rest_framework import serializers
 
 from authentication.serializers import PatientReadSerializer, TherapistMinifiedReadSerializer
-from rest_framework.validators import UniqueTogetherValidator
 from surveys.enums import PENDING, SurveyQuestionTypes
 from surveys.models import TherapistSurvey, TherapistSurveyQuestion, TherapistSurveyQuestionResponse, TherapistSurveyResponse
 from django.db.models import Max

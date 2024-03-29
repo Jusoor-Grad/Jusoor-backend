@@ -1,11 +1,9 @@
 
-from typing import Iterable
 from django.db import models
 
 from core.models import StudentPatient, Therapist, TimeStampedModel
-from surveys.enums import PENDING, SURVEY_QUESTION_TYPES, SURVEY_RESPONSE_STATUSES, SurveyQuestionTypes
+from surveys.enums import PENDING, SURVEY_QUESTION_TYPES, SURVEY_RESPONSE_STATUSES
 from rest_framework.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
 
 from surveys.types import MultipleChoiceQuestionBodySchema, TextOnlyQuestionBodySchema
 from surveys.utils.validation import TherapistSurveyValidators

@@ -1,9 +1,7 @@
 from datetime import datetime, timedelta
-from django import conf
 from django.test import TestCase, tag
 from faker import Faker
 from django.utils import timezone
-from tomlkit import date
 from appointments.constants.enums import ACTIVE, CANCELLED_BY_PATIENT, CANCELLED_BY_THERAPIST, COMPLETED, CONFIRMED, INACTIVE, PENDING, PENDING_PATIENT, PENDING_THERAPIST, REJECTED
 from appointments.models import Appointment, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
 from dateutil import rrule

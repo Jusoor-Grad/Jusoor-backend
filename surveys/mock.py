@@ -1,8 +1,3 @@
-
-
-
-from tomlkit import boolean
-from chat import mock
 from core.mock import PatientMock, TherapistMock
 from core.models import Therapist
 from surveys.enums import SurveyQuestionTypes
