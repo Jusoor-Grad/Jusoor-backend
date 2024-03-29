@@ -173,9 +173,17 @@ class ThreapistSurveyResponseFullReadSerializer(ThreapistSurveyResponseMiniReadS
 
 class TherapistSurveyResponseCreateSerializer(serializers.ModelSerializer):
 
+    survey= serializers.PrimaryKeyRelatedField(queryset=TherapistSurvey.objects.filter(active=True))
+
     class Meta:
         fields = ['survey']
         model = TherapistSurveyResponse
+
+    def validate(self, attrs):
+        if attrs['patient'].survey_responses.filter(survey=attrs['survey'],status=PENDING).exists():
+            raise ValidationError(_('a response for this survey is still in progress'))
+
+        return attrs
 
     def create(self, validated_data):
 
@@ -186,15 +194,15 @@ class TherapistSurveyResponseCreateSerializer(serializers.ModelSerializer):
 
 class TherapistSurveyQuestionAnswerSerializer(serializers.Serializer):
     question = serializers.PrimaryKeyRelatedField(queryset=TherapistSurveyQuestion.objects.all())
-    survey = serializers.PrimaryKeyRelatedField(queryset=TherapistSurvey.objects.all())
-
+    
     
     def create(self, validated_data):
         # if we haven't created the survey response, we create it
         survey_response, _ = TherapistSurveyResponse.objects.get_or_create(
-            survey=validated_data['survey'], patient=self.context['request'].user.patient_profile, status=PENDING).last()
+            survey=validated_data['question'].survey, patient=self.context['request'].user.patient_profile, status=PENDING)
 
         validated_data['survey_response'] = survey_response
+        validated_data['survey'] = validated_data['question'].survey
         # if the parent responsedidn't include this question, we create it. Else, we update it
         TherapistSurveyQuestionResponse.objects.update_or_create(**validated_data)
 
@@ -213,16 +221,13 @@ class TherapistSurveyQuestionMCQResponseSerializer(TherapistSurveyQuestionAnswer
 
     def validate(self, attrs):
 
-        answers = attrs['answers']
+        answers = attrs['answer']
         
         if len(answers) > 1 and not attrs['allow_multiple']:
             raise ValidationError(_('Multiple answers are not allowed'))
 
-        if attrs['question'].question_type != SurveyQuestionTypes.MULTIPLE_CHOICE:
+        if attrs['question'].question_type != SurveyQuestionTypes.MULTIPLE_CHOICE.value:
             raise ValidationError(_('Question is not of type multiple choice'))
-
-        if not attrs['survey'].questions.filter(id=attrs['question'].id).exists():
-            raise ValidationError(_('Question does not belong to the targeted survey'))
 
         return attrs
 
@@ -232,10 +237,8 @@ class TherapistSurveyQuestionTextResponseSerializer(TherapistSurveyQuestionAnswe
 
     def validate(self, attrs):
 
-        if attrs['question'].question_type != SurveyQuestionTypes.TEXT:
+        if attrs['question'].question_type != SurveyQuestionTypes.TEXT.value:
             raise ValidationError(_('Question is not of type text'))
 
-        if not attrs['survey'].questions.filter(id=attrs['question'].id).exists():
-            raise ValidationError(_('Question does not belong to the targeted survey'))
-
+        
         return attrs

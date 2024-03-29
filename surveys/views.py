@@ -7,7 +7,7 @@ from core.viewssets import AugmentedViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin, CreateModelMixin
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
-from surveys.enums import SurveyQuestionTypes
+from surveys.enums import COMPLETED, SurveyQuestionTypes
 from surveys.models import TherapistSurvey, TherapistSurveyQuestion, TherapistSurveyResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
@@ -341,38 +341,39 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
     
-    @action(methods=['POST'], detail=True, url_path=r'answer-mc-question/(?P<question_id>\d+)', url_name='answer-mcq-q')
+    @action(methods=['POST'], detail=True, url_path=r'mcq/(?P<question_id>\d+)', url_name='answer-mcq-q')
     def answer_mc_question(self, request, pk, question_id, *args, **kwargs):
         """
             answer an mcq question on the survey
         """
-        serializer = self.get_serializer(data=request.data)
+
+        serializer = self.get_serializer(data={**request.data, 'question': question_id})
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
         return Response(serializer.data)
 
     
-    @action(['POST'], detail=True, url_path=r'answer-text-question/(?P<question_id>\d+)', url_name='answer-text-q')
-    def answer_text_question(self, request, pk, question_id, *args, **kwargs):
+    @action(['POST'], detail=True, url_path=r'text/(?P<question_id>\d+)', url_name='answer-text-q')
+    def answer_text_question(self, request, question_id, *args, **kwargs):
         """
             answer a text question on the survey
         """
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data={**request.data, 'question': question_id})
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
         return Response(serializer.data)
 
     @action(['PUT'], detail=True, url_path='submit', url_name='submit')
-    def submit(self, request, pk, *args, **kwargs):
+    def submit(self, request, *args, **kwargs):
         """
             submit the survey response
         """
         
         survey_response: TherapistSurveyResponse = self.get_object()
 
-        if survey_response.status == 'SUBMITTED':
+        if survey_response.status == COMPLETED:
             raise ValidationError(_("Survey response already submitted"))
         
         # security side-info: using scoped survey resposne, we make sure that all question responses to this survey
@@ -380,7 +381,8 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
         elif survey_response.response_answers.count() != survey_response.survey.questions.count():
             raise ValidationError(_("Survey response has not been fully answered"))
         else:
-            survey_response.status = 'SUBMITTED'
+            survey_response.status = COMPLETED
+            survey_response.save()
             return Response({"message": _("Survey response submitted successfully")}, status=200)
     
 # class TherapistSurveyQuestionResposneViewset(AugmentedViewSet, ListModelMixin, CreateModelMixin, RetrieveModelMixin):
