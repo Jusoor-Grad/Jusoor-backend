@@ -175,18 +175,17 @@ class TherapistSurveyResponseCreateSerializer(serializers.ModelSerializer):
     survey= serializers.PrimaryKeyRelatedField(queryset=TherapistSurvey.objects.filter(active=True))
 
     class Meta:
-        fields = ['survey']
+        fields = ['survey', 'patient']
         model = TherapistSurveyResponse
 
     def validate(self, attrs):
-        if attrs['patient'].survey_responses.filter(survey=attrs['survey'],status=PENDING).exists():
+        if TherapistSurveyResponse.objects.filter(survey=attrs['survey'],status=PENDING, patient=attrs['patient']).exists():
             raise ValidationError(_('a response for this survey is still in progress'))
 
         return attrs
 
     def create(self, validated_data):
 
-        validated_data['patient'] = self.context['request'].user.patient_profile
         validated_data['status'] = 'PENDING'
 
         return super().create(validated_data)

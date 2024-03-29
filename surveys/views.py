@@ -339,6 +339,8 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
     
     @swagger_auto_schema(responses={200: TherapistSurveyResponseCreateHttpSerializer(), 400: TherapistSurveyResponseCreateHttpErrorSerializer()})
     def create(self, request, *args, **kwargs):
+
+        request.data['patient'] = request.user.patient_profile.id
         return super().create(request, *args, **kwargs)
     
     @action(methods=['POST'], detail=True, url_path=r'mcq/(?P<question_id>\d+)', url_name='answer-mcq-q')
