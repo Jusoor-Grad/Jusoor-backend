@@ -81,6 +81,7 @@ class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
             raise ValidationError(_("Survey has no questions to publish"))
         else:
             survey.active = True
+            survey.save()
             return Response({"message": _("survey activated successfully")}, status=200)
             
 
@@ -98,6 +99,7 @@ class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
         
         else:
             survey.active = False
+            survey.save()
             return Response({"message": _("survey hidden successfully")}, status=200)
     
     @swagger_auto_schema(responses={200: TherapistSurveyWriteSuccessHttpSerializer(), 400: TherapistSurveyWriteErrorHttpSerializer()})
