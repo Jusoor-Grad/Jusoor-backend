@@ -12,7 +12,7 @@ from surveys.models import TherapistSurvey, TherapistSurveyQuestion, TherapistSu
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from surveys.serializers.base import TherapistSurveyMiniReadSerializer, TherapistSurveyFullReadSerializer, TherapistSurveyQuestionFullReadSerializer, TherapistSurveyQuestionImageUploadSerializer, TherapistSurveyQuestionMCQCreateSerializer, TherapistSurveyQuestionMCQResponseSerializer, TherapistSurveyQuestionMiniReadSerializer, TherapistSurveyQuestionTextCreateSerializer, TherapistSurveyQuestionTextResponseSerializer, TherapistSurveyResponseCreateSerializer, TherapistSurveyWriteSerializer, ThreapistSurveyResponseFullReadSerializer, ThreapistSurveyResponseMiniReadSerializer
+from surveys.serializers.base import TherapistSurveyMCQUpdateSerializer, TherapistSurveyMiniReadSerializer, TherapistSurveyFullReadSerializer, TherapistSurveyQuestionFullReadSerializer, TherapistSurveyQuestionImageUploadSerializer, TherapistSurveyQuestionMCQCreateSerializer, TherapistSurveyQuestionMCQResponseSerializer, TherapistSurveyQuestionMiniReadSerializer, TherapistSurveyQuestionTextCreateSerializer, TherapistSurveyQuestionTextResponseSerializer, TherapistSurveyResponseCreateSerializer, TherapistSurveyTextUpdateSerializer, TherapistSurveyWriteSerializer, ThreapistSurveyResponseFullReadSerializer, ThreapistSurveyResponseMiniReadSerializer
 from surveys.serializers.http import TherapistSurveyInnerListHttpSerializer, TherapistSurveyQuestionUpdateHttpErrorSerializer, TherapistSurveyQuestionUpdateMCQHttpSerializer, TherapistSurveyQuestionCreateHttpErrorSerializer, TherapistSurveyQuestionCreateMCQHttpSerializer, TherapistSurveyQuestionCreateTextHttpSerializer, TherapistSurveyQuestionListHttpSerializer, TherapistSurveyQuestionRetireveMCQHttpSerializer, TherapistSurveyQuestionRetrieveTextHttpSerializer, TherapistSurveyQuestionUpdateTextHttpSerializer, TherapistSurveyResponseCreateHttpErrorSerializer, TherapistSurveyResponseCreateHttpSerializer, TherapistSurveyResponseListHttpSerializer, TherapistSurveyResponseRetrieveHttpSerializer, TherapistSurveyRetrieveHttpSerializer, TherapistSurveyWriteErrorHttpSerializer, TherapistSurveyWriteSuccessHttpSerializer
 
 class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin, CreateModelMixin):
@@ -143,8 +143,8 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, DestroyMo
         "retrieve_text_question": TherapistSurveyQuestionFullReadSerializer,
         "create_mc_question": TherapistSurveyQuestionMCQCreateSerializer,
         "create_text_question": TherapistSurveyQuestionTextCreateSerializer,
-        "update_mc_question": TherapistSurveyQuestionMCQCreateSerializer,
-        "update_text_question": TherapistSurveyQuestionMCQCreateSerializer,
+        "update_mc_question": TherapistSurveyMCQUpdateSerializer,
+        "update_text_question": TherapistSurveyTextUpdateSerializer,
         "upload_image": TherapistSurveyQuestionImageUploadSerializer,
 
     }
@@ -188,7 +188,7 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, DestroyMo
         instance = self.get_object()
         return Response(self.get_serializer(instance).data)
     
-    @swagger_auto_schema(responses={200: TherapistSurveyQuestionCreateTextHttpSerializer(), 400: TherapistSurveyQuestionCreateHttpErrorSerializer()})
+    @swagger_auto_schema(responses={201: TherapistSurveyQuestionCreateTextHttpSerializer(), 400: TherapistSurveyQuestionCreateHttpErrorSerializer()})
     @action(['POST'], detail=False, url_path='text', url_name='text')
     def create_text_question(self, request, *args, **kwargs):
         """ Create a new text question
@@ -200,10 +200,10 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, DestroyMo
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        return Response(serializer.data)    
+        return Response(serializer.data, status=201)    
 
     
-    @swagger_auto_schema(responses={200: TherapistSurveyQuestionCreateMCQHttpSerializer(), 400: TherapistSurveyQuestionCreateHttpErrorSerializer()})
+    @swagger_auto_schema(responses={201: TherapistSurveyQuestionCreateMCQHttpSerializer(), 400: TherapistSurveyQuestionCreateHttpErrorSerializer()})
     @action(['POST'], detail=False, url_path='mcq', url_name='mcq')
     def create_mc_question(self, request, *args, **kwargs):
         """Create a new MCQ question
@@ -214,7 +214,7 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, DestroyMo
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        return Response(serializer.data)
+        return Response(serializer.data, status=201)
     
     
     @swagger_auto_schema(responses={200: TherapistSurveyQuestionUpdateTextHttpSerializer(), 400: TherapistSurveyQuestionUpdateHttpErrorSerializer()})
@@ -295,6 +295,7 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
         "create": [IsPatient()],
         "answer_mc_question": [IsPatient()],
         "answer_text_question": [IsPatient()],
+        'submit': [IsPatient()],
     }
 
     serializer_class_by_action = {
@@ -317,6 +318,9 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
             UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient'])
             },pass_through=[UserRole.THERAPIST.value], by= QuerysetBranching.USER_GROUP),
         "answer_text_question": QSWrapper(TherapistSurveyResponse.objects.all()).branch(qs_mapper={
+            UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient'])
+            },pass_through=[UserRole.THERAPIST.value], by= QuerysetBranching.USER_GROUP),
+        'submit': QSWrapper(TherapistSurveyResponse.objects.all()).branch(qs_mapper={
             UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient'])
             },pass_through=[UserRole.THERAPIST.value], by= QuerysetBranching.USER_GROUP),
         }
@@ -369,6 +373,8 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
         if survey_response.status == 'SUBMITTED':
             raise ValidationError(_("Survey response already submitted"))
         
+        # security side-info: using scoped survey resposne, we make sure that all question responses to this survey
+        # also originate from the same user 
         elif survey_response.response_answers.count() != survey_response.survey.questions.count():
             raise ValidationError(_("Survey response has not been fully answered"))
         else:
