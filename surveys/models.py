@@ -13,9 +13,11 @@ from surveys.utils.validation import TherapistSurveyValidators
 from django.db import transaction
 class TherapistSurvey(TimeStampedModel):
 
+    # TODO: add a survey description
     created_by = models.ForeignKey(Therapist, null=False, on_delete=models.PROTECT, related_name='created_surveys')
     last_updated_by = models.ForeignKey(Therapist, null=True, on_delete=models.PROTECT, related_name='updated_surveys')
     name = models.CharField(max_length=255, null=False, unique=True)
+    description = models.TextField(null=False, blank=False)
     image = models.ImageField(upload_to='surveys/', null=True, blank=True)
     active = models.BooleanField(default=False) ## used to activate or deactivate the survey
     def __str__(self):

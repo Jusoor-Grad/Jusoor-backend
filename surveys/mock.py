@@ -3,7 +3,7 @@
 
 from tomlkit import boolean
 from chat import mock
-from core.mock import PatientMock
+from core.mock import PatientMock, TherapistMock
 from core.models import Therapist
 from surveys.enums import SurveyQuestionTypes
 from typing import Dict
@@ -16,9 +16,9 @@ fake = Faker()
 
 class TherapistSurveyMocker():
 
-    
     @staticmethod
-    def mock_instances(survey_n: int, question_n: int, include_responses: bool = False, survey_fixed_args: Dict = None, question_fixed_args: Dict = None):
+    @transaction.atomic
+    def mock_instances(survey_n: int = 2, question_n: int = 4, include_responses: bool = False, survey_fixed_args: Dict = None, question_fixed_args: Dict = None):
         """
         mocking N surveys with M questions each, while hving optionally fixed arguments
         for the creation of the survey as well as its arguments
@@ -26,7 +26,7 @@ class TherapistSurveyMocker():
         
         # 1. create the surveys
         surveys = [ TherapistSurveyMocker.mock_survey(survey_fixed_args) for _ in range(survey_n) ]
-        TherapistSurvey.objects.bulk_create(surveys)
+        surveys= TherapistSurvey.objects.bulk_create(surveys)
         # 2. create the questions
         questions = []
         for survey in surveys:
@@ -40,12 +40,17 @@ class TherapistSurveyMocker():
             for survey in surveys:
                 TherapistSurveyMocker.mock_resposne(survey)
 
+        return surveys
+
     @staticmethod
     def mock_survey(fixed_args: Dict = None):
+
+        therapist: Therapist = TherapistMock.mock_instances(1)[0]
         
         body = {
-            'created_by': Therapist.objects.order_by('?').first(),
-            'name': fake.sentence(),
+            'created_by': therapist,
+            'name': fake.name(),
+            'description': fake.sentence(), # 'survey description
             'image': None,
             'active': False,
         }
