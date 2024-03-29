@@ -115,7 +115,7 @@ class TherapistSurveyMiniReadSerializer(serializers.ModelSerializer):
     therapist = serializers.SerializerMethodField()
 
     def get_therapist(self, instance: TherapistSurvey):
-        return TherapistMinifiedReadSerializer(instance.created_by.user_profile).data
+        return TherapistMinifiedReadSerializer(instance.created_by.user).data
     class Meta:
         fields = '__all__'
         model = TherapistSurvey
