@@ -1,10 +1,10 @@
 from authentication.models import User
 from authentication.permissions import IsPatient, IsTherapist
-from authentication.serializers import HttpPatientListResponseSerializer, HttpPatientReadResponseSerializer, HttpTherapistListResponseSerializer, HttpTherapistReadResponseSerializer, PatientReadSerializer
+from authentication.serializers import PaginatedPatientResponseSerializer, HttpPatientReadResponseSerializer, HttpTherapistListResponseSerializer, HttpTherapistReadResponseSerializer, PatientHttpListResposneSerializer, PatientReadSerializer
 from core.enums import QuerysetBranching, UserRole
 from core.models import KFUPMDepartment
 from core.querysets import PatientOwnedQS, QSWrapper
-from core.serializers import HttpErrorResponseSerializer, HttpKFUPMDepartmentDetailResponseSerializer,  KFUPMDepartmentSerializer
+from core.serializers import HttpErrorResponseSerializer, HttpKFUPMDepartmentListResponseSerializer, HttpKFUPMDepartmentRetrieveResponseSerializer,  KFUPMDepartmentSerializer
 from core.viewssets import AugmentedViewSet
 from rest_framework.permissions import AllowAny
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
@@ -25,7 +25,7 @@ class KFUPMDeptViewset(AugmentedViewSet, ListModelMixin):
     ordering =  ['short_name']
     filterset_fields = ['short_name', 'long_name']
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpKFUPMDepartmentDetailResponseSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpKFUPMDepartmentListResponseSerializer()})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
@@ -43,7 +43,7 @@ class PatientViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
     queryset= User.objects.filter(patient_profile__isnull=False).select_related('patient_profile__department')
      
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpPatientListResponseSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: PatientHttpListResposneSerializer()})
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     

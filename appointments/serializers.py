@@ -47,9 +47,13 @@ class ReferralRequestReadSerializer(serializers.ModelSerializer):
 		fields = ['id', 'referrer', 'referee', 'reason', 'status', 'responding_therapist', 'appointment']
 		depth = 1
 
+class PaginatedReferralRequestReadSerializer(HttpPaginatedSerializer):
+	"""Serializer for listing referral requests"""
+	results = ReferralRequestReadSerializer(many=True)
+
 class HttpReferralRequestListSerializer(HttpSuccessResponseSerializer):
 	"""Serializer for listing referral requests"""
-	data = ReferralRequestReadSerializer(many=True)
+	data = PaginatedReferralRequestReadSerializer()
 
 class HttpReferralRequestRetrieveSerializer(HttpSuccessResponseSerializer):
 	"""Serializer for listing referral requests"""
@@ -778,7 +782,7 @@ class HttpAppointmentRetrieveSerializer(HttpSuccessResponseSerializer):
 	"""Serializer used for swagger HTTP schema"""
 	data = (AppointmentReadSerializer())
 
-class PaginatedAppointmentReadSerializer(serializers.Serializer):
+class PaginatedAppointmentReadSerializer(HttpPaginatedSerializer):
 	"""Serializer for paginated appointment list"""
 	results = AppointmentReadSerializer(many=True)
 

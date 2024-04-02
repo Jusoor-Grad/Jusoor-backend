@@ -39,8 +39,14 @@ class KFUPMDepartmentSerializer(serializers.ModelSerializer):
 class HttpKFUPMDepartmentResponseSerializer(HttpPaginatedSerializer):
     results = KFUPMDepartmentSerializer(many=True)
 
-class HttpKFUPMDepartmentDetailResponseSerializer(HttpSuccessResponseSerializer):
+class HttpKFUPMDepartmentRetrieveResponseSerializer(HttpSuccessResponseSerializer):
     data = KFUPMDepartmentSerializer()
+
+class PaginatedKFUPMDeptResponseSerializer(HttpPaginatedSerializer):
+    results= KFUPMDepartmentSerializer(many=True)
+
+class HttpKFUPMDepartmentListResponseSerializer(HttpSuccessResponseSerializer):
+    data = PaginatedKFUPMDeptResponseSerializer()
 
 
 class TherapistSpecializationSerializer(serializers.Serializer):

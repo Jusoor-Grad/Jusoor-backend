@@ -106,8 +106,11 @@ class HttpPatientReadResponseSerializer(HttpSuccessResponseSerializer):
 	data = PatientReadSerializer()
 
 
-class HttpPatientListResponseSerializer(HttpPaginatedSerializer):
+class PaginatedPatientResponseSerializer(HttpPaginatedSerializer):
     results = PatientReadSerializer(many=True)
+
+class PatientHttpListResposneSerializer(HttpSuccessResponseSerializer):
+	data = PaginatedPatientResponseSerializer()
 
 class TherapistReadSerializer(UserReadSerializer):
 
