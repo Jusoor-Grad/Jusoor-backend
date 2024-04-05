@@ -1,10 +1,9 @@
 """
     File used for object mocking for all appointment system related tasks
 """
-from tkinter import ACTIVE
 from typing import List
 import faker
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CONFIRMED, PENDING, PENDING_SURVEY_RESPONSE, REFERRAL_STATUS_CHOICES
+from appointments.constants.enums import ACTIVE, APPOINTMENT_STATUS_CHOICES, CONFIRMED, PENDING, PENDING_SURVEY_RESPONSE, REFERRAL_STATUS_CHOICES
 
 from appointments.models import Appointment,  AvailabilityTimeSlot, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
 from core.mock import PatientMock, TherapistMock
