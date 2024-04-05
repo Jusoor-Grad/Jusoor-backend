@@ -1,4 +1,6 @@
-
+from django.db import transaction
+from appointments.constants.enums import PENDING_THERAPIST
+from appointments.models import Appointment, AppointmentSurveyResponse
 from authentication.permissions import IsPatient, IsTherapist
 from core.enums import QuerysetBranching, UserRole
 from core.querysets import PatientOwnedQS, QSWrapper
@@ -372,6 +374,7 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
 
         return Response(serializer.data)
 
+    @transaction.atomic
     @action(['PUT'], detail=True, url_path='submit', url_name='submit')
     def submit(self, request, *args, **kwargs):
         """
@@ -388,8 +391,17 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
         elif survey_response.response_answers.count() != survey_response.survey.questions.count():
             raise ValidationError(_("Survey response has not been fully answered"))
         else:
+            # update the response object
             survey_response.status = COMPLETED
+
+            # if there exists an appointment linked to this survey, update the status
+            appointment_survey_response = AppointmentSurveyResponse.objects.filter(survey_response=survey_response).first()
+            if appointment_survey_response != None:
+                appointment_survey_response.appointment.status = PENDING_THERAPIST
+                appointment_survey_response.appointment.save()
+                
             survey_response.save()
+
             return Response({"message": _("Survey response submitted successfully")}, status=200)
     
 # class TherapistSurveyQuestionResposneViewset(AugmentedViewSet, ListModelMixin, CreateModelMixin, RetrieveModelMixin):

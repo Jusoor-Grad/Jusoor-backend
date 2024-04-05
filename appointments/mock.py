@@ -1,13 +1,10 @@
 """
     File used for object mocking for all appointment system related tasks
 """
-from datetime import time
 from tkinter import ACTIVE
-from tracemalloc import start
 from typing import List
 import faker
-import appointments
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CONFIRMED, PENDING, REFERRAL_STATUS_CHOICES
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CONFIRMED, PENDING, PENDING_SURVEY_RESPONSE, REFERRAL_STATUS_CHOICES
 
 from appointments.models import Appointment,  AvailabilityTimeSlot, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
 from core.mock import PatientMock, TherapistMock
@@ -113,7 +110,7 @@ class AppointmentMocker:
                 Appointment(
                     timeslot=availability_timeslot,
                     patient=patients[i % len(patients) if len(patients) > 1 else 0],
-                    status=CONFIRMED,
+                    status=CONFIRMED if not availability_timeslot.entry_survey else PENDING_SURVEY_RESPONSE,
                     start_at=availability_timeslot.start_at,
                     end_at=availability_timeslot.end_at
                 )
@@ -128,11 +125,9 @@ class AppointmentMocker:
 
             if availability_timeslot.entry_survey:
                 appointment_surveys.append(
-                    TherapistSurveyMocker.mock_survey_response(
-                        survey=availability_timeslot.entry_survey,
-                        therapist=availability_timeslot.therapist,
-                        patient=patients[i % len(patients) if len(patients) > 1 else 0]
-                    )
+                    TherapistSurveyMocker.mock_instances(
+                        survey_n=1
+                    )[0]
                 )
         
 

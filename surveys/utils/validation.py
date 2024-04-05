@@ -21,7 +21,6 @@ class TherapistSurveyValidators:
             else:
                 raise ValidationError(_("Invalid question type"))
         except Exception as e:
-            print(e)
             raise ValidationError(_("Invalid question schema for the specified question type"))
         
     @staticmethod
@@ -36,5 +35,4 @@ class TherapistSurveyValidators:
             else:
                 raise ValidationError(_("Invalid question type"))
         except Exception as e:
-            print(e)
             raise ValidationError(_("Invalid answer schema for the specified question type"))

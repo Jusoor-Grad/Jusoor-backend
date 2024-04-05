@@ -1,6 +1,3 @@
-from random import choice
-from typing import Iterable
-from click import group
 from django.db import models
 from pydantic import validator
 from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED_APPOINTMENT_STATUSES, REFERRAL_STATUS_CHOICES, THERAPIST_ASSIGNMENT_STATUS_CHOICES
@@ -63,7 +60,7 @@ class AppointmentSurveyResponse(TimeStampedModel):
     """
 
     appointment = models.OneToOneField(Appointment, on_delete=models.PROTECT, related_name='survey_response')
-    survey_response = models.ForeignKey(TherapistSurveyResponse, on_delete=models.PROTECT, related_name='appointment_responses')
+    survey_response = models.OneToOneField(TherapistSurveyResponse, on_delete=models.PROTECT, related_name='linked_appointment')
     survey= models.ForeignKey(TherapistSurvey, on_delete=models.PROTECT, related_name='appointment_responses')
 
     def __str__(self):

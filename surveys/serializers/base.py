@@ -206,6 +206,7 @@ class TherapistSurveyQuestionAnswerSerializer(serializers.Serializer):
         TherapistSurveyQuestionResponse.objects.update_or_create(**validated_data)
 
         return validated_data
+        
     
 class TherapistSurveyQuestionMCQResponseSerializer(TherapistSurveyQuestionAnswerSerializer):
 

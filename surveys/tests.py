@@ -1,7 +1,10 @@
 from django.test import TestCase, tag
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
 from faker import Faker
+from appointments.constants.enums import PENDING_SURVEY_RESPONSE, PENDING_THERAPIST
+from appointments.mock import AppointmentMocker
+from appointments.models import Appointment, AppointmentSurveyResponse, AvailabilityTimeSlot
 from core.mock import PatientMock, TherapistMock
 from core.models import Therapist
 from core.utils.testing import auth_request
@@ -722,7 +725,8 @@ class TherapistSurveyResponseTestCase(TestCase):
         faker = Faker()
         answer =  [ faker.random.choice((range(len(question.schema['options'])))) ]
         data = {
-            'answer': answer
+            'answer': answer,
+            'survey_response': response.id,
         }
         request = auth_request(self.factory.post, f'survey-responses/mcq/{question.id}', body=data, user=response.patient.user)
         response = self.answer_mc_question(request, pk=response.id, question_id=question.id)
@@ -745,7 +749,8 @@ class TherapistSurveyResponseTestCase(TestCase):
         faker = Faker()
         answer =  [ faker.random.choice((range(len(question.schema['options'])))) ]
         data = {
-            'answer': answer
+            'answer': answer,
+            'survey_response': response.id,
         }
         request = auth_request(self.factory.post, f'survey-responses/mcq/{question.id}', body=data, user=TherapistMock.mock_instances(1)[0].user)
         response = self.answer_mc_question(request, pk=response.id, question_id=question.id)
@@ -767,7 +772,8 @@ class TherapistSurveyResponseTestCase(TestCase):
         
         answer =  "wrong answer"
         data = {
-            'answer': answer
+            'answer': answer,
+            'survey_response': response.id,
         }
         request = auth_request(self.factory.post, f'survey-responses/mcq/{question.id}', body=data, user=response.patient.user)
         response = self.answer_mc_question(request, pk=response.id, question_id=question.id)
@@ -790,7 +796,8 @@ class TherapistSurveyResponseTestCase(TestCase):
         faker = Faker()
         answer = faker.text()
         data = {
-            'answer': answer
+            'answer': answer,
+            'survey_response': response.id,
         }
         request = auth_request(self.factory.post, f'survey-responses/text/{question.id}', body=data, user=response.patient.user)
         response = self.answer_text_question(request, pk=response.id, question_id=question.id)
@@ -812,7 +819,8 @@ class TherapistSurveyResponseTestCase(TestCase):
         faker = Faker()
         answer = faker.text()
         data = {
-            'answer': answer
+            'answer': answer,
+            'survey_response': response.id,
         }
         request = auth_request(self.factory.post, f'survey-responses/text/{question.id}', body=data, user=TherapistMock.mock_instances(1)[0].user)
         response = self.answer_text_question(request, pk=response.id, question_id=question.id)
@@ -833,7 +841,8 @@ class TherapistSurveyResponseTestCase(TestCase):
         question = survey.questions.first()
         answer =  [ 1 ]
         data = {
-            'answer': answer
+            'answer': answer,
+            'survey_response': response.id,
         }
         request = auth_request(self.factory.post, f'survey-responses/text/{question.id}', body=data, user=response.patient.user)
         response = self.answer_text_question(request, pk=response.id, question_id=question.id)
@@ -845,26 +854,41 @@ class TherapistSurveyResponseTestCase(TestCase):
     @tag('submit-response-success')
     def test_submit_success(self):
         
-        survey = TherapistSurveyMocker.mock_instances(1, question_n=5, include_responses=True)[0]
-        survey_response = survey.responses.first()
-        user = survey_response.patient.user
+        appointment = AppointmentMocker.mock_instances(1, with_survey=True)[0]
+        survey = TherapistSurvey.objects.first()
+        survey_response = TherapistSurveyMocker.mock_resposne(survey, {'patient': appointment.patient, 'status': PENDING})
+        AppointmentSurveyResponse.objects.create(
+            appointment=appointment,
+            survey_response=survey_response,
+            survey=survey
+        )
+        user = appointment.patient.user
         request = auth_request(self.factory.put, f'survey-responses/{survey_response.id}/submit/', user=user)
         response = self.submit(request, pk=survey_response.id)
 
+        survey_response.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(TherapistSurveyResponse.objects.get(pk=survey_response.id).status, COMPLETED)
+        self.assertEqual(survey_response.linked_appointment.appointment.status, PENDING_THERAPIST)
 
     @tag('submit-response-failure-perm')
     def test_submit_failure_perm(self):
         
-        survey = TherapistSurveyMocker.mock_instances(1, question_n=5, include_responses=True)[0]
-        survey_response = survey.responses.first()
+        appointment = AppointmentMocker.mock_instances(1, with_survey=True)[0]
+        survey = TherapistSurvey.objects.first()
+        survey_response = TherapistSurveyMocker.mock_resposne(survey, {'patient': appointment.patient})
+        AppointmentSurveyResponse.objects.create(
+            appointment=appointment,
+            survey_response=survey_response,
+            survey=survey
+        )
         user = TherapistMock.mock_instances(1)[0].user
         request = auth_request(self.factory.put, f'survey-responses/{survey_response.id}/submit/', user=user)
         response = self.submit(request, pk=survey_response.id)
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(TherapistSurveyResponse.objects.get(pk=survey_response.id).status, PENDING)
+        self.assertEqual(survey_response.linked_appointment.appointment.status, PENDING_SURVEY_RESPONSE)
 
     @tag('submit-response-failure-already-completed')
     def test_submit_failure_already_completed(self):
@@ -872,7 +896,28 @@ class TherapistSurveyResponseTestCase(TestCase):
         survey = TherapistSurveyMocker.mock_instances(1, question_n=5, include_responses=True, response_fixed_args= {
             'status': COMPLETED
         })[0]
+        # creating a linked appointment
+
+        appointment = Appointment.objects.create(
+            timeslot = AvailabilityTimeSlot.objects.create(
+                therapist = survey.created_by,
+                start_at = timezone.now(),
+                end_at = timezone.now() + timedelta(days=1),
+                active=True,
+                entry_survey=survey
+            ),
+            patient=PatientMock.mock_instances(1)[0],
+            start_at=timezone.now(),
+            end_at=timezone.now() + timedelta(hours=1),
+            status=PENDING_SURVEY_RESPONSE
+        )
+        
         survey_response = survey.responses.first()
+        AppointmentSurveyResponse.objects.create(
+            appointment=appointment,
+            survey_response=survey_response,
+            survey=survey
+        )
         
         user = survey_response.patient.user
         request = auth_request(self.factory.put, f'survey-responses/{survey_response.id}/submit/', user=user)
@@ -890,6 +935,22 @@ class TherapistSurveyResponseTestCase(TestCase):
         survey_response = TherapistSurveyResponse.objects.create(
             survey=survey,
             patient=PatientMock.mock_instances(1)[0]
+        )
+
+        # creating a linked appointment
+
+        appointment = Appointment.objects.create(
+            timeslot = AvailabilityTimeSlot.objects.create(
+                therapist = survey.created_by,
+                start_at = timezone.now(),
+                end_at = timezone.now() + timedelta(days=1),
+                active=True,
+                entry_survey=survey
+            ),
+            patient=PatientMock.mock_instances(1)[0],
+            start_at=timezone.now(),
+            end_at=timezone.now() + timedelta(hours=1),
+            status=PENDING_SURVEY_RESPONSE
         )
 
         # creating only a single question resposne for the survey

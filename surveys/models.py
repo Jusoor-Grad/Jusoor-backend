@@ -89,6 +89,8 @@ class TherapistSurveyResponse(TimeStampedModel):
     survey = models.ForeignKey(TherapistSurvey, null=False, on_delete=models.CASCADE, related_name='responses')
     patient = models.ForeignKey(StudentPatient, null=False, on_delete=models.CASCADE, related_name='survey_response_patients')
     status = models.CharField(choices=SURVEY_RESPONSE_STATUSES.items(), max_length=255, default=PENDING)
+
+    
     
     def __str__(self):
         return f'Survey resposne group identiifer #{self.survey} for {self.patient}'

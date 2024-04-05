@@ -115,7 +115,9 @@ class TherapistSurveyMocker():
         for question in survey.questions.all():
             responses.append(TherapistSurveyMocker.mock_resposne_question(question, response))
         
-        return TherapistSurveyQuestionResponse.objects.bulk_create(responses)
+        qs = TherapistSurveyQuestionResponse.objects.bulk_create(responses)
+
+        return response
 
     @staticmethod
     def mock_resposne_question(question: TherapistSurveyQuestion, response: TherapistSurveyResponse):
