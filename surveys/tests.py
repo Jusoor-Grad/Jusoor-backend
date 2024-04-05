@@ -628,8 +628,8 @@ class TherapistSurveyResponseTestCase(TestCase):
         self.list = viewset.as_view({'get': 'list'})
         self.retrieve = viewset.as_view({'get': 'retrieve'})
         self.create = viewset.as_view({'post': 'create'})
-        self.answer_mc_question = viewset.as_view({'patch': 'answer_mc_question'})
-        self.answer_text_question = viewset.as_view({'patch': 'answer_text_question'})
+        self.answer_mc_question = viewset.as_view({'post': 'answer_mc_question'})
+        self.answer_text_question = viewset.as_view({'post': 'answer_text_question'})
         self.submit = viewset.as_view({'put': 'submit'})
 
         self.factory = APIRequestFactory()
@@ -724,7 +724,7 @@ class TherapistSurveyResponseTestCase(TestCase):
         data = {
             'answer': answer
         }
-        request = auth_request(self.factory.patch, f'survey-responses/mcq/{question.id}', body=data, user=response.patient.user)
+        request = auth_request(self.factory.post, f'survey-responses/mcq/{question.id}', body=data, user=response.patient.user)
         response = self.answer_mc_question(request, pk=response.id, question_id=question.id)
 
         
@@ -747,7 +747,7 @@ class TherapistSurveyResponseTestCase(TestCase):
         data = {
             'answer': answer
         }
-        request = auth_request(self.factory.patch, f'survey-responses/mcq/{question.id}', body=data, user=TherapistMock.mock_instances(1)[0].user)
+        request = auth_request(self.factory.post, f'survey-responses/mcq/{question.id}', body=data, user=TherapistMock.mock_instances(1)[0].user)
         response = self.answer_mc_question(request, pk=response.id, question_id=question.id)
 
         self.assertEqual(response.status_code, 403)
@@ -769,7 +769,7 @@ class TherapistSurveyResponseTestCase(TestCase):
         data = {
             'answer': answer
         }
-        request = auth_request(self.factory.patch, f'survey-responses/mcq/{question.id}', body=data, user=response.patient.user)
+        request = auth_request(self.factory.post, f'survey-responses/mcq/{question.id}', body=data, user=response.patient.user)
         response = self.answer_mc_question(request, pk=response.id, question_id=question.id)
 
         self.assertEqual(response.status_code, 400)
@@ -792,7 +792,7 @@ class TherapistSurveyResponseTestCase(TestCase):
         data = {
             'answer': answer
         }
-        request = auth_request(self.factory.patch, f'survey-responses/text/{question.id}', body=data, user=response.patient.user)
+        request = auth_request(self.factory.post, f'survey-responses/text/{question.id}', body=data, user=response.patient.user)
         response = self.answer_text_question(request, pk=response.id, question_id=question.id)
 
         self.assertEqual(response.status_code, 200)
@@ -814,7 +814,7 @@ class TherapistSurveyResponseTestCase(TestCase):
         data = {
             'answer': answer
         }
-        request = auth_request(self.factory.patch, f'survey-responses/text/{question.id}', body=data, user=TherapistMock.mock_instances(1)[0].user)
+        request = auth_request(self.factory.post, f'survey-responses/text/{question.id}', body=data, user=TherapistMock.mock_instances(1)[0].user)
         response = self.answer_text_question(request, pk=response.id, question_id=question.id)
 
         self.assertEqual(response.status_code, 403)
@@ -835,7 +835,7 @@ class TherapistSurveyResponseTestCase(TestCase):
         data = {
             'answer': answer
         }
-        request = auth_request(self.factory.patch, f'survey-responses/text/{question.id}', body=data, user=response.patient.user)
+        request = auth_request(self.factory.post, f'survey-responses/text/{question.id}', body=data, user=response.patient.user)
         response = self.answer_text_question(request, pk=response.id, question_id=question.id)
 
         self.assertEqual(response.status_code, 400)

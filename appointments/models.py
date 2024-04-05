@@ -1,11 +1,13 @@
 from random import choice
+from typing import Iterable
 from click import group
 from django.db import models
 from pydantic import validator
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, REFERRAL_STATUS_CHOICES, THERAPIST_ASSIGNMENT_STATUS_CHOICES
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED_APPOINTMENT_STATUSES, REFERRAL_STATUS_CHOICES, THERAPIST_ASSIGNMENT_STATUS_CHOICES
 from django.core.validators import MinValueValidator, MaxValueValidator
 from core.models import Therapist, TimeStampedModel
-from surveys.models import TherapistSurvey
+from surveys.enums import CANCELLED
+from surveys.models import TherapistSurvey, TherapistSurveyResponse
 
 ## ------------------ Core models ------------------ ##
 
@@ -44,6 +46,29 @@ class Appointment(TimeStampedModel):
     status = models.CharField(max_length=40, blank=False, null=False, choices=APPOINTMENT_STATUS_CHOICES.items())
     start_at = models.DateTimeField(null= True, blank=True)
     end_at = models.DateTimeField(null= True, blank=True)
+
+    def save(self, *args, **kwargs) -> None:
+
+        if self.status in CANCELLED_APPOINTMENT_STATUSES and hasattr(self, 'survey_response'):
+            # why not simply update? to avoid wasting an extra DB pass when the status is not already cancelled
+            if self.survey_response.status != CANCELLED:
+                self.survey_response.status = CANCELLED
+                self.survey_response.save()
+
+        return super().save(*args, **kwargs)
+    
+class AppointmentSurveyResponse(TimeStampedModel):
+    """
+        Joint table to directly link the appointment to a survey resposne object
+    """
+
+    appointment = models.OneToOneField(Appointment, on_delete=models.PROTECT, related_name='survey_response')
+    survey_response = models.ForeignKey(TherapistSurveyResponse, on_delete=models.PROTECT, related_name='appointment_responses')
+    survey= models.ForeignKey(TherapistSurvey, on_delete=models.PROTECT, related_name='appointment_responses')
+
+    def __str__(self):
+        return f'Survey response {self.survey_response.id} for appointment {self.appointment.id}'
+    
     
 
 

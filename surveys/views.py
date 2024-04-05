@@ -349,7 +349,9 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
             answer an mcq question on the survey
         """
 
-        serializer = self.get_serializer(data={**request.data, 'question': question_id})
+        survey_resposne: TherapistSurveyResponse = self.get_object()
+
+        serializer = self.get_serializer(data={**request.data, 'question': question_id, 'survey_response': survey_resposne.id})
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -357,11 +359,14 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
 
     
     @action(['POST'], detail=True, url_path=r'text/(?P<question_id>\d+)', url_name='answer-text-q')
-    def answer_text_question(self, request, question_id, *args, **kwargs):
+    def answer_text_question(self, request, pk, question_id, *args, **kwargs):
         """
             answer a text question on the survey
         """
-        serializer = self.get_serializer(data={**request.data, 'question': question_id})
+
+        survey_resposne: TherapistSurveyResponse = self.get_object()
+
+        serializer = self.get_serializer(data={**request.data, 'question': question_id, 'survey_response': survey_resposne.id})
         serializer.is_valid(raise_exception=True)
         serializer.save()
 

@@ -4,7 +4,6 @@ from rest_framework import serializers
 from authentication.serializers import PatientReadSerializer, TherapistMinifiedReadSerializer
 from surveys.enums import PENDING, SurveyQuestionTypes
 from surveys.models import TherapistSurvey, TherapistSurveyQuestion, TherapistSurveyQuestionResponse, TherapistSurveyResponse
-from django.db.models import Max
 from rest_framework.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
@@ -147,6 +146,11 @@ class TherapistSurveyQuestionResponseFullReadSerializer(serializers.ModelSeriali
         fields = ['id', 'answer', 'survey', 'index', 'question']
         model = TherapistSurveyQuestionResponse
 
+class TherapistSurveyResposneNanoReadSerializer(serializers.ModelSerializer):
+    
+        class Meta:
+            fields = ['id', 'status']
+            model = TherapistSurveyResponse
 
 class ThreapistSurveyResponseMiniReadSerializer(serializers.ModelSerializer):
 
@@ -186,20 +190,17 @@ class TherapistSurveyResponseCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
 
-        validated_data['status'] = 'PENDING'
+        validated_data['status'] = PENDING
 
         return super().create(validated_data)
 
 class TherapistSurveyQuestionAnswerSerializer(serializers.Serializer):
     question = serializers.PrimaryKeyRelatedField(queryset=TherapistSurveyQuestion.objects.all())
+    survey_response = serializers.PrimaryKeyRelatedField(queryset=TherapistSurveyResponse.objects.all())
     
     
     def create(self, validated_data):
-        # if we haven't created the survey response, we create it
-        survey_response, _ = TherapistSurveyResponse.objects.get_or_create(
-            survey=validated_data['question'].survey, patient=self.context['request'].user.patient_profile, status=PENDING)
-
-        validated_data['survey_response'] = survey_response
+        
         validated_data['survey'] = validated_data['question'].survey
         # if the parent responsedidn't include this question, we create it. Else, we update it
         TherapistSurveyQuestionResponse.objects.update_or_create(**validated_data)
@@ -209,6 +210,7 @@ class TherapistSurveyQuestionAnswerSerializer(serializers.Serializer):
 class TherapistSurveyQuestionMCQResponseSerializer(TherapistSurveyQuestionAnswerSerializer):
 
     answer = serializers.ListField(child=serializers.IntegerField(), required=True)
+
     def validate_answers(self, value):
 
         if len(value) != len(set(value)):

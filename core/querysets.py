@@ -140,7 +140,6 @@ class OwnedQS(QSWrapperFilter):
                 return self._pass_qs_or_reject(view, qs)
             
             user = getattr(user, self.user_model_rel)
-
         # filtering the passed queryset based on the ownership field
         filters = Q(**{self.ownership_fields[0]: user})
         if len(self.ownership_fields) > 1:

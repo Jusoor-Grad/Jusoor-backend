@@ -2,11 +2,12 @@
     File used for object mocking for all appointment system related tasks
 """
 from datetime import time
+from tkinter import ACTIVE
 from tracemalloc import start
 from typing import List
 import faker
 import appointments
-from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CONFIRMED, REFERRAL_STATUS_CHOICES
+from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CONFIRMED, PENDING, REFERRAL_STATUS_CHOICES
 
 from appointments.models import Appointment,  AvailabilityTimeSlot, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
 from core.mock import PatientMock, TherapistMock
@@ -14,6 +15,7 @@ from core.models import StudentPatient, Therapist
 from django.utils import timezone
 
 from core.types import TimeInterval, WeeklyTimeSchedule
+from surveys.mock import TherapistSurveyMocker
 
 
 faker = faker.Faker()
@@ -24,7 +26,7 @@ class AvailabilityTimeslotMocker:
     """
     
     @staticmethod
-    def mock_instances(n: int=5, fixed_therapist: Therapist = None):
+    def mock_instances(n: int=5, fixed_therapist: Therapist = None, with_survey: bool = False):
         """
             Mock n availability timeslots
         """
@@ -48,7 +50,8 @@ class AvailabilityTimeslotMocker:
                     therapist=therapists[i % len(therapists) if len(therapists) > 1 else 0],
                     start_at= random_start_date,
                     end_at= faker.date_time_between(random_start_date, end_date),
-                    group=slot_groups[0]
+                    group=slot_groups[0],
+                    entry_survey = TherapistSurveyMocker.mock_instances(1)[0] if with_survey else None
                 )
             )
 
@@ -94,15 +97,16 @@ class AppointmentMocker:
     """
     
     @staticmethod
-    def mock_instances(n: int = 5, fixed_patient: StudentPatient = None, fixed_therapist: Therapist = None):
+    def mock_instances(n: int = 5, fixed_patient: StudentPatient = None, fixed_therapist: Therapist = None, with_survey: bool = False):
         """
             Mock appointments along their therapist assignments
         """
         # TODO: remove after verifying correctness of initial mocking
-        timeslots = AvailabilityTimeslotMocker.mock_instances(n, fixed_therapist=fixed_therapist)
+        timeslots = AvailabilityTimeslotMocker.mock_instances(n, fixed_therapist=fixed_therapist, with_survey=with_survey)
         patients = [fixed_patient] if fixed_patient else  PatientMock.mock_instances(n)
         appointments = []
         appoint_assignments = []
+        appointment_surveys = []
         
         for i, availability_timeslot in enumerate(timeslots):
             appointments.append(
@@ -118,9 +122,18 @@ class AppointmentMocker:
                 TherapistAssignment(
                     appointment=appointments[i],
                     therapist_timeslot=availability_timeslot,
-                    status='Active'
+                    status=ACTIVE
                 )
             )
+
+            if availability_timeslot.entry_survey:
+                appointment_surveys.append(
+                    TherapistSurveyMocker.mock_survey_response(
+                        survey=availability_timeslot.entry_survey,
+                        therapist=availability_timeslot.therapist,
+                        patient=patients[i % len(patients) if len(patients) > 1 else 0]
+                    )
+                )
         
 
         appointment_outs= Appointment.objects.bulk_create(appointments)
@@ -150,7 +163,7 @@ class ReferralMocker:
                     referee= fixed_referee.user if fixed_referee else appointment.patient.user,
                     referrer= fixed_referrer.user if fixed_referrer else appointment.timeslot.therapist.user,
                     reason=faker.sentence(),
-                    status=REFERRAL_STATUS_CHOICES['PENDING'],
+                    status=PENDING,
                     responding_therapist=appointment.timeslot.therapist,
                     appointment=appointment
                 )

@@ -10,15 +10,17 @@ CANCELLED_BY_PATIENT = 'CANCELLED_BY_PATIENT'
 REJECTED = 'REJECTED'
 COMPLETED = 'COMPLETED'
 MISSED = 'MISSED'
+PENDING_SURVEY_RESPONSE = 'PENDING_SURVEY_RESPONSE'
 
 # all possible stati of an appointment
 APPOINTMENT_STATUS_CHOICES = {
-    'PENDING_THERAPIST': _('Pending Therapist'), ## waiting for the therapist to confirm the patient request
-    'PENDING_PATIENT': _('Pending Patient'), ## waiting for the patient to confirm therapist's invite
-    'CONFIRMED': _('Confirmed'), ## both parties confirmed the appointment
-    'CANCELLED_BY_PATIENT': _('Cancelled By Patient'), ## patient cancelled the appointment
-    'CANCELLED_BY_THERAPIST': _('Cancelled By Therapist'), ## therapist cancelled the appointment
-    'COMPLETED': _('Completed'), ## both parties showed up and the appointment was completed
+    PENDING_THERAPIST: _('Pending Therapist'), ## waiting for the therapist to confirm the patient request
+    PENDING_SURVEY_RESPONSE: _('Pending Survey Response'), ## waiting for the patient to finish the survey, if the target timeslot had an assigned survey
+    PENDING_PATIENT: _('Pending Patient'), ## waiting for the patient to confirm therapist's invite
+    CONFIRMED: _('Confirmed'), ## both parties confirmed the appointment
+    CANCELLED_BY_PATIENT: _('Cancelled By Patient'), ## patient cancelled the appointment
+    CANCELLED_BY_THERAPIST: _('Cancelled By Therapist'), ## therapist cancelled the appointment
+    COMPLETED: _('Completed'), ## both parties showed up and the appointment was completed
     }
 
 UPDATEABLE_APPOINTMENT_STATI = [
@@ -26,6 +28,13 @@ UPDATEABLE_APPOINTMENT_STATI = [
     'PENDING_PATIENT',
     'CONFIRMED'
 ]
+
+# all statuses that flag the manual cancellation of an appointment
+CANCELLED_APPOINTMENT_STATUSES = [CANCELLED_BY_PATIENT, CANCELLED_BY_THERAPIST]
+
+PENDING_APPOINTMENT_STATUSES= [PENDING_THERAPIST, PENDING_PATIENT, PENDING_SURVEY_RESPONSE]
+
+RESERVED_APPOINTMENT_STATUSES= [PENDING_THERAPIST, PENDING_PATIENT, PENDING_SURVEY_RESPONSE, CONFIRMED]
 
 PENDING = 'PENDING'
 ACCEPTED = 'ACCEPTED'

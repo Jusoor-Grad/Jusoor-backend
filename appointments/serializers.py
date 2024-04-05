@@ -1,8 +1,8 @@
 from hmac import new
 from os import read
 from rest_framework import serializers
-from appointments.constants.enums import ACCEPTED, CONFIRMED, INACTIVE, PENDING, PENDING_PATIENT, PENDING_THERAPIST, REJECTED, WEEK_DAYS
-from appointments.models import Appointment, PatientReferralRequest
+from appointments.constants.enums import ACCEPTED, CONFIRMED, INACTIVE, PENDING, RESERVED_APPOINTMENT_STATUSES, PENDING_PATIENT, PENDING_SURVEY_RESPONSE, PENDING_THERAPIST, REJECTED, WEEK_DAYS
+from appointments.models import Appointment, AppointmentSurveyResponse, PatientReferralRequest
 from authentication.models import User
 from authentication.serializers import UserReadSerializer
 from core.http import ValidationError
@@ -30,8 +30,8 @@ from datetime import datetime
 from rest_framework.exceptions import ValidationError as VE
 from drf_yasg.utils import swagger_serializer_method
 
-from surveys.models import TherapistSurvey
-from surveys.serializers.base import TherapistSurveyMiniReadSerializer
+from surveys.models import TherapistSurvey, TherapistSurveyResponse
+from surveys.serializers.base import TherapistSurveyMiniReadSerializer, TherapistSurveyResposneNanoReadSerializer
 
 class ReferralRequestReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing referral requests"""
@@ -186,6 +186,14 @@ class RawAvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = AvailabilityTimeSlot
 		fields = ['id', 'therapist', 'start_at', 'end_at', 'created_at']
+
+class MiniAvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
+	"""Serializer for listing availability timeslots"""
+	
+	class Meta:
+		model = AvailabilityTimeSlot
+		fields = ['id', 'start_at', 'end_at']
+
 
 class RawAppointmentReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing appointments"""
@@ -750,8 +758,16 @@ class AvailabilityTimeSlotDestroySerializer(serializers.Serializer):
 class AppointmentReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing appointments"""
 	
-	timeslot = AvailabilityTimeslotReadSerializer()
+	timeslot = MiniAvailabilityTimeslotReadSerializer()
 	therapist = serializers.SerializerMethodField()
+	survey_response = serializers.SerializerMethodField()
+
+	@swagger_serializer_method(serializer_or_field=TherapistSurveyResposneNanoReadSerializer)
+	def get_survey_response(self, instance):
+		if hasattr(instance, 'survey_response'):
+			# TODO: rename the relations in clearer manner
+			return TherapistSurveyResposneNanoReadSerializer(instance=instance.survey_response.survey_response).data
+		return None
 
 	@swagger_serializer_method(serializer_or_field=UserReadSerializer)
 	def get_therapist(self, instance):
@@ -759,7 +775,7 @@ class AppointmentReadSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Appointment
-		fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at', 'therapist']
+		fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at', 'therapist', 'survey_response']
 
 class SimplifiedAppointmentReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing appointments"""
@@ -822,18 +838,21 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 		# 2. validate that the owner of the timeslot is the user himself if the request was made by a therapist
 		if hasattr(self.context['request'].user, 'therapist_profile') and timeslot.therapist != self.context['request'].user.therapist_profile:
 			raise ValidationError( _('YOU CANNOT USE ANOTHER THERAPIST\'S TIMESLOT'))
+		
+		if hasattr(self.context['request'].user, 'patient_profile') and self.context['request'].user != attrs['patient']:
+			raise ValidationError( _('YOU CANNOT CREATE AN APPOINTMENT FOR ANOTHER PATIENT'))
 
 		# 3. validate that the appointment does not conflict with other confirmed appointments if the therapist is the one creating the appointment
 		conflicting_appointments = timeslot.linked_appointments.filter(
-			(Q(status=CONFIRMED) | Q(status=PENDING_PATIENT) | Q(status=PENDING_THERAPIST)) & Q(start_at__lte=end_at, end_at__gte=start_at) &
-			Q(timeslot__therapist= timeslot.therapist))
+			(Q(status__in=RESERVED_APPOINTMENT_STATUSES) & Q(start_at__lte=end_at, end_at__gte=start_at) &
+			Q(timeslot__therapist= timeslot.therapist)))
 		if conflicting_appointments.exists():
 		
 			raise ValidationError( _('APPOINTMENT TIME CONFLICTS WITH ANOTHER CONFIRMED APPOINTMENT FOR SAME THERAPIST'), data={
 				'conflicting_appointments': RawAppointmentReadSerializer(instance=conflicting_appointments, many=True).data
 			})
 
-
+		
 
 		# 4. validate that start time is before end time
 		if start_at >= end_at:
@@ -847,26 +866,42 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 
 		# NOTE: not ideal in case of more roles, polymporhism is a better long-term solution
 		if hasattr(self.context['request'].user, 'therapist_profile') :
-			validated_data['status'] = 'PENDING_PATIENT'
+			validated_data['status'] = PENDING_PATIENT
 		 	## forcing therapist to only create appointments for himself
 
-		elif hasattr(self.context['request'].user, 'patient_profile'):
-			validated_data['status'] = 'PENDING_THERAPIST'
+		elif hasattr(self.context['request'].user, 'patient_profile') :
+			validated_data['status'] = PENDING_THERAPIST
 			validated_data['patient'] = self.context['request'].user ## forcing patient to only create appointments for himself    
+			
+
 
 		# create a therapist assignment for the appointment
-
 		cloned_data = validated_data.copy()
 		cloned_data['patient'] = StudentPatient.objects.get(user=validated_data['patient'])
-		result =  Appointment.objects.create(**cloned_data)
+		appointment =  Appointment.objects.create(**cloned_data)
+
+		if validated_data['timeslot'].entry_survey != None:
+			validated_data['status'] = PENDING_SURVEY_RESPONSE
+			# create survey resposne
+			survey_response = TherapistSurveyResponse.objects.create(
+				survey=validated_data['timeslot'].entry_survey,
+				patient=validated_data['patient'].patient_profile
+			)
+			# link the response to the appointment
+			AppointmentSurveyResponse.objects.create(
+				appointment=appointment,
+				survey=validated_data['timeslot'].entry_survey,
+				survey_response=survey_response
+			)
+
 
 		TherapistAssignment.objects.create(
 			therapist_timeslot=validated_data['timeslot'],
 			status= ACTIVE,
-			appointment= result
+			appointment= appointment
 		)
 
-		return result
+		return appointment
 
 	class Meta:
 		model = Appointment
@@ -913,7 +948,7 @@ class AppointmentUpdateSerializer(AppointmentCreateSerializer):
 		# 2. validate that the appointment does not conflict with other confirmed appointments
 		if timeslot.linked_appointments.filter(
 			~Q(pk=self.instance.pk) &
-			(Q(status=CONFIRMED) | Q(status=PENDING_PATIENT) | Q(status=PENDING_THERAPIST)) & Q(start_at__lte=end_at, end_at__gte=start_at) &
+			Q(status__in=RESERVED_APPOINTMENT_STATUSES) & Q(start_at__lte=end_at, end_at__gte=start_at) &
 			Q(timeslot__therapist=therapist
 							)).exists():
 			raise ValidationError(_('APPOINTMENT TIME CONFLICTS WITH ANOTHER CONFIRMED APPOINTMENT'))

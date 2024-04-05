@@ -5,6 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED_BY_PATIENT, CANCELLED_BY_THERAPIST, COMPLETED, CONFIRMED, INACTIVE, ACTIVE, PATIENT_FIELD, PENDING_PATIENT, PENDING_THERAPIST, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
 from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest, TherapistAssignment
+from surveys.enums import CANCELLED
 from .serializers import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeSlotDestroySerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpErrAppointmentCreateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpErrAppointmentUpdateSerializer, HttpErrReferralRequestCreateSerializer, HttpErrReferralRequestReplySerializer, HttpErroReferralRequestUpdateSerializer, HttpErrorAvailabilityTimeslotDestroyErrorResponse, HttpErrorAvailabilityTimeslotSingleUpdateResponse, HttpErrorSingleCreateTimeslotResponse, HttpReferralRequestCreateResponseSerializer, HttpReferralRequestReplyResponseSerializer, HttpSuccessAppointmentUpdateSerializer, HttpAvailabilityTimeslotUpdateSuccessResponse, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpSuccessReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer, AvailabilityTimeslotBatchUpdateSerializer
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
@@ -60,7 +61,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
     }
 
     queryset_by_action = {
-        'list': QSWrapper(Appointment.objects.all().prefetch_related('timeslot__therapist__user'))\
+        'list': QSWrapper(Appointment.objects.all().select_related('timeslot__therapist__user', 'survey_response'))\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
                         },
@@ -92,7 +93,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         ),
-        'cancel': QSWrapper(Appointment.objects.filter(Q(status=CONFIRMED) | Q(status=PENDING_PATIENT) | Q(status=PENDING_THERAPIST)))\
+        'cancel': QSWrapper(Appointment.objects.filter(status__in=UPDATEABLE_APPOINTMENT_STATI))\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=['patient']),
                         UserRole.THERAPIST.value: TherapistOwnedQS(ownership_fields=['timeslot__therapist'])
@@ -169,6 +170,10 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
             instance.status = CANCELLED_BY_PATIENT
         else:
             raise ValidationError(_('Only patients and therapists can cancel appointments'))
+
+        # cancelling the appointment should also cancel the survey response
+        if hasattr(instance, 'appointment_response'):
+            instance.appointment_response.update(status=CANCELLED)
         
         TherapistAssignment.objects.filter(therapist_timeslot=instance.timeslot, status=ACTIVE).update(status=INACTIVE)
         instance.save()

@@ -3,10 +3,11 @@ from django.test import TestCase, tag
 from faker import Faker
 from django.utils import timezone
 from appointments.constants.enums import ACTIVE, CANCELLED_BY_PATIENT, CANCELLED_BY_THERAPIST, COMPLETED, CONFIRMED, INACTIVE, PENDING, PENDING_PATIENT, PENDING_THERAPIST, REJECTED
-from appointments.models import Appointment, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
+from appointments.models import Appointment, AppointmentSurveyResponse, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
 from dateutil import rrule
 from core.mock import PatientMock, TherapistMock
 from core.utils.testing import auth_request
+from surveys.models import TherapistSurveyResponse
 from .mock import AppointmentMocker, AvailabilityTimeslotMocker, ReferralMocker
 # Create your tests here.
 from appointments.views import AppointmentsViewset, AvailabilityTimeSlot, AvailabilityTimeslotViewset, ReferralViewset
@@ -83,7 +84,7 @@ class AppointmentsTests(TestCase):
 
 		self.assertEqual(response.status_code, 404)
 
-	@tag('create-apptmnt-valid-by-patient')
+	@tag('create-apptmnt-valid-by-patient-no-survey')
 	def test_create_appointment_valid_by_patient(self):
 		#  mock patient
 		patient = PatientMock.mock_instances(n=1)[0]
@@ -110,7 +111,38 @@ class AppointmentsTests(TestCase):
 		self.assertEqual(response.data['patient'], patient.id)
 		self.assertTrue(Appointment.objects.filter(id=response.data['id']).exists())
 
-	@tag('create-apptmnt-valid-by-therapist')
+	@tag('create-apptmnt-valid-by-patient-with-survey')
+	def test_create_appointment_valid_by_patient_with_survey(self):
+		#  mock patient
+		patient = PatientMock.mock_instances(n=1)[0]
+		# mock timeslot
+		timeslot = AvailabilityTimeslotMocker.mock_instances(n=1, with_survey=True)[0]
+		# mock a valid JSON within the timeslot boundaries        
+		start_at = self.faker.date_time_between(start_date=timeslot.start_at, end_date=timeslot.end_at)
+		end_at =self.faker.date_time_between(start_date=start_at, end_date=timeslot.end_at)
+
+		body = {
+			'timeslot': timeslot.id,
+			'patient': patient.user.id,
+			'start_at': start_at,
+			'end_at': end_at
+		}
+
+		# mock request
+		request = auth_request(APIRequestFactory().post, f'appointments/', user=patient.user, body=body)
+		response = self.create(request)
+
+		
+
+		self.assertEqual(response.status_code, 201)
+		self.assertEqual(response.data['patient'], patient.id)
+		self.assertTrue(Appointment.objects.filter(id=response.data['id']).exists())
+		self.assertTrue(AppointmentSurveyResponse.objects.filter(appointment=response.data['id']).exists())
+		self.assertTrue(TherapistSurveyResponse.objects.count(), 1)
+
+	
+
+	@tag('create-apptmnt-valid-by-therapist-no-survey')
 	def test_create_appointment_valid_by_therapist(self):
 		#  mock patient
 		therapist =TherapistMock.mock_instances(n=1)[0]
@@ -138,7 +170,35 @@ class AppointmentsTests(TestCase):
 		self.assertEqual(response.data['patient'], patient.id)
 		self.assertTrue(Appointment.objects.filter(id=response.data['id']).exists())
 
-	@tag('create-apptmnt-nonexisting-timeslot-by-patient')
+	@tag('create-apptmnt-invalid-boundaries-by-therapist-with-entry-survey')
+	def test_create_appointment_by_therapist_success_with_survey(self):
+
+		#  mock patient
+		patient = PatientMock.mock_instances(n=1)[0]
+		# mock timeslot
+		timeslot = AvailabilityTimeslotMocker.mock_instances(n=1, with_survey=True)[0]
+		# mock an valid JSON within the timeslot boundaries        
+		start_at = self.faker.date_time_between(start_date=timeslot.start_at, end_date=timeslot.end_at)
+		end_at =self.faker.date_time_between(start_date=start_at, end_date=timeslot.end_at)
+
+		body = {
+			'timeslot': timeslot.id,
+			'patient': patient.user.id,
+			'start_at': start_at,
+			'end_at': end_at
+		}
+
+		# mock request
+		request = auth_request(APIRequestFactory().post, f'appointments/', user=timeslot.therapist.user, body=body)
+		response = self.create(request)
+
+		self.assertEqual(response.status_code, 201)
+		self.assertEqual(response.data['patient'], patient.id)
+		self.assertTrue(Appointment.objects.filter(id=response.data['id']).exists())
+		self.assertTrue(AppointmentSurveyResponse.objects.filter(appointment=response.data['id']).exists())
+		self.assertTrue(TherapistSurveyResponse.objects.count(), 1)
+
+	@tag('create-apptmnt-nonexisting-timeslot-by-patient-no-entry-survey')
 	def test_create_appointment_invalid_timeslot_by_patient(self):
 		#  mock patient
 		patient = PatientMock.mock_instances(n=1)[0]
@@ -163,7 +223,7 @@ class AppointmentsTests(TestCase):
 
 		self.assertEqual(response.status_code, 400)
 
-	@tag('create-apptmnt-invalid-other-therapist-timeslot-by-therapist')
+	@tag('create-apptmnt-invalid-other-therapist-timeslot-by-therapist-no-entry-survey')
 	def test_create_appointment_invalid_other_therapist_timeslot_by_therapist(self):
 		#  mock patient
 		therapists =TherapistMock.mock_instances(n=2)
@@ -189,8 +249,8 @@ class AppointmentsTests(TestCase):
 
 		self.assertEqual(response.status_code, 400)
 
-	@tag('create-apptmnt-invalid-past-timeslot-by-patient')
-	def test_create_appointment_invalid_past_timeslot_by_patient(self):
+	@tag('create-apptmnt-invalid-past-timeslot-by-patient-no-entry-survey')
+	def test_create_appointment_invalid_past_timeslot_by_patient_no_survey(self):
 		#  mock patient
 		patient = PatientMock.mock_instances(n=1)[0]
 		# mock timeslot
@@ -214,8 +274,8 @@ class AppointmentsTests(TestCase):
 
 		self.assertEqual(response.status_code, 400)
 
-	@tag('create-apptmnt-invalid-conflict-apptmnt-by-therapist')
-	def test_create_appointment_invalid_conflict_appointment_by_patient(self):
+	@tag('create-apptmnt-invalid-conflict-apptmnt-by-therapist-no-entry-survey')
+	def test_create_appointment_invalid_conflict_appointment_by_therapist_no_survey(self):
 
 		#  mock patient
 		therapists =TherapistMock.mock_instances(n=1)
@@ -256,6 +316,7 @@ class AppointmentsTests(TestCase):
 		
 
 		self.assertEqual(response.status_code, 400)
+		self.assertEqual(Appointment.objects.count(), 1)
 
 
 	@tag('update-apptmnt-valid-by-patient')
