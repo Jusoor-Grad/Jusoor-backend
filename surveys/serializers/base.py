@@ -6,6 +6,7 @@ from surveys.enums import PENDING, SurveyQuestionTypes
 from surveys.models import TherapistSurvey, TherapistSurveyQuestion, TherapistSurveyQuestionResponse, TherapistSurveyResponse
 from rest_framework.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from drf_yasg.utils import swagger_serializer_method
 
 # ------------- therapist survey questions
 
@@ -94,9 +95,11 @@ class TherapistSurveyFullReadSerializer(serializers.ModelSerializer):
     questions = serializers.SerializerMethodField()
     therapist = serializers.SerializerMethodField()
 
+    @swagger_serializer_method(serializer_or_field=TherapistSurveyQuestionMiniReadSerializer(many=True))
     def get_questions(self, instance: TherapistSurvey):
         return TherapistSurveyQuestionMiniReadSerializer(instance.questions.all().order_by('index'), many=True).data
 
+    @swagger_serializer_method(serializer_or_field=TherapistMinifiedReadSerializer())
     def get_therapist(self, instance: TherapistSurvey):
         return TherapistMinifiedReadSerializer(instance.created_by.user).data
 
@@ -110,6 +113,7 @@ class TherapistSurveyMiniReadSerializer(serializers.ModelSerializer):
 
     therapist = serializers.SerializerMethodField()
 
+    @swagger_serializer_method(serializer_or_field=TherapistMinifiedReadSerializer())
     def get_therapist(self, instance: TherapistSurvey):
         return TherapistMinifiedReadSerializer(instance.created_by.user).data
     class Meta:
@@ -156,6 +160,7 @@ class ThreapistSurveyResponseMiniReadSerializer(serializers.ModelSerializer):
 
     patient = serializers.SerializerMethodField()
 
+    @swagger_serializer_method(serializer_or_field=PatientReadSerializer())
     def get_patient(self, instance: TherapistSurveyResponse):
         return PatientReadSerializer(instance.patient.user).data
 
@@ -167,6 +172,7 @@ class ThreapistSurveyResponseFullReadSerializer(ThreapistSurveyResponseMiniReadS
 
     answers = serializers.SerializerMethodField()
 
+    @swagger_serializer_method(serializer_or_field=TherapistSurveyQuestionResponseFullReadSerializer(many=True))
     def get_answers(self, instance: TherapistSurveyResponse):
         return TherapistSurveyQuestionResponseFullReadSerializer(instance.response_answers.all().order_by('question__index'), many=True).data
 
