@@ -31,7 +31,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
     """View for appointments functionality"""
 
 
-    ordering_fields = ['start_at']
+    ordering_fields = ['start_at', 'created_at']
     ordering = ['start_at']
     filterset_fields = {
         'status': ['iexact'],
