@@ -876,16 +876,16 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 
 
 		# create a therapist assignment for the appointment
-		cloned_data = validated_data.copy()
-		cloned_data['patient'] = StudentPatient.objects.get(user=validated_data['patient'])
-		appointment =  Appointment.objects.create(**cloned_data)
+		# cloned_data = validated_data.copy()
+		validated_data['patient'] = StudentPatient.objects.get(user=validated_data['patient'])
 
 		if validated_data['timeslot'].entry_survey != None:
 			validated_data['status'] = PENDING_SURVEY_RESPONSE
+			appointment =  Appointment.objects.create(**validated_data)
 			# create survey resposne
 			survey_response = TherapistSurveyResponse.objects.create(
 				survey=validated_data['timeslot'].entry_survey,
-				patient=validated_data['patient'].patient_profile
+				patient=validated_data['patient']
 			)
 			# link the response to the appointment
 			AppointmentSurveyResponse.objects.create(
@@ -893,6 +893,10 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 				survey=validated_data['timeslot'].entry_survey,
 				survey_response=survey_response
 			)
+		else:
+			appointment =  Appointment.objects.create(**validated_data)
+		
+
 
 
 		TherapistAssignment.objects.create(
