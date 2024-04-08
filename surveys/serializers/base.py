@@ -153,7 +153,7 @@ class TherapistSurveyQuestionResponseFullReadSerializer(serializers.ModelSeriali
 class TherapistSurveyResposneNanoReadSerializer(serializers.ModelSerializer):
     
         class Meta:
-            fields = ['id', 'status']
+            fields = ['id', 'status', 'survey']
             model = TherapistSurveyResponse
 
 class ThreapistSurveyResponseMiniReadSerializer(serializers.ModelSerializer):
