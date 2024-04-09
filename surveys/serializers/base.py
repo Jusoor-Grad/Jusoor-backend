@@ -208,10 +208,15 @@ class TherapistSurveyQuestionAnswerSerializer(serializers.Serializer):
     def create(self, validated_data):
         
         validated_data['survey'] = validated_data['question'].survey
-        # if the parent responsedidn't include this question, we create it. Else, we update it
-        TherapistSurveyQuestionResponse.objects.update_or_create(**validated_data)
+        instance, created = TherapistSurveyQuestionResponse.objects.update_or_create(defaults=validated_data, survey_response=validated_data['survey_response'], question=validated_data['question'])
 
-        return validated_data
+        return instance
+    
+    def validate(self, attrs):
+        # TODO: requires testing
+        if not attrs['question'].survey == attrs['survey_response'].survey:
+            raise ValidationError(_('Question and response must belong to the same survey'))
+
         
     
 class TherapistSurveyQuestionMCQResponseSerializer(TherapistSurveyQuestionAnswerSerializer):
