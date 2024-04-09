@@ -426,4 +426,3 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
 
             return Response({"message": _("Survey response submitted successfully")}, status=200)
     
-# class TherapistSurveyQuestionResposneViewset(AugmentedViewSet, ListModelMixin, CreateModelMixin, RetrieveModelMixin):
