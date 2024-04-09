@@ -15,8 +15,8 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from surveys.serializers.base import TherapistSurveyMCQUpdateSerializer, TherapistSurveyMiniReadSerializer, TherapistSurveyFullReadSerializer, TherapistSurveyQuestionFullReadSerializer, TherapistSurveyQuestionImageUploadSerializer, TherapistSurveyQuestionMCQCreateSerializer, TherapistSurveyQuestionMCQResponseSerializer, TherapistSurveyQuestionMiniReadSerializer, TherapistSurveyQuestionTextCreateSerializer, TherapistSurveyQuestionTextResponseSerializer, TherapistSurveyResponseCreateSerializer, TherapistSurveyTextUpdateSerializer, TherapistSurveyWriteSerializer, ThreapistSurveyResponseFullReadSerializer, ThreapistSurveyResponseMiniReadSerializer
-from surveys.serializers.http import TherapistSurveyInnerListHttpSerializer, TherapistSurveyQuestionUpdateHttpErrorSerializer, TherapistSurveyQuestionUpdateMCQHttpSerializer, TherapistSurveyQuestionCreateHttpErrorSerializer, TherapistSurveyQuestionCreateMCQHttpSerializer, TherapistSurveyQuestionCreateTextHttpSerializer, TherapistSurveyQuestionListHttpSerializer, TherapistSurveyQuestionRetireveMCQHttpSerializer, TherapistSurveyQuestionRetrieveTextHttpSerializer, TherapistSurveyQuestionUpdateTextHttpSerializer, TherapistSurveyResponseCreateHttpErrorSerializer, TherapistSurveyResponseCreateHttpSerializer, TherapistSurveyResponseListHttpSerializer, TherapistSurveyResponseRetrieveHttpSerializer, TherapistSurveyRetrieveHttpSerializer, TherapistSurveyWriteErrorHttpSerializer, TherapistSurveyWriteSuccessHttpSerializer
-
+from surveys.serializers.http import TherapistSurveyInnerListHttpSerializer, TherapistSurveyQuestionUpdateHttpErrorSerializer, TherapistSurveyQuestionUpdateMCQHttpSerializer, TherapistSurveyQuestionCreateHttpErrorSerializer, TherapistSurveyQuestionCreateMCQHttpSerializer, TherapistSurveyQuestionCreateTextHttpSerializer, TherapistSurveyQuestionListHttpSerializer, TherapistSurveyQuestionRetireveMCQHttpSerializer, TherapistSurveyQuestionRetrieveTextHttpSerializer, TherapistSurveyQuestionUpdateTextHttpSerializer, TherapistSurveyResponseAnswerErrorSerializer, TherapistSurveyResponseAnswerHttpErrorResposneSerializer, TherapistSurveyResponseCreateHttpErrorSerializer, TherapistSurveyResponseCreateHttpSerializer, TherapistSurveyResponseListHttpSerializer, TherapistSurveyResponseMCQAnswerHttpSuccessSerializer, TherapistSurveyResponseRetrieveHttpSerializer, TherapistSurveyRetrieveHttpSerializer, TherapistSurveyWriteErrorHttpSerializer, TherapistSurveyWriteSuccessHttpSerializer
+from drf_yasg import openapi
 class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin, CreateModelMixin):
     """
         Viewset for the TherapistSurvey model
@@ -345,6 +345,13 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
         request.data['patient'] = request.user.patient_profile.id
         return super().create(request, *args, **kwargs)
     
+    @swagger_auto_schema(request_body = openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['answer'],
+            properties={
+                'answer': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_INTEGER)),
+            }
+    ), responses={200: TherapistSurveyResponseMCQAnswerHttpSuccessSerializer(), 400: TherapistSurveyResponseAnswerHttpErrorResposneSerializer()})
     @action(methods=['POST'], detail=True, url_path=r'mcq/(?P<question_id>\d+)', url_name='answer-mcq-q')
     def answer_mc_question(self, request, pk, question_id, *args, **kwargs):
         """
@@ -359,7 +366,13 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
 
         return Response(serializer.data)
 
-    
+    @swagger_auto_schema(request_body = openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['answer'],
+            properties={
+                'answer': openapi.Schema(type=openapi.TYPE_STRING,),
+            }
+    ), responses={200: TherapistSurveyResponseMCQAnswerHttpSuccessSerializer(), 400: TherapistSurveyResponseAnswerHttpErrorResposneSerializer()})
     @action(['POST'], detail=True, url_path=r'text/(?P<question_id>\d+)', url_name='answer-text-q')
     def answer_text_question(self, request, pk, question_id, *args, **kwargs):
         """
@@ -374,6 +387,7 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
 
         return Response(serializer.data)
 
+    @swagger_auto_schema(responses={200: HttpSuccessResponseSerializer(), 400: HttpErrorResponseSerializer()})
     @transaction.atomic
     @action(['PUT'], detail=True, url_path='submit', url_name='submit')
     def submit(self, request, *args, **kwargs):
