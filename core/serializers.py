@@ -11,6 +11,18 @@ class HttpSuccessResponseSerializer(serializers.Serializer):
     message = serializers.CharField()
     status = serializers.IntegerField()
     data = serializers.CharField()
+
+class MessageSerializer(serializers.Serializer):
+    message = serializers.CharField()
+
+class HttpSuccessResponseNestedMessageSerializer(serializers.Serializer):
+    """
+    Serializer for non-paginated HTTP response
+    """
+
+    message = serializers.CharField()
+    status = serializers.IntegerField()
+    data = MessageSerializer()
     
 class HttpPaginatedSerializer(serializers.Serializer):
 

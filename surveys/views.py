@@ -5,7 +5,7 @@ from appointments.models import Appointment, AppointmentSurveyResponse
 from authentication.permissions import IsPatient, IsTherapist
 from core.enums import QuerysetBranching, UserRole
 from core.querysets import PatientOwnedQS, QSWrapper
-from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponseSerializer
+from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponseNestedMessageSerializer, HttpSuccessResponseSerializer
 from core.viewssets import AugmentedViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin, CreateModelMixin
 from django.utils.translation import gettext_lazy as _
@@ -395,7 +395,7 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
 
         return Response(serializer.data)
 
-    @swagger_auto_schema(responses={200: HttpSuccessResponseSerializer(), 400: HttpErrorResponseSerializer()})
+    @swagger_auto_schema(responses={200: HttpSuccessResponseNestedMessageSerializer(), 400: HttpErrorResponseSerializer()})
     @transaction.atomic
     @action(['PUT'], detail=True, url_path='submit', url_name='submit')
     def submit(self, request, *args, **kwargs):
