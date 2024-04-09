@@ -201,8 +201,8 @@ class TherapistSurveyResponseCreateSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 class TherapistSurveyQuestionAnswerSerializer(serializers.Serializer):
-    question = serializers.PrimaryKeyRelatedField(queryset=TherapistSurveyQuestion.objects.all())
-    survey_response = serializers.PrimaryKeyRelatedField(queryset=TherapistSurveyResponse.objects.all())
+    question = serializers.PrimaryKeyRelatedField(queryset=TherapistSurveyQuestion.objects.filter(active=True), help_text='The ID of the question being answered. Must be part of targeted survey')
+    survey_response = serializers.PrimaryKeyRelatedField(queryset=TherapistSurveyResponse.objects.filter(status=PENDING), help_text='The ID of the survey response object grouping all question answers')
     
     
     def create(self, validated_data):
@@ -225,6 +225,8 @@ class TherapistSurveyQuestionMCQResponseSerializer(TherapistSurveyQuestionAnswer
 
     def validate_answers(self, value):
 
+        super().validate(value)
+
         if len(value) != len(set(value)):
             raise ValidationError(_('Answers must be unique'))
         if len(value) < 1:
@@ -232,6 +234,8 @@ class TherapistSurveyQuestionMCQResponseSerializer(TherapistSurveyQuestionAnswer
 
 
     def validate(self, attrs):
+
+        super().validate(attrs)
 
         answers = attrs['answer']
         

@@ -388,7 +388,7 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
         
         # security side-info: using scoped survey resposne, we make sure that all question responses to this survey
         # also originate from the same user 
-        elif survey_response.response_answers.count() != survey_response.survey.questions.count():
+        elif survey_response.response_answers.count() != survey_response.survey.questions.filter(active=True).count():
             raise ValidationError(_("Survey response has not been fully answered"))
         else:
             # update the response object
