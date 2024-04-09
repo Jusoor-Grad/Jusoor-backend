@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 from appointments.constants.enums import PENDING_THERAPIST
 from appointments.models import Appointment, AppointmentSurveyResponse
 from authentication.permissions import IsPatient, IsTherapist
@@ -151,11 +152,18 @@ class TherapistSurveyQuestionViewset(AugmentedViewSet, ListModelMixin, DestroyMo
 
     }
 
+    # TODO: only show active questions to patients
     queryset_by_action = {
         "list": TherapistSurveyQuestion.objects.all(),
-        "retrieve_text_question": TherapistSurveyQuestion.objects.filter(question_type=SurveyQuestionTypes.TEXT.value),
+        "retrieve_text_question": QSWrapper(TherapistSurveyQuestion.objects.filter(question_type=SurveyQuestionTypes.TEXT.value)).branch(qs_mapper={
+            UserRole.PATIENT.value: Q(active=True)
+        },
+        pass_through=[UserRole.THERAPIST.value], by= QuerysetBranching.USER_GROUP),
         "update_text_question": TherapistSurveyQuestion.objects.filter(question_type=SurveyQuestionTypes.TEXT.value),
-        "retrieve_mc_question": TherapistSurveyQuestion.objects.filter(question_type=SurveyQuestionTypes.MULTIPLE_CHOICE.value),
+        "retrieve_mc_question": QSWrapper(TherapistSurveyQuestion.objects.filter(question_type=SurveyQuestionTypes.MULTIPLE_CHOICE.value)).branch(qs_mapper={
+            UserRole.PATIENT.value: Q(active=True)
+        },
+        pass_through=[UserRole.THERAPIST.value], by= QuerysetBranching.USER_GROUP),
         "update_mc_question": TherapistSurveyQuestion.objects.filter(question_type=SurveyQuestionTypes.MULTIPLE_CHOICE.value),
         "publish": TherapistSurveyQuestion.objects.all(),
         "upload_image": TherapistSurveyQuestion.objects.all(),
