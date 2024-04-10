@@ -20,10 +20,11 @@ import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
 from core.querysets import  OwnedQS, PatientOwnedQS, QSWrapper, TherapistOwnedQS
 from core.renderer import FormattedJSONRenderrer
-from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponseSerializer
+from core.serializers import HttpCounterSerializer, HttpErrorResponseSerializer, HttpSuccessResponseSerializer
 from rest_framework.response import Response
 from django.utils.translation import gettext as _
 from django.db.models import Q
+from dateutil.relativedelta import relativedelta
 
 # TODO: use transactions for intensive operations
 
@@ -49,7 +50,8 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         'partial_update': [IsAuthenticated],
         'cancel': [IsPatient() | IsTherapist()],
         'confirm': [IsPatient() | IsTherapist()],
-        'complete': [IsTherapist()]
+        'complete': [IsTherapist()],
+        'count': [IsTherapist()],
        
     }
     serializer_class_by_action = {
@@ -73,6 +75,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         pass_through=[UserRole.THERAPIST.value]),
+        'count': Appointment.objects.all(),        
         'create': QSWrapper(Appointment.objects.all())\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
@@ -124,6 +127,21 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentRetrieveSerializer()})
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpCounterSerializer()})
+    @action(detail=False, methods=['get'])
+    def count(self, request, *args, **kwargs):
+        """
+            Get the count of appointments
+        """
+
+        month_start_timestamp = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        current_count = self.filter_queryset(self.get_queryset()).filter(created_at__gte=month_start_timestamp).count()
+        last_month_end_timestamp = month_start_timestamp - timezone.timedelta(seconds=1)
+        last_month_start_timestamp = month_start_timestamp - relativedelta(months=1)
+        last_month_count = self.filter_queryset(self.get_queryset()).filter(created_at__gte=last_month_start_timestamp, created_at__lte=last_month_end_timestamp).count()
+
+        return Response(data={'current_count': current_count, 'last_month_count': last_month_count}, status=status.HTTP_200_OK)
 
    
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentCreateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrAppointmentCreateSerializer()})

@@ -64,3 +64,10 @@ class HttpKFUPMDepartmentListResponseSerializer(HttpSuccessResponseSerializer):
 class TherapistSpecializationSerializer(serializers.Serializer):
     name = serializers.CharField()
     description = serializers.CharField()
+
+class CounterSerializer(serializers.Serializer):
+    current_count = serializers.IntegerField()
+    last_month_count = serializers.IntegerField()
+
+class HttpCounterSerializer(HttpSuccessResponseSerializer):
+    data = CounterSerializer()

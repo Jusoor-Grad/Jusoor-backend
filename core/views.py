@@ -4,7 +4,7 @@ from authentication.serializers import PaginatedPatientResponseSerializer, HttpP
 from core.enums import QuerysetBranching, UserRole
 from core.models import KFUPMDepartment
 from core.querysets import PatientOwnedQS, QSWrapper
-from core.serializers import HttpErrorResponseSerializer, HttpKFUPMDepartmentListResponseSerializer, HttpKFUPMDepartmentRetrieveResponseSerializer,  KFUPMDepartmentSerializer
+from core.serializers import HttpCounterSerializer, HttpErrorResponseSerializer, HttpKFUPMDepartmentListResponseSerializer, HttpKFUPMDepartmentRetrieveResponseSerializer,  KFUPMDepartmentSerializer
 from core.viewssets import AugmentedViewSet
 from rest_framework.permissions import AllowAny
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
@@ -13,6 +13,10 @@ from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.response import Response
 from django.utils.translation import gettext as _
+from rest_framework.decorators import action
+from django.utils import timezone
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 class KFUPMDeptViewset(AugmentedViewSet, ListModelMixin):
     """Viewset for KFUPMDept"""
 
@@ -66,6 +70,34 @@ class PatientViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
         else:
             return Response(status=status.HTTP_403_FORBIDDEN, data= {"message": _("You do not have permission to perform this action")})
 
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpCounterSerializer()})
+    @action(detail=False, methods=['get'])
+    def count(self, request, *args, **kwargs):
+        """
+            Get the count of patients
+        """
+        
+        current_count = self.filter_queryset(self.get_queryset()).count()
+        last_month_end_timestamp = timezone.now().replace(day=1, hour=23, minute=59, second=59) - timedelta(days=1)
+        last_month_count = self.filter_queryset(self.get_queryset().filter(created_at__lte=last_month_end_timestamp)).count()
+
+        return Response(data={"current_count": current_count, "last_month_count": last_month_count})
+    
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpCounterSerializer()})
+    @action(detail=False, methods=['get'])
+    def active_count(self, request, *args, **kwargs):
+        """
+            Get the count of active patients
+        """
+
+        current_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        last_month_start = current_month_start - relativedelta(months=1)
+        
+        current_count = self.filter_queryset(self.get_queryset().filter(last_activity__gte=current_month_start)).count()
+        last_month_count = self.filter_queryset(self.get_queryset().filter(last_activity__gte=last_month_start, last_activity__lt=current_month_start)).count()
+
+        return Response(data={"current_count": current_count, "last_month_count": last_month_count})
+    
 class TherapistViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
 
     serializer_class = PatientReadSerializer
