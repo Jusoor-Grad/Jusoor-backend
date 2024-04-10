@@ -21,7 +21,7 @@ from drf_yasg.utils import swagger_auto_schema
 from core.querysets import  OwnedQS, PatientOwnedQS, QSWrapper, TherapistOwnedQS
 from core.renderer import FormattedJSONRenderrer
 from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponseSerializer
-from core.http import Response
+from rest_framework.response import Response
 from django.utils.translation import gettext as _
 from django.db.models import Q
 
