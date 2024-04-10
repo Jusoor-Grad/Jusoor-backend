@@ -37,7 +37,9 @@ class PatientViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
 
     action_permissions = {
         'list': [IsTherapist()],
-        "retrieve": [IsTherapist() | IsPatient()]
+        "retrieve": [IsTherapist()],
+        'counts': [IsTherapist()],
+        'active_count': [IsTherapist()]
     }
 
     filterset_fields = ['patient_profile__department__short_name', 'patient_profile__department__long_name', 'username', 'email']
