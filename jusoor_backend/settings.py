@@ -170,6 +170,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    "jusoor_backend.middlewares.update_last_visited",
 ]
 
 ROOT_URLCONF = 'jusoor_backend.urls'

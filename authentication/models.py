@@ -34,9 +34,11 @@ class User(AbstractUser, TimeStampedModel):
     email = models.EmailField(verbose_name=_("email address"), blank=True, unique=True)
     # whether or not the user is a bot
     is_bot = models.BooleanField(default=False)
+    last_activity = models.DateTimeField(null=True, blank=True)
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
+
 
     def __str__(self) -> str:
         return f'USERNAME: {self.username}, EMAIL: {self.email}'
