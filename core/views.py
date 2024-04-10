@@ -40,6 +40,7 @@ class PatientViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
         "retrieve": [IsTherapist() | IsPatient()]
     }
 
+    filterset_fields = ['patient_profile__department__short_name', 'patient_profile__department__long_name', 'username', 'email']
     queryset= User.objects.filter(patient_profile__isnull=False).select_related('patient_profile__department')
      
 
