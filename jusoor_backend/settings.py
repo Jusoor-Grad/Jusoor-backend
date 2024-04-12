@@ -96,14 +96,14 @@ INSTALLED_APPS = [
 ASGI_APPLICATION = "jusoor_backend.asgi.application"
 
 # cross-consumer channel layer configuration (Redis is more recommended for production)
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [env('REDIS_URL')],
-        },
-    },
-}
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [env('REDIS_URL')],
+#         },
+#     },
+# }
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -264,7 +264,7 @@ STATIC_ROOT = str(BASE_DIR / 'static')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CELERY_RESULT_BACKEND = 'django-db'
-CELERY_BROKER_URL = env('REDIS_URL')
+# CELERY_BROKER_URL = env('REDIS_URL')
 # celery setting.
 CELERY_CACHE_BACKEND = 'default'
 
