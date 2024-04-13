@@ -1,6 +1,6 @@
 from authentication.models import User
 from authentication.permissions import IsPatient, IsTherapist
-from authentication.serializers import PaginatedPatientResponseSerializer, HttpPatientReadResponseSerializer, HttpTherapistListResponseSerializer, HttpTherapistReadResponseSerializer, PatientHttpListResposneSerializer, PatientReadSerializer
+from authentication.serializers import PaginatedPatientResponseSerializer, HttpPatientReadResponseSerializer, HttpTherapistListResponseSerializer, HttpTherapistReadResponseSerializer, PatientHttpListResposneSerializer, PatientReadSerializer, PatientRetrieveSerializer
 from core.enums import QuerysetBranching, UserRole
 from core.models import KFUPMDepartment
 from core.querysets import PatientOwnedQS, QSWrapper
@@ -67,7 +67,6 @@ class PatientViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
         """
 
         if request.user.groups.filter(name=UserRole.THERAPIST.value).exists():
-            print('HERE!')
             return super().retrieve(request, *args, **kwargs)
         elif request.user.groups.filter(name=UserRole.PATIENT.value).exists():
             self.queryset = self.queryset.filter(id=request.user.id)
