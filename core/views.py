@@ -42,7 +42,7 @@ class PatientViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
     action_permissions = {
         'list': [IsTherapist()],
         "retrieve": [IsTherapist()],
-        'counts': [IsTherapist()],
+        'count': [IsTherapist()],
         'active_count': [IsTherapist()]
     }
 
