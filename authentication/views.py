@@ -17,7 +17,7 @@ from core.serializers import HttpErrorResponseSerializer, HttpSuccessResponseSer
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import UpdateModelMixin
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
-
+from django.utils.translation import gettext as _
 
 import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
