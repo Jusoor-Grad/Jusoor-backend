@@ -82,7 +82,27 @@ class UserReadSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = User
 		fields = ['id', 'username', 'email', 'image']
+
+class PatientRetrieveSerializer(UserReadSerializer):
+
+	department = serializers.SerializerMethodField()
+	appointments_count = serializers.SerializerMethodField()
+
+	def get_department(self, instance):
+
+		if instance.patient_profile.department is None:
+			return None
 		
+		return instance.patient_profile.department.short_name
+
+	def get_appointments_count(self, instance):
+		return 	instance.patient_profile.appointments.count()
+
+	class Meta:
+
+		model = User
+		
+		fields = ['id', 'username', 'email', 'department', 'image', 'appointments_count']		
 
 class PatientReadSerializer(UserReadSerializer):
 

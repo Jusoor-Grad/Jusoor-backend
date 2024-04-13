@@ -39,6 +39,11 @@ class PatientViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
 
     serializer_class = PatientReadSerializer
 
+    serializer_class_by_action = {
+        'list': PatientReadSerializer,
+        'retrieve': PatientRetrieveSerializer
+    }
+
     action_permissions = {
         'list': [IsTherapist()],
         "retrieve": [IsTherapist()],
