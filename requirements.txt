@@ -38,5 +38,5 @@ django-extensions
 ipython
 python-dateutil
 pytest-django
-tensorflow==2.16
-tensorflow_text
+import tensorflow-text
+import tensorflow-cpu
