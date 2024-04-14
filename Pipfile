@@ -44,6 +44,10 @@ python-dateutil = "*"
 pathlib = "*"
 channels = {extras = ["daphne"], version = "*"}
 pytest-django = "*"
+sagemaker = "*"
+tensorflow = "*"
+pip = "*"
+tensorflow-text = "*"
 
 [dev-packages]
 
