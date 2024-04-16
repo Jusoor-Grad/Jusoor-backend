@@ -34,7 +34,7 @@ class KFUPMDeptViewset(AugmentedViewSet, ListModelMixin):
         return super().list(request, *args, **kwargs)
 
 
-# TODO: add the patient sentiument profile in the future
+# TODO: add the patient daily sentiment profile values in the future
 class PatientViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
 
     serializer_class = PatientReadSerializer
@@ -51,8 +51,8 @@ class PatientViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
         'active_count': [IsTherapist()]
     }
 
-    filterset_fields = ['patient_profile__department__short_name', 'patient_profile__department__long_name', 'username', 'email']
-    queryset= User.objects.filter(patient_profile__isnull=False).select_related('patient_profile__department')
+    filterset_fields = ['patient_profile__department__short_name', 'patient_profile__department__long_name', 'username', 'email', 'id']
+    queryset= User.objects.filter(patient_profile__isnull=False).prefetch_related('patient_profile__department', 'patient_profile__sentiment_postures')
      
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: PatientHttpListResposneSerializer()})
