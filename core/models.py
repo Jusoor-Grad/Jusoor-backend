@@ -2,11 +2,10 @@
 General utility DB models
 """
 
-from typing import Iterable
 from django.db import models
 from django.contrib.auth import get_user_model
 from numpy import save
-from core.db_managers import SoftDeletedManager
+from core.db.managers import SoftDeletedManager
 from django.contrib.auth.models import Group
 
 from core.enums import UserRole
