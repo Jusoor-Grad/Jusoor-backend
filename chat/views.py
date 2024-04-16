@@ -16,6 +16,8 @@ from drf_yasg.utils import swagger_auto_schema
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 from jusoor_backend.settings import env
+from sentiment_ai.agents.emotion_detector import MessageEmotionDetector
+from sentiment_ai.tasks import calculate_sentiment
 
 class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin):
     """
@@ -51,8 +53,7 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
     @swagger_auto_schema( responses={200: ListChatMessageHttpSuccessSerializer})
     def list(self, request, *args, **kwargs):
         """list the chat messages between users and chatbots
-        
-        ."""
+        """
 
         return super().list(request, *args, **kwargs)
     
@@ -81,7 +82,7 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
 
         
         
-        message = ChatMessage.objects.create(
+        user_message = ChatMessage.objects.create(
             sender=request.user,
             receiver=bot.user_profile,
             content=data['content']
@@ -101,6 +102,10 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
             content=bot_message.content
         )
 
+        # FIXME: relocate in a custom save function in ChatMessageModel within an async celery task
+        calculate_sentiment.delay(user_message.id)
+
+        return Response( ChatMessageReadSerializer(user_message).data, status=201)
 
         return Response( ChatMessageReadSerializer(msg).data, status=201)
 
