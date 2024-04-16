@@ -8,9 +8,13 @@ from core.http import ValidationError
 from core.models import KFUPMDepartment, StudentPatient
 from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
 from core.serializers import HttpPaginatedSerializer, HttpSuccessResponseSerializer, HttpErrorSerializer, TherapistSpecializationSerializer
+from sentiment_ai.models import StudentPatientSentimentPosture
+from sentiment_ai.serializers import StudentPatientSentimentPostureMiniReadSerializer
 from .services.encryption import AESEncryptionService
 from drf_yasg.utils import swagger_serializer_method
 from django.utils.translation import get_language
+from drf_yasg.utils import swagger_serializer_method
+
 class UserLoginSerializer(serializers.Serializer):
 	"""Serializer used for login credential validation on data level"""
 
@@ -87,6 +91,7 @@ class PatientRetrieveSerializer(UserReadSerializer):
 
 	department = serializers.SerializerMethodField()
 	appointments_count = serializers.SerializerMethodField()
+	sentiment_timeline = serializers.SerializerMethodField()
 
 	def get_department(self, instance):
 
@@ -97,16 +102,25 @@ class PatientRetrieveSerializer(UserReadSerializer):
 
 	def get_appointments_count(self, instance):
 		return 	instance.patient_profile.appointments.count()
+	
+	@swagger_serializer_method(serializer_or_field=StudentPatientSentimentPostureMiniReadSerializer(many=True))
+	def get_sentiment_timeline(self, instance):
+		"""return the last 7 sentiemnt postures for the user"""
+		postures_count = StudentPatientSentimentPosture.objects.filter(patient=instance.patient_profile).count()
+		postures = StudentPatientSentimentPosture.objects.filter(patient=instance.patient_profile).order_by('-date')[:min(7, postures_count)]
+
+		return StudentPatientSentimentPostureMiniReadSerializer(postures, many=True).data
 
 	class Meta:
 
 		model = User
 		
-		fields = ['id', 'username', 'email', 'department', 'image', 'appointments_count']		
+		fields = ['id', 'username', 'email', 'department', 'image', 'appointments_count', 'sentiment_timeline']		
 
 class PatientReadSerializer(UserReadSerializer):
 
 	department = serializers.SerializerMethodField()
+	sentiment_posture = serializers.SerializerMethodField(allow_null=True)
 
 
 	def get_department(self, instance):
@@ -115,11 +129,21 @@ class PatientReadSerializer(UserReadSerializer):
 			return None
 		
 		return instance.patient_profile.department.short_name
+	
+	@swagger_serializer_method(serializer_or_field=StudentPatientSentimentPostureMiniReadSerializer(many=False))
+	def get_sentiment_posture(self, instance):
+
+		last_posture = instance.patient_profile.sentiment_postures.order_by('date').last()
+		if last_posture != None:
+			return  StudentPatientSentimentPostureMiniReadSerializer(last_posture).data
+		
+		return None
+
 	class Meta:
 
 		model = User
 		
-		fields = ['id', 'username', 'email', 'department', 'image']
+		fields = ['id', 'username', 'email', 'department', 'image', 'sentiment_posture']
 		
 
 class HttpPatientReadResponseSerializer(HttpSuccessResponseSerializer):
