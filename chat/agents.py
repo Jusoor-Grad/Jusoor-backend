@@ -3,7 +3,6 @@ from pyexpat import model
 from typing import List
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores.pgvector import PGVector
-from langchain_core.vectorstores import VectorStore
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from chat.models import ChatMessage
@@ -16,15 +15,16 @@ from django.db.models import Q
 
 # set_llm_cache(SQLiteCache(database_path="langchain.db"))
 
-class ChatAIAgent(ABC):
+class AIAgent(ABC):
     """
         Abstract class ised to define the interface of the chat AI agent.
     """
     
     
     def __init__(self, 
-    chat_model: BaseChatModel= ChatOpenAI, 
-    embeddings: Embeddings = OpenAIEmbeddings, history_len: int = 8 ,collection_name: str = env('EMBEDDING_COLLECTION_NAME') , *args, **kwargs):
+    model, 
+    metadata_index: str,
+    embeddings: Embeddings = OpenAIEmbeddings, history_len: int = 8 , collection_name: str = env('EMBEDDING_COLLECTION_NAME') , *args, **kwargs):
         """
         Constructor to instatiate the chat AI agent
 
@@ -41,7 +41,7 @@ class ChatAIAgent(ABC):
             @param: chatroom_id: the id of the chatroom
         """
 
-    def _construct_prompt(self, user_id: int, message: str):
+    def _construct_prompt(self):
         """Define a dynamic LangChain prompt pipeline
 
         @param: question: the question to be answered (optional)
@@ -52,18 +52,10 @@ class ChatAIAgent(ABC):
     
     
 
-    def answer(self, user_id: int, message: str):
-        """
-        Answer a question using the LangChain chat AI model
-        and configured setup including prompts and vector database
-
-        TODO: add params
-        """
-        pass
 
 
 
-class ChatGPTAgent(ChatAIAgent):
+class ChatGPTAgent(AIAgent):
 
 
     def __init__(self, 
@@ -73,6 +65,7 @@ class ChatGPTAgent(ChatAIAgent):
         history_len: int = 8, 
         embeddings: Embeddings = OpenAIEmbeddings, 
         collection_name: str = env('EMBEDDING_COLLECTION_NAME'),
+        metadata_index: str = 'chat',
         temperature: float = 0.9,
         top_p: float = 0.7,
         max_response_tokens: int = 200,
@@ -117,7 +110,7 @@ class ChatGPTAgent(ChatAIAgent):
         .order_by('created_at')[:min(self.history_len, ChatMessage.objects.filter((Q(sender__id=user_id) | Q(receiver__id=user_id))).count())]
 
     
-        # inject messages into messages
+        # inject messages into prompt
         messages = []
         for message in history:
             if message.sender.id == user_id:
@@ -132,7 +125,6 @@ class ChatGPTAgent(ChatAIAgent):
         # 1. TODO: retrieve the user message history using his id
 
         # 2. retrieve most relevant reference messages
-       
         guidelines_prompt = self.prompt
         # reference_message = """
         #     To assist you in your respond to patients. The following documents were found to be
@@ -161,7 +153,7 @@ class ChatGPTAgent(ChatAIAgent):
         
         # 1. get history and reference prompting
         chat_template = self._construct_prompt(user_id=user_id, message=message)
-
+        # TODO: use a filter to restrict lookup to only chat metadata tags
         reference_messages= self.vector_store.similarity_search(message, k=2)
         
         reference_message = "\n".join([f"- {message}" for message in reference_messages])
@@ -174,7 +166,7 @@ class ChatGPTAgent(ChatAIAgent):
 
         return self.chat_model.invoke(messages, temperature= self.temperature, top_p= self.top_p)
 
-class DummyAIAgent(ChatAIAgent):
+class DummyAIAgent(AIAgent):
 
     def __init__(self, chat_model: BaseChatModel = ChatOpenAI, embeddings: Embeddings = OpenAIEmbeddings, history_len: int = 8, collection_name: str = env('EMBEDDING_COLLECTION_NAME'), *args, **kwargs):
         super().__init__(chat_model, embeddings, history_len, collection_name, *args, **kwargs)
