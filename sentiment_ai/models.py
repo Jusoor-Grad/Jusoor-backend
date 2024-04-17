@@ -1,14 +1,16 @@
 import decimal
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
+from authentication.models import User
 from chat.enums import PENDING
 from chat.models import ChatMessage
 from core.db.fields import ZeroToOneDecimalField
 from core.models import StudentPatient, TimeStampedModel
 from django.utils import timezone
-
+from django.db.models import Avg
 from sentiment_ai.enums import REPORT_STATUSES
 from sentiment_ai.types import SentimentEval
+from decimal import Decimal as D
 
 # Create your models here.
 
@@ -18,13 +20,30 @@ class SentimentReport(TimeStampedModel):
     """
 
     patient = models.ForeignKey(StudentPatient, on_delete=models.CASCADE, related_name='sentiment_reports')
-    sentiment_analysis = models.TextField()
     conversation_highlights = models.TextField()
     recommendations = models.TextField()
     sentiment_score = ZeroToOneDecimalField()
-    start_at = models.DateTimeField()
-    end_at = models.DateTimeField()
     status = models.CharField(max_length=20, default=PENDING, choices= REPORT_STATUSES)
+
+    @staticmethod
+    def calculate_batch_message_sentiment(user: User):
+
+        # fetch all previous message sentiments not included within an existing sentiment report
+        reported_message_sentiments = MessageSentiment.objects.filter(message__sender=user)\
+            .exclude(sentiment_report__isnull=False)
+        average_sentiment = reported_message_sentiments\
+            .aggregate(sad_avg=Avg('sad'), joy_avg=Avg('joy'), fear_avg=Avg('fear'), anger_avg=Avg('anger'))
+
+        # calculate a sentiment score in 0-1 range
+        positive_sentiment = average_sentiment['joy_avg'] * D(0.5) + average_sentiment['love_avg'] * D(0.5)
+
+        negative_sentiment = average_sentiment['sad_avg'] * D(0.4) + average_sentiment['fear_avg'] * D(0.3) + average_sentiment['anger_avg'] * D(0.3)
+
+        # calculate full sentiment
+        sentiment_score = max(0, min(1, (positive_sentiment * 1.5 - negative_sentiment * 0.7)))
+
+        return sentiment_score, reported_message_sentiments
+
 
 
 class MessageSentiment(TimeStampedModel):

@@ -12,6 +12,7 @@ from jusoor_backend.settings import env
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain.output_parsers import RetryWithErrorOutputParser, RetryOutputParser
 from langchain.prompts import PromptTemplate
+from sentiment_ai.enums import FAILED
 from sentiment_ai.models import SentimentReport
 from sentiment_ai.types import SentimentReportAgentResponseFormat
 from django.db.models import Q
@@ -32,9 +33,9 @@ class SentimentReportGenerator(AIAgent):
         """
             retrireve up to 20 messages from last exchanged message
         """
-
+        # FIXME: only take into consideration messages that have no reports
         user_messages = ChatMessage.objects.filter(
-            (Q(sender=user) | Q(receiver=user)))
+            (Q(sender=user) | Q(receiver=user))).exclude(sentiment_result__sentiment_report__isnull=False)
         history = user_messages\
         .order_by('created_at')[:min(self.history_len, user_messages.count())]
 
@@ -110,12 +111,13 @@ class SentimentReportGenerator(AIAgent):
         try:
             return main_chain.invoke({"history": history, "username": user.username})
         except OutputParserException as e:
-            report
+            report.status = FAILED
+            # report.save()
 
 
 def run():
     agent = SentimentReportGenerator()
     user = User.objects.get(pk=137)
     messages = ChatMessage.objects.all()
-    # response = agent.answer(user)
+    response = agent.answer(user, report=SentimentReport())
     print(response.conversation_highlights)
