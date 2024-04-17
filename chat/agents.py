@@ -5,6 +5,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
+from authentication.models import User
 from chat.models import ChatMessage
 from jusoor_backend.settings import env
 from langchain.prompts import SystemMessagePromptTemplate, ChatPromptTemplate, HumanMessagePromptTemplate, AIMessagePromptTemplate
@@ -33,7 +34,7 @@ class AIAgent(ABC):
         """
         pass
     
-    def _retrieve_history(self, user_id: int):
+    def _retrieve_history(self, user: User):
         """
             retrieve the chat history of the user in the chatroom
 
@@ -101,26 +102,29 @@ class ChatGPTAgent(AIAgent):
 
         self.retriever = self.vector_store.as_retriever()
 
-    def _retrieve_history(self, user_id: int) -> List[HumanMessagePromptTemplate | AIMessagePromptTemplate]:
+    def _retrieve_history(self, user: User) -> List[HumanMessagePromptTemplate | AIMessagePromptTemplate]:
         
         # getting the message history
         
-        history = ChatMessage.objects.filter(
-            (Q(sender__id=user_id) | Q(receiver__id=user_id)))\
-        .order_by('created_at')[:min(self.history_len, ChatMessage.objects.filter((Q(sender__id=user_id) | Q(receiver__id=user_id))).count())]
+        user_messages = ChatMessage.objects.filter(
+            (Q(sender=user) | Q(receiver=user)))
+
+        history = user_messages\
+        .order_by('created_at')[:min(self.history_len, user_messages.count())]
+
 
     
         # inject messages into prompt
         messages = []
         for message in history:
-            if message.sender.id == user_id:
+            if message.sender.id == user.pk:
                 messages.append(HumanMessagePromptTemplate.from_template(message.content))
             else:
                 messages.append(AIMessagePromptTemplate.from_template(message.content))
 
         return messages
 
-    def _construct_prompt(self, user_id: int,  message: str):
+    def _construct_prompt(self, user: User,  message: str):
         
         # 1. TODO: retrieve the user message history using his id
 
@@ -137,7 +141,7 @@ class ChatGPTAgent(AIAgent):
         system_prompt = SystemMessagePromptTemplate.from_template(
             full_prompt)
         
-        history_messages = self._retrieve_history(user_id)
+        history_messages = self._retrieve_history(user)
 
         incoming_message = HumanMessagePromptTemplate.from_template('{user_input}')
         return ChatPromptTemplate.from_messages(
@@ -175,12 +179,11 @@ class ChatGPTAgent(AIAgent):
                     </list>
                 """.format(messages="\n".join(formatted_docs))
 
-    def answer(self, user_id: int, message: str):
+    def answer(self, user: User, message: str):
         
         # 1. get history and reference prompting
-        chat_template = self._construct_prompt(user_id=user_id, message=message)
+        chat_template = self._construct_prompt(user=user, message=message)
         # TODO: use a filter to restrict lookup to only chat metadata tags
-       
         
         reference_message = self._construct_few_shots(message)
         

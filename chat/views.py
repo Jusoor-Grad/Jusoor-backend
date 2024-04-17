@@ -89,7 +89,7 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
         # return a resposne from the chatbot
         agent = bot.get_agent(ChatGPTAgent if env('CONTEXT') != 'test' else DummyAIAgent)
         bot_message = agent.answer(
-            user_id=request.user.id,
+            user=request.user,
             message=data['content']
 
         )
@@ -100,7 +100,7 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
             content=bot_message.content
         )
 
-        calculate_sentiment.delay(user_message.id)
+        calculate_sentiment(user_message.id)
         return Response( ChatMessageReadSerializer(msg).data, status=201)
 
 

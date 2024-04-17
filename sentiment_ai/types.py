@@ -22,6 +22,5 @@ class SentimentEvalHttpResponse(BaseModel):
 
 class SentimentReportAgentResponseFormat(BaseModel):
 
-    sentiment_analysis: str = Field(description="An overall analysis of the ton of of the exchanged messages (positive or negative)")
     conversation_highlights: str = Field(description="A summary of the most important points of the conversation. Areas of concren about the patient")
     recommendations: str = Field(description="Recommendations for the patient based on the conversation and analysis results. Emphasis to schedule an appointment if the case requires attention")
