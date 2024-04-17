@@ -45,7 +45,8 @@ pathlib = "*"
 pytest-django = "*"
 sagemaker = "*"
 pip = "*"
-
+pandas = "*"
+profanity-check = "*"
 
 [dev-packages]
 

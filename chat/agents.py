@@ -148,15 +148,41 @@ class ChatGPTAgent(AIAgent):
         ]
         )
 
+    def _construct_few_shots(self, message: str):
+        """
+            constructing a few shot prompt for the AI model using an RAG setup
+        """
+
+        # TODO: needs further understandin
+        reference_documents = self.vector_store.similarity_search(message, k=1)
+
+        formatted_docs = [
+            """<patient>
+                    {patient_message}
+               </patient> 
+            <therapist>
+                    {therapist_message}
+            </therapist>
+            """.format(patient_message=doc.page_content, therapist_message=doc.metadata['response']) for doc in reference_documents
+        ]
+
+        return """
+                    The following are references recorded from specialized mental health personnel who conducted mental health conversations like yours. Use
+                    them as a reference on how to answer your patient. Do not stick to same wording, but use similar techniques to communicate.
+
+                    <list>
+                    {messages}
+                    </list>
+                """.format(messages="\n".join(formatted_docs))
 
     def answer(self, user_id: int, message: str):
         
         # 1. get history and reference prompting
         chat_template = self._construct_prompt(user_id=user_id, message=message)
         # TODO: use a filter to restrict lookup to only chat metadata tags
-        reference_messages= self.vector_store.similarity_search(message, k=2)
+       
         
-        reference_message = "\n".join([f"- {message}" for message in reference_messages])
+        reference_message = self._construct_few_shots(message)
         
 
         messages = chat_template.format_messages(
