@@ -10,14 +10,18 @@ from chat.agents import AIAgent
 from chat.models import ChatMessage
 from jusoor_backend.settings import env
 from langchain_core.output_parsers import PydanticOutputParser
+from langchain.output_parsers import RetryWithErrorOutputParser, RetryOutputParser
 from langchain.prompts import PromptTemplate
+from sentiment_ai.models import SentimentReport
 from sentiment_ai.types import SentimentReportAgentResponseFormat
 from django.db.models import Q
+from langchain_core.runnables import RunnableLambda, RunnableParallel
+from langchain_core.exceptions import OutputParserException
 
 
 class SentimentReportGenerator(AIAgent):
 
-    def __init__(self, model = OpenAI, metadata_index: str = "reports", model_name: str = 'gpt-3.5-turbo-1106', embeddings: Embeddings = OpenAIEmbeddings, history_len: int = 20, collection_name: str = env('EMBEDDING_COLLECTION_NAME')):
+    def __init__(self, model = OpenAI, metadata_index: str = "reports" , embeddings: Embeddings = OpenAIEmbeddings, history_len: int = 20, collection_name: str = env('EMBEDDING_COLLECTION_NAME')):
         
         self.llm_model = model(openai_api_key=env('OPENAI_KEY'))
         self.history_len = history_len
@@ -46,18 +50,16 @@ class SentimentReportGenerator(AIAgent):
         return "<covnersation>" + "\n".join([message.content for message in history]) + "</conversation>"
 
 
-    def _construct_prompt(self, user: User):
+    def _construct_prompt(self, user: User, format_instructions: str):
         """
             construct a prompt for the sentiment analysis model
         """
-        history = self._retrieve_history(user)
-        prompt = PromptTemplate.from_template("""
+
+        prompt = PromptTemplate(template="""
         You are professional mental health expert called Eve. You are tasked with generating an extnesive report
         about the mental health patient you chatted with in the past. His username is {username}.
         Make the report in an expert style and professional writing. Be gentle but without dismissing obvious mental health facts
-        noticed about your past conversation to maximize the value for the patient. This report will be viewed by the patient himself
-        and will be used to help him understand his mental health status and take the necessary actions, so speak to the patient directly
-        in your report
+        noticed about your past conversation to maximize the value for the patient.
 
         NOTE: the conversation can be in either Arabic or English. Make sure to handle both languages in your analysis. To make it easier for you,
         use only English in the report output
@@ -71,11 +73,13 @@ class SentimentReportGenerator(AIAgent):
         - Conversation Highlights: A summary of the most important points of the conversation. Areas of concern about the patient.
         - Recommendations: Your advice and recommendations for the patient based on the conversation and analysis results. Emphasis to schedule an appointment if the case requires attention.
 
-        Make sure to make the requested outputs suitable to be in JSON format. ONLY PROVIDE TWO KEYS: "conversation_highlights" and "recommendations" WITH A TEXT VALUE FOR EACH KEY
-        DO NOT UNDER ANY CIRUCMSTANCES PROVIDE EXTRA KEYS OR DIFFERENT KEYS IN THE SPECIFIED OUTPUT FORMAT
-        """)
-        return prompt.invoke({"history": history, "username": user.username})
-
+        FOLLOW THESE INSTRUCTIONS TO GENERATE THE REPORT JSON OUTPUT:
+        {format_instructions}
+        """,
+        input_variables=["history", "username"],
+        partial_variables={"format_instructions": format_instructions},
+        )
+        return prompt
     @property
     def output_parser(self):
         """
@@ -83,22 +87,35 @@ class SentimentReportGenerator(AIAgent):
         """
         return PydanticOutputParser(pydantic_object=SentimentReportAgentResponseFormat)
 
-    def answer(self, user: User, messages: List[ChatMessage]):
+    def answer(self, user: User, report: SentimentReport)-> SentimentReportAgentResponseFormat:
         """
             generate a sentiment report for the patient based on the exchanged messages
         """
         
-        prompt = self._construct_prompt(user)
+        base_parser = self.output_parser
+        prompt = self._construct_prompt(user, base_parser.get_format_instructions())
+        history = self._retrieve_history(user)
         
-        chain =  self.llm_model | self.output_parser
+        
+        # handling incorrect output schema by retrying the requests 2 times
+        retry_parser = RetryOutputParser.from_llm(parser=base_parser,llm = self.llm_model)
+        completion_chain = prompt |  self.llm_model 
+
+        main_chain = RunnableParallel(
+        completion=completion_chain, prompt_value=prompt
+    ) | RunnableLambda(lambda x: retry_parser.parse_with_prompt(**x))
 
         print('MODEL NAME: ', self.llm_model.model_name)
 
-        return chain.invoke(prompt)
+        try:
+            return main_chain.invoke({"history": history, "username": user.username})
+        except OutputParserException as e:
+            report
+
 
 def run():
     agent = SentimentReportGenerator()
     user = User.objects.get(pk=137)
     messages = ChatMessage.objects.all()
-    response = agent.answer(user, messages)
-    print(response)
+    # response = agent.answer(user)
+    print(response.conversation_highlights)

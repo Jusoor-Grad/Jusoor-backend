@@ -1,11 +1,13 @@
 import decimal
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
+from chat.enums import PENDING
 from chat.models import ChatMessage
 from core.db.fields import ZeroToOneDecimalField
 from core.models import StudentPatient, TimeStampedModel
 from django.utils import timezone
 
+from sentiment_ai.enums import REPORT_STATUSES
 from sentiment_ai.types import SentimentEval
 
 # Create your models here.
@@ -22,6 +24,7 @@ class SentimentReport(TimeStampedModel):
     sentiment_score = ZeroToOneDecimalField()
     start_at = models.DateTimeField()
     end_at = models.DateTimeField()
+    status = models.CharField(max_length=20, default=PENDING, choices= REPORT_STATUSES)
 
 
 class MessageSentiment(TimeStampedModel):
