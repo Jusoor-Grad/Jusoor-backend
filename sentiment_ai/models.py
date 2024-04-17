@@ -43,10 +43,9 @@ class MessageSentiment(TimeStampedModel):
 
 
 class ReportSentimentMessage(TimeStampedModel):
-    """storing the includision of a message sentiment result within a report"""
+    """storing the inclusion of a message sentiment result within a report"""
     report = models.ForeignKey(SentimentReport, on_delete=models.CASCADE, related_name='sentiment_messages')
-    message = models.ForeignKey(MessageSentiment, on_delete=models.CASCADE, related_name='sentiment_reports')
-    sentiment_score = ZeroToOneDecimalField()
+    message = models.OneToOneField(MessageSentiment, on_delete=models.CASCADE, related_name='sentiment_report')
 
 class StudentPatientSentimentPosture(models.Model):
     patient = models.ForeignKey(StudentPatient, on_delete=models.PROTECT, related_name='sentiment_postures')
