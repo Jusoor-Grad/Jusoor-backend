@@ -30,7 +30,7 @@ class MessageSentiment(TimeStampedModel):
         NOTE: the sentiment results for each
     """
 
-    message = models.OneToOneField(ChatMessage, on_delete=models.CASCADE, related_name='sentiment_result')
+    message = models.OneToOneField(ChatMessage, on_delete=models.CASCADE, related_name='sentiment_result', unique=True)
     sad = ZeroToOneDecimalField()
     joy = ZeroToOneDecimalField()
     # love = ZeroToOneDecimalField()
@@ -59,12 +59,12 @@ class StudentPatientSentimentPosture(models.Model):
         posture_score, posture_created = StudentPatientSentimentPosture.objects.get_or_create(defaults={
             'patient': patient,
             'date': timezone.now().date(),
-            'sentiment_score': 0.5
+            'score': 0.5
         }, patient=patient, date=timezone.now().date())
 
         if posture_created:
             last_score = StudentPatientSentimentPosture.objects.filter(patient=patient).order_by('date').filter(date__lt=timezone.now()).last()
-            posture_score.score = last_score.score * 0.95 if last_score else 0.5
+            posture_score.score = last_score.score * decimal.Decimal(0.95) if last_score else 0.5
 
         # update the sentiment using an exponential weighted average of the attributes of the prediction
         new_score_weight = decimal.Decimal(0.65)
