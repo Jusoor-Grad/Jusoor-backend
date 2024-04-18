@@ -1,7 +1,7 @@
 """
 Mocking module for core models.
 """
-import email
+from typing import Dict, List
 from faker import Faker
 
 from core.enums import UserRole
@@ -14,9 +14,9 @@ faker = Faker('en')
 class UserMock:
     
     @staticmethod
-    def mock_instances(n: int):
+    def mock_instances(n: int, fixed_args: Dict = dict()):
         
-        users = []
+        users: List[User] = []
 
         for i in range(n):
             email = faker.ascii_free_email()
@@ -24,13 +24,15 @@ class UserMock:
 
             users.append(
                 User.objects.create_user(
-                    username= faker.name(),
-                    email=email,
-                    password=password,
-                    is_active=True,
-                    first_name = faker.first_name(),
-                    last_name=faker.last_name()
-                    ))
+                    **{'username': faker.name(),
+                    'email':email,
+                    'password':password,
+                    'is_active':True,
+                    'first_name': faker.first_name(),
+                    'last_name':faker.last_name(),
+                    **fixed_args
+                    
+                    }))
             
             
         
