@@ -1,3 +1,4 @@
+from typing import List
 import faker
 from authentication.models import User
 from faker import Faker
@@ -8,7 +9,7 @@ faker = Faker()
 
 class ChatBotMocker:
 
-    def mock_instances(n: int):
+    def mock_instances(n: int) -> List[ChatBot]:
 
         bots = []
         for i in range(n):
@@ -16,7 +17,8 @@ class ChatBotMocker:
             user = User.objects.create_user(
                 username = faker.name(),
                 email = faker.email(),
-                password = faker.password()
+                password = faker.password(),
+                is_bot=True
             )
 
             bots.append(ChatBot(
@@ -38,18 +40,16 @@ class ChatMessageMocker:
     def mock_instances(n_msg_pairs: int, user: User, bot: ChatBot):
 
         messages = []
-        for i in range(2*n_msg_pairs):
+        for i in range(n_msg_pairs):
             messages.extend([ChatMessage(
                 content=faker.text(),
                 sender=user,
                 receiver=bot.user_profile,
-                
             ),
             ChatMessage(
                 content=faker.text(),
                 sender=bot.user_profile,
                 receiver=user,
-                
             )])
 
         return ChatMessage.objects.bulk_create(messages)
