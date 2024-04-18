@@ -9,11 +9,22 @@ from core.models import KFUPMDepartment, StudentPatient
 from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
 from core.serializers import HttpPaginatedSerializer, HttpSuccessResponseSerializer, HttpErrorSerializer, TherapistSpecializationSerializer
 from sentiment_ai.models import StudentPatientSentimentPosture
-from sentiment_ai.serializers import StudentPatientSentimentPostureMiniReadSerializer
 from .services.encryption import AESEncryptionService
 from drf_yasg.utils import swagger_serializer_method
 from django.utils.translation import get_language
 from drf_yasg.utils import swagger_serializer_method
+
+
+
+class StudentPatientSentimentFullPostureReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentPatientSentimentPosture
+        fields = '__all__'
+
+class StudentPatientSentimentPostureMiniReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentPatientSentimentPosture
+        fields = ['id', 'date', 'score']
 
 class UserLoginSerializer(serializers.Serializer):
 	"""Serializer used for login credential validation on data level"""
@@ -144,7 +155,21 @@ class PatientReadSerializer(UserReadSerializer):
 		model = User
 		
 		fields = ['id', 'username', 'email', 'department', 'image', 'sentiment_posture']
-		
+
+class PatientMiniReadSerializer(UserReadSerializer):
+
+	department = serializers.SerializerMethodField()
+
+	def get_department(self, instance):
+		if instance.patient_profile.department is None:
+			return None
+		return instance.patient_profile.department.short_name
+
+	class Meta:
+
+		model = User
+		fields = ['id', 'username', 'image', 'department']
+
 
 class HttpPatientReadResponseSerializer(HttpSuccessResponseSerializer):
 	data = PatientReadSerializer()
