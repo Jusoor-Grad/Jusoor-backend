@@ -78,17 +78,20 @@ class ChatMessage(TimeStampedModel):
 
 
     @staticmethod
-    def get_chat_history(user1, history_len: int = 8):
+    def get_chat_history(user, history_len: int = 8):
         """
             Method to get the chat history between 2 users
 
             @param user1: The used for whom the chat history is to be fetched
         """
 
-        queryset= ChatMessage.objects.filter(Q(sender=user1) | Q(receiver=user1)).order_by('-created')    
-        captured_len = max(history_len, queryset.count())
+        queryset= ChatMessage.objects.filter(Q(sender=user) | Q(receiver=user)).order_by('created_at')    
+        starting_capture_idx = max(0, queryset.count() - history_len)
 
-        return queryset[:captured_len]
+        return queryset[starting_capture_idx:]
+    
+    def __str__(self):
+        return f'[MSG ID:{self.pk}] '
     
 
 class ChatRoomFeedeback(TimeStampedModel):

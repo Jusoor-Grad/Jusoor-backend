@@ -33,15 +33,11 @@ class SentimentReportGenerator(AIAgent):
         """
             retrireve up to 20 messages from last exchanged message
         """
-        # FIXME: only take into consideration messages that have no reports
-        user_messages = ChatMessage.objects.filter(
-            (Q(sender=user) | Q(receiver=user))).exclude(sentiment_result__sentiment_report__isnull=False)
-        history = user_messages\
-        .order_by('created_at')[:min(self.history_len, user_messages.count())]
 
+        history = SentimentReport.get_messages_since_last_report(user, max_scope=self.history_len)
         formatted_messages = []
 
-        for msg in user_messages:
+        for msg in history:
 
             if msg.sender.id == user.id:
                 formatted_messages.append("<patient-message>{patient_message}</patient-message>".format(patient_message=msg.content))
@@ -88,7 +84,7 @@ class SentimentReportGenerator(AIAgent):
         """
         return PydanticOutputParser(pydantic_object=SentimentReportAgentResponseFormat)
 
-    def answer(self, user: User, report: SentimentReport)-> SentimentReportAgentResponseFormat:
+    def answer(self, user: User)-> SentimentReportAgentResponseFormat:
         """
             generate a sentiment report for the patient based on the exchanged messages
         """
@@ -99,7 +95,7 @@ class SentimentReportGenerator(AIAgent):
         
         
         # handling incorrect output schema by retrying the requests 2 times
-        retry_parser = RetryOutputParser.from_llm(parser=base_parser,llm = self.llm_model)
+        retry_parser = RetryWithErrorOutputParser.from_llm(parser=base_parser,llm = self.llm_model, max_retries=2)
         completion_chain = prompt |  self.llm_model 
 
         main_chain = RunnableParallel(
@@ -108,12 +104,9 @@ class SentimentReportGenerator(AIAgent):
 
         print('MODEL NAME: ', self.llm_model.model_name)
 
-        try:
-            return main_chain.invoke({"history": history, "username": user.username})
-        except OutputParserException as e:
-            report.status = FAILED
-            # report.save()
-
+        
+        return main_chain.invoke({"history": history, "username": user.username})
+        
 
 def run():
     agent = SentimentReportGenerator()

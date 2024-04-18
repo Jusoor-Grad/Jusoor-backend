@@ -1,3 +1,4 @@
+from django.db import transaction
 from abc import ABC, abstractmethod
 from pyexpat import model
 from typing import List
@@ -6,7 +7,9 @@ from langchain_community.vectorstores.pgvector import PGVector
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from authentication.models import User
+from chat.mock import ChatBotMocker, ChatMessageMocker
 from chat.models import ChatMessage
+from core.mock import PatientMock
 from jusoor_backend.settings import env
 from langchain.prompts import SystemMessagePromptTemplate, ChatPromptTemplate, HumanMessagePromptTemplate, AIMessagePromptTemplate
 from jusoor_backend.settings import env
@@ -105,13 +108,8 @@ class ChatGPTAgent(AIAgent):
     def _retrieve_history(self, user: User) -> List[HumanMessagePromptTemplate | AIMessagePromptTemplate]:
         
         # getting the message history
-        
-        user_messages = ChatMessage.objects.filter(
-            (Q(sender=user) | Q(receiver=user)))
 
-        history = user_messages\
-        .order_by('created_at')[:min(self.history_len, user_messages.count())]
-
+        history = ChatMessage.get_chat_history(user, self.history_len)
 
     
         # inject messages into prompt
@@ -172,7 +170,7 @@ class ChatGPTAgent(AIAgent):
 
         return """
                     The following are references recorded from specialized mental health personnel who conducted mental health conversations like yours. Use
-                    them as a reference on how to answer your patient. Do not stick to same wording, but use similar techniques to communicate.
+                    them as a reference on how to answer your patient. Do not stick to same wording, but use similar techniques to communicate effectively.
 
                     <list>
                     {messages}
@@ -202,3 +200,23 @@ class DummyAIAgent(AIAgent):
 
     def answer(self, user_id: int, message: str):
         return "I am a dummy agent. I am not configured to answer questions yet."
+    
+@transaction.atomic
+def run():
+
+    # mock a user with 50 messages:
+    patient = PatientMock.mock_instances(1)[0]
+    # mock a bot user
+    bot = ChatBotMocker.mock_instances(1)[0]
+    # mock a chat message
+    messages = ChatMessageMocker.mock_instances(10, **{'user': patient.user, 'bot': bot})
+
+    print('ALL SENT MESSAGES', sorted([m for m in messages], key=lambda x: x.id))
+    print('=' * 5)
+    agent = ChatGPTAgent("googoo gaagaa", history_len=3)
+
+    print('\n')
+    print('CAPTURED MESSAGES', sorted([ (m,) for m in agent._retrieve_history(patient.user)], key = lambda x: x[0].id))
+
+    print('\n' * 5)
+    raise ValueError("Done")
