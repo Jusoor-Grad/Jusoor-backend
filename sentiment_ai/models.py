@@ -26,6 +26,7 @@ class SentimentReport(TimeStampedModel):
     sentiment_score = ZeroToOneDecimalField()
     status = models.CharField(max_length=20, default=PENDING, choices= REPORT_STATUSES)
     # the last message that was included within the report
+    report_ending_message = models.OneToOneField(ChatMessage, on_delete=models.PROTECT, related_name='terminated_sentiment_report', null=False)
 
     @staticmethod
     def calculate_batch_message_sentiment(user: User):
