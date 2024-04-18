@@ -33,6 +33,7 @@ urlpatterns = [
     path('', include('appointments.urls')),
     # API docs endpoints
     path('chat/', include('chat.urls')),
+    re_path(r'', include('sentiment_ai.urls')),
     path('', include('surveys.urls')),
         re_path(
         r"^swagger(?P<format>\.json|\.yaml)$",
