@@ -1,5 +1,5 @@
 from core.serializers import HttpErrorResponseSerializer, HttpErrorSerializer, HttpPaginatedSerializer, HttpSuccessResponseSerializer
-from surveys.serializers.base import SurveyMCQQuestionSchemaSerializer, SurveyTextQuestionSchemaSerializer, TherapistSurveyMCQUpdateSerializer, TherapistSurveyMiniReadSerializer, TherapistSurveyFullReadSerializer, TherapistSurveyQuestionFullReadSerializer, TherapistSurveyQuestionMCQCreateSerializer, TherapistSurveyQuestionMCQResponseSerializer, TherapistSurveyQuestionMiniReadSerializer, TherapistSurveyQuestionTextCreateSerializer, TherapistSurveyQuestionTextResponseSerializer, TherapistSurveyResponseCreateSerializer, TherapistSurveyTextUpdateSerializer, TherapistSurveyWriteSerializer
+from surveys.serializers.base import SurveyMCQQuestionSchemaSerializer, SurveyTextQuestionSchemaSerializer, TherapistSurveyMCQUpdateSerializer, TherapistSurveyMiniReadSerializer, TherapistSurveyFullReadSerializer, TherapistSurveyQuestionFullReadSerializer, TherapistSurveyQuestionMCQCreateSerializer, TherapistSurveyQuestionMCQResponseSerializer, TherapistSurveyQuestionMiniReadSerializer, TherapistSurveyQuestionTextCreateSerializer, TherapistSurveyQuestionTextResponseSerializer, TherapistSurveyResponseCreateSerializer, TherapistSurveyTextUpdateSerializer, TherapistSurveyWriteSerializer, ThreapistSurveyResponseFullReadSerializer, ThreapistSurveyResponseMiniReadSerializer
 from rest_framework import serializers
 
 class TherapistSurveyRetrieveHttpSerializer(HttpSuccessResponseSerializer):
@@ -78,13 +78,13 @@ class TherapistSurveyQuestionUpdateTextHttpSerializer(HttpSuccessResponseSeriali
     
 
 class TherapistSurveyResponseListWrapperHttpSerializer(HttpPaginatedSerializer):
-    results = TherapistSurveyMiniReadSerializer(many=True)
+    results = ThreapistSurveyResponseMiniReadSerializer(many=True)
 
 class TherapistSurveyResponseListHttpSerializer(HttpSuccessResponseSerializer):
     data = TherapistSurveyResponseListWrapperHttpSerializer()
 
 class TherapistSurveyResponseRetrieveHttpSerializer(HttpSuccessResponseSerializer):
-    data = TherapistSurveyFullReadSerializer()
+    data = ThreapistSurveyResponseFullReadSerializer()
 
 class TherapistSurveyResponseCreateErrorSerializer(serializers.Serializer):
     error = serializers.ListSerializer(child=serializers.CharField(), allow_null=True)

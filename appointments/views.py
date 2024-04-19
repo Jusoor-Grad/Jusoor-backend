@@ -25,6 +25,7 @@ from rest_framework.response import Response
 from django.utils.translation import gettext as _
 from django.db.models import Q
 from dateutil.relativedelta import relativedelta
+from drf_yasg import openapi
 
 # TODO: use transactions for intensive operations
 
@@ -37,10 +38,13 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
     filterset_fields = {
         'status': ['iexact'],
         'start_at': ['gte', 'lte'],
-        'timeslot__therapist': ['exact'],
+        'timeslot__therapist__user': ['exact'],
+        'timeslot__therapist__user__username': ['icontains'],
         'timeslot': ['isnull', 'exact'],
-        'patient__user': ['exact']
+        'patient__user': ['exact'],
+        'patient__user__username': ['icontains'],
     }
+
 
 
     action_permissions = {
@@ -53,6 +57,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         'confirm': [IsPatient() | IsTherapist()],
         'complete': [IsTherapist()],
         'count': [IsTherapist()],
+        'upcoming_count': [IsTherapist()]
        
     }
     serializer_class_by_action = {
@@ -76,7 +81,8 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         pass_through=[UserRole.THERAPIST.value]),
-        'count': Appointment.objects.all(),        
+        'count': Appointment.objects.all(), 
+        'upcoming_count': Appointment.objects.filter(status=CONFIRMED),       
         'create': QSWrapper(Appointment.objects.all())\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
@@ -143,6 +149,20 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         last_month_count = self.filter_queryset(self.get_queryset()).filter(created_at__gte=last_month_start_timestamp, created_at__lte=last_month_end_timestamp).count()
 
         return Response(data={'current_count': current_count, 'last_month_count': last_month_count}, status=status.HTTP_200_OK)
+    
+    @swagger_auto_schema(responses={status.HTTP_200_OK: openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+        'upcoming_count': openapi.Schema(type=openapi.TYPE_INTEGER)})
+    })
+    @action(detail=False, methods=['get'])
+    def upcoming_count(self, request, *args, **kwargs):
+        """
+            Get the count of upcoming appointments
+        """
+        upcoming_count = self.filter_queryset(self.get_queryset()).filter(start_at__gte=timezone.now(), start_at__date__month=timezone.now().date().month).count()
+        
+        return Response(data={'upcoming_count': upcoming_count}, status=status.HTTP_200_OK)
+
+        
 
    
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentCreateSerializer(), status.HTTP_400_BAD_REQUEST: HttpErrAppointmentCreateSerializer()})
@@ -222,7 +242,7 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
     filterset_fields = {
         'start_at': ['gte', 'lte'],
         'end_at': ['gte', 'lte'],
-        'therapist': ['exact'],
+        'therapist__user': ['exact'],
         'active': ['exact']
     }
     

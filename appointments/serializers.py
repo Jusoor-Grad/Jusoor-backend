@@ -761,6 +761,7 @@ class AppointmentReadSerializer(serializers.ModelSerializer):
 	timeslot = MiniAvailabilityTimeslotReadSerializer()
 	therapist = serializers.SerializerMethodField()
 	survey_response = serializers.SerializerMethodField()
+	patient = serializers.SerializerMethodField()
 
 	@swagger_serializer_method(serializer_or_field=TherapistSurveyResposneNanoReadSerializer)
 	def get_survey_response(self, instance):
@@ -772,6 +773,10 @@ class AppointmentReadSerializer(serializers.ModelSerializer):
 	@swagger_serializer_method(serializer_or_field=UserReadSerializer)
 	def get_therapist(self, instance):
 		return UserReadSerializer(instance=instance.timeslot.therapist.user).data
+
+	@swagger_serializer_method(serializer_or_field=UserReadSerializer)
+	def get_patient(self, instance):
+		return UserReadSerializer(instance=instance.patient.user).data
 
 	class Meta:
 		model = Appointment

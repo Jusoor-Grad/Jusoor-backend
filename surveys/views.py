@@ -23,7 +23,15 @@ class TherapistSurveyViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
         Viewset for the TherapistSurvey model
     """
 
-    filterset_fields = ['created_by', 'last_updated_by', 'active', 'created_at', 'last_updated_at']
+    filterset_fields = {
+        'name': ['icontains'],
+        'description': ['icontains'],
+        'active': ['exact'],
+        'created_at': ['exact', 'lt', 'gt'],
+        'last_updated_at': ['exact', 'lt', 'gt'],
+        'created_by__user': ['exact'],
+        'created_by__user__username': ['icontains'],
+    }
     ordering_fields = ['created_at', 'last_updated_at']
     ordering = ['-last_updated_at']
 
@@ -291,7 +299,8 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
     """
 
     filterset_fields = {
-        'patient': ['exact'],
+        'patient__user': ['exact'],
+        'patient__user__username': ['icontains'],
         'survey': ['exact'],
         'status': ['iexact'],
         'created_at': ['exact', 'lt', 'gt'],

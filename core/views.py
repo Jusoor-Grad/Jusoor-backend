@@ -51,7 +51,14 @@ class PatientViewSet(AugmentedViewSet, ListModelMixin, RetrieveModelMixin):
         'active_count': [IsTherapist()]
     }
 
-    filterset_fields = ['patient_profile__department__short_name', 'patient_profile__department__long_name', 'username', 'email', 'id']
+    filterset_fields = {
+        'patient_profile__department__short_name': ['exact'],
+        'patient_profile__department__long_name': ['exact'],
+        'patient_profile__department': ['exact'],
+        'username': ['icontains', 'exact'],
+        'email': ['icontains', 'exact'],
+        
+    }
     queryset= User.objects.filter(patient_profile__isnull=False).prefetch_related('patient_profile__department', 'patient_profile__sentiment_postures')
      
 
