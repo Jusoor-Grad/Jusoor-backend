@@ -18,7 +18,7 @@ jobs:
       EMBEDDING_COLLECTION_NAME: ${{ secrets.EMBEDDING_COLLECTION_NAME }}
       ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
       OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
-      # REDIS_URL: ${{ secrets.REDIS_URL }}
+      REDIS_URL: ${{ secrets.REDIS_URL }}
       SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
       SIMPLE_JWT_SIGNING_KEY: ${{ secrets.SIMPLE_JWT_SIGNING_KEY }}
     strategy:
