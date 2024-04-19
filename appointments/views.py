@@ -39,7 +39,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         'start_at': ['gte', 'lte'],
         'timeslot__therapist': ['exact'],
         'timeslot': ['isnull', 'exact'],
-        'patient': ['exact']
+        'patient__user': ['exact']
     }
 
 
