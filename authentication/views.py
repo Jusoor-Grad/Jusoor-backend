@@ -21,6 +21,7 @@ from django.utils.translation import gettext as _
 
 import rest_framework.status as status
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
     """View for basic authentication functionality"""
@@ -89,7 +90,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         return Response(data=tokens.model_dump(),
         message= SIGNED_UP, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpSuccessResponseSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpSuccessResponseSerializer()}, request_body= openapi.Schema(type=openapi.TYPE_OBJECT, properties={'refresh': openapi.Schema(type=openapi.TYPE_STRING)}) )
     @action(methods=['POST'], detail=False)
     def logout(self, request):
         """logout a user by blacklisting his refresh token"""
