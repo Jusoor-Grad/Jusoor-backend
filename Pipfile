@@ -47,6 +47,7 @@ sagemaker = "*"
 pip = "*"
 pandas = "*"
 profanity-check = "*"
+channels = {extras = ["daphne"], version = "*"}
 
 [dev-packages]
 
