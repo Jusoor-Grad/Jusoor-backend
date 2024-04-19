@@ -585,7 +585,7 @@ class AvailabilityTimeslotBatchUpdateSerializer(TimeIntervalSerializer):
 			# TODO: include in error object
 			if appointments.exists():
 				raise ValidationError(message=_('The following appointments fall out of the new interval: '), data={
-					'dropped_appointments': AppointmentReadSerializer(instance=appointments, many=True).data
+					'dropped_appointments': AppointmentPatientReadSerializer(instance=appointments, many=True).data
 				})
 		
 		return value
@@ -672,7 +672,7 @@ class AvailabilityTimeslotSingleUpdateSerializer(TimeIntervalSerializer):
 			
 			if appointments.exists():
 				raise ValidationError(message=_('The following appointments fall out of the new interval: '), data={
-					'dropped_appointments': AppointmentReadSerializer(instance=appointments, many=True).data
+					'dropped_appointments': AppointmentPatientReadSerializer(instance=appointments, many=True).data
 				})
 			
 		return attrs
@@ -739,7 +739,7 @@ class AvailabilityTimeSlotDestroySerializer(serializers.Serializer):
 		# 1. checking that no appointment linked to this timeslot fall out of the new interval, if froce drop is not true
 		if not value.get('force_drop', False) and self.instance.linked_appointments.exists():
 			raise ValidationError(message=_('The following appointments will be dropped: '), data={
-				'dropped_appointments': AppointmentReadSerializer(instance=self.instance.linked_appointments, many=True).data
+				'dropped_appointments': AppointmentPatientReadSerializer(instance=self.instance.linked_appointments, many=True).data
 			})
 		
 		return value
@@ -755,7 +755,7 @@ class AvailabilityTimeSlotDestroySerializer(serializers.Serializer):
 
 
 
-class AppointmentReadSerializer(serializers.ModelSerializer):
+class AppointmentAdminReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing appointments"""
 	
 	timeslot = MiniAvailabilityTimeslotReadSerializer()
@@ -782,6 +782,28 @@ class AppointmentReadSerializer(serializers.ModelSerializer):
 		model = Appointment
 		fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at', 'therapist', 'survey_response']
 
+class AppointmentPatientReadSerializer(serializers.ModelSerializer):
+	"""Serializer for listing appointments"""
+	
+	timeslot = MiniAvailabilityTimeslotReadSerializer()
+	therapist = serializers.SerializerMethodField()
+	survey_response = serializers.SerializerMethodField()
+	
+	@swagger_serializer_method(serializer_or_field=TherapistSurveyResposneNanoReadSerializer)
+	def get_survey_response(self, instance):
+		if hasattr(instance, 'survey_response'):
+			# TODO: rename the relations in clearer manner
+			return TherapistSurveyResposneNanoReadSerializer(instance=instance.survey_response.survey_response).data
+		return None
+
+	@swagger_serializer_method(serializer_or_field=UserReadSerializer)
+	def get_therapist(self, instance):
+		return UserReadSerializer(instance=instance.timeslot.therapist.user).data
+	
+	class Meta:
+		model = Appointment
+		fields = ['id', 'timeslot', 'patient', 'status', 'start_at', 'end_at', 'therapist', 'survey_response']
+
 class SimplifiedAppointmentReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing appointments"""
 
@@ -801,15 +823,23 @@ class RawAppointmentReadSerializer(serializers.ModelSerializer):
 
 class HttpAppointmentRetrieveSerializer(HttpSuccessResponseSerializer):
 	"""Serializer used for swagger HTTP schema"""
-	data = (AppointmentReadSerializer())
+	data = (AppointmentPatientReadSerializer())
 
-class PaginatedAppointmentReadSerializer(HttpPaginatedSerializer):
+class PaginatedAppointmentPatientReadSerializer(HttpPaginatedSerializer):
 	"""Serializer for paginated appointment list"""
-	results = AppointmentReadSerializer(many=True)
+	results = AppointmentPatientReadSerializer(many=True)
 
-class HttpAppointmentListSerializer(HttpSuccessResponseSerializer):
+class HttpAppointmentPatientListSerializer(HttpSuccessResponseSerializer):
 	"""Serializer used for swagger HTTP schema"""
-	data = PaginatedAppointmentReadSerializer()
+	data = PaginatedAppointmentPatientReadSerializer()
+
+class PaginatedAppointmentAdminReadSerializer(HttpPaginatedSerializer):
+	"""Serializer for paginated appointment list"""
+	results = AppointmentAdminReadSerializer(many=True)
+
+class HttpAppointmentAdminListSerializer(HttpSuccessResponseSerializer):
+	"""Serializer used for swagger HTTP schema"""
+	data = PaginatedAppointmentAdminReadSerializer()
 
 
 
@@ -1012,6 +1042,6 @@ class HttpErrAppointmentUpdateSerializer(HttpErrorResponseSerializer):
 
 
 class DestroyAvailabilityTimeslotErrorInnerWrapperSerializer(serializers.Serializer):
-	dropped_appointments = AppointmentReadSerializer(many=True, allow_null=True)
+	dropped_appointments = AppointmentPatientReadSerializer(many=True, allow_null=True)
 class HttpErrorAvailabilityTimeslotDestroyErrorResponse(HttpErrorSerializer):
 	data = DestroyAvailabilityTimeslotErrorInnerWrapperSerializer()

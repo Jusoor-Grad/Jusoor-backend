@@ -312,6 +312,7 @@ class TherapistSurveyResponseViewset(AugmentedViewSet, ListModelMixin, CreateMod
 
     action_permissions = {
         "list": [IsPatient() | IsTherapist()],
+        "list": [IsPatient() | IsTherapist()],
         "retrieve": [IsPatient() | IsTherapist()],
         "create": [IsPatient()],
         "answer_mc_question": [IsPatient()],

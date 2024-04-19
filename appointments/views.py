@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from appointments.constants.enums import APPOINTMENT_STATUS_CHOICES, CANCELLED_BY_PATIENT, CANCELLED_BY_THERAPIST, COMPLETED, CONFIRMED, INACTIVE, ACTIVE, PATIENT_FIELD, PENDING_PATIENT, PENDING_THERAPIST, REFERRER_FIELD, REFERRER_OR_REFEREE_FIELD, UPDATEABLE_APPOINTMENT_STATI
 from appointments.models import Appointment, AvailabilityTimeSlot, PatientReferralRequest, TherapistAssignment
 from surveys.enums import CANCELLED
-from .serializers import AppointmentCreateSerializer, AppointmentReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeSlotDestroySerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpErrAppointmentCreateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentListSerializer, HttpAppointmentRetrieveSerializer, HttpErrAppointmentUpdateSerializer, HttpErrReferralRequestCreateSerializer, HttpErrReferralRequestReplySerializer, HttpErroReferralRequestUpdateSerializer, HttpErrorAvailabilityTimeslotDestroyErrorResponse, HttpErrorAvailabilityTimeslotSingleUpdateResponse, HttpErrorSingleCreateTimeslotResponse, HttpReferralRequestCreateResponseSerializer, HttpReferralRequestReplyResponseSerializer, HttpSuccessAppointmentUpdateSerializer, HttpAvailabilityTimeslotUpdateSuccessResponse, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpSuccessReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer, AvailabilityTimeslotBatchUpdateSerializer
+from .serializers import AppointmentAdminReadSerializer, AppointmentCreateSerializer, AppointmentPatientReadSerializer, AppointmentUpdateSerializer, AvailabilityTimeSlotDestroySerializer, AvailabilityTimeslotSingleUpdateSerializer, HttpAppointmentAdminListSerializer, HttpErrAppointmentCreateSerializer, HttpAppointmentCreateSerializer, HttpAppointmentPatientListSerializer, HttpAppointmentRetrieveSerializer, HttpErrAppointmentUpdateSerializer, HttpErrReferralRequestCreateSerializer, HttpErrReferralRequestReplySerializer, HttpErroReferralRequestUpdateSerializer, HttpErrorAvailabilityTimeslotDestroyErrorResponse, HttpErrorAvailabilityTimeslotSingleUpdateResponse, HttpErrorSingleCreateTimeslotResponse, HttpReferralRequestCreateResponseSerializer, HttpReferralRequestReplyResponseSerializer, HttpSuccessAppointmentUpdateSerializer, HttpAvailabilityTimeslotUpdateSuccessResponse, ReferralRequestReadSerializer,  AvailabilityTimeslotBatchCreateSerializer, AvailabilityTimeslotBatchUploadSerializer, AvailabilityTimeslotCreateSerializer, AvailabilityTimeslotReadSerializer, HttpAvailabilityTimeslotCreateResponseSerializer, HttpAvailabilityTimeslotListSerializer, HttpAvailabilityTimeslotRetrieveSerializer, HttpErrorAvailabilityTimeslotBatchCreateResponse,  HttpReferralRequestListSerializer, HttpReferralRequestRetrieveSerializer, HttpSuccessReferralRequestUpdateResponseSerializer, ReferralRequestCreateSerializer, ReferralRequestReplySerializer, ReferralRequestUpdateSerializer, AvailabilityTimeslotBatchUpdateSerializer
 from authentication.mixins import ActionBasedPermMixin
 from authentication.utils import HasPerm
 from core.enums import QuerysetBranching, UserRole
@@ -49,6 +49,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
 
     action_permissions = {
         'list': [IsAuthenticated],
+        'admin_list': [IsTherapist()],
         'retrieve': [IsAuthenticated],
         'create': [IsAuthenticated],
         'update': [IsAuthenticated],
@@ -61,8 +62,9 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
        
     }
     serializer_class_by_action = {
-        'list': AppointmentReadSerializer,
-        'retrieve': AppointmentReadSerializer,
+        'list': AppointmentPatientReadSerializer,
+        'admin_list': AppointmentAdminReadSerializer,
+        'retrieve': AppointmentPatientReadSerializer,
         'create': AppointmentCreateSerializer,
         'update': AppointmentUpdateSerializer,
         'partial_update': AppointmentUpdateSerializer,
@@ -70,6 +72,12 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
 
     queryset_by_action = {
         'list': QSWrapper(Appointment.objects.all().select_related('timeslot__therapist__user', 'survey_response'))\
+                        .branch({
+                        UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
+                        },
+                        by=QuerysetBranching.USER_GROUP, 
+                        pass_through=[UserRole.THERAPIST.value]),
+        'admin_list':  QSWrapper(Appointment.objects.all().select_related('timeslot__therapist__user', 'survey_response'))\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
                         },
@@ -127,8 +135,16 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         
     }
 
-    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentListSerializer()})
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentPatientListSerializer()})
     def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentAdminListSerializer()})
+    @action(detail=False, methods=['get'])
+    def admin_list(self, request, *args, **kwargs):
+        """
+            Get a list of appointments with full patient info for therapists only
+        """
         return super().list(request, *args, **kwargs)
 
     @swagger_auto_schema(responses={status.HTTP_200_OK: HttpAppointmentRetrieveSerializer()})
