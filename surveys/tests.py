@@ -275,13 +275,13 @@ class TherapistSurveyQuestionTestCase(TestCase):
     def test_retrieve_mc(self):
         
         survey = TherapistSurveyMocker.mock_instances(1, question_n=3, question_fixed_args={
-            'question_type': SurveyQuestionTypes.MULTIPLE_CHOICE.value
+            'question_type': SurveyQuestionTypes.MULTIPLE_CHOICE.value, 'active': True
         })[0]
         question = survey.questions.filter(question_type=SurveyQuestionTypes.MULTIPLE_CHOICE.value).first()
         patient = PatientMock.mock_instances(1)[0]
         request = auth_request(self.factory.get, f'survey-questions/{question.id}/mcq/', user=patient.user)
         response = self.retrieve_mc(request, survey_id=survey.id, pk=question.id)
-
+        
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['id'], question.id)
 
@@ -302,7 +302,7 @@ class TherapistSurveyQuestionTestCase(TestCase):
     def test_retrieve_text(self):
         
         survey = TherapistSurveyMocker.mock_instances(1, question_n=3, question_fixed_args={
-            'question_type': SurveyQuestionTypes.TEXT.value
+            'question_type': SurveyQuestionTypes.TEXT.value, 'active': True
         })[0]
         question = survey.questions.filter(question_type=SurveyQuestionTypes.TEXT.value).first()
         patient = PatientMock.mock_instances(1)[0]
@@ -713,8 +713,8 @@ class TherapistSurveyResponseTestCase(TestCase):
     def test_answer_mc_success(self):
         
         survey = TherapistSurveyMocker.mock_instances(1, question_n=1, question_fixed_args={
-            'question_type': SurveyQuestionTypes.MULTIPLE_CHOICE.value
-        
+            'question_type': SurveyQuestionTypes.MULTIPLE_CHOICE.value,
+            'active': True        
         })[0]
         response = TherapistSurveyResponse.objects.create(
             survey=survey,
@@ -730,7 +730,6 @@ class TherapistSurveyResponseTestCase(TestCase):
         }
         request = auth_request(self.factory.post, f'survey-responses/mcq/{question.id}', body=data, user=response.patient.user)
         response = self.answer_mc_question(request, pk=response.id, question_id=question.id)
-
         
         self.assertEqual(response.status_code, 200)
         self.assertEqual(TherapistSurveyQuestionResponse.objects.count(), 1)
@@ -785,7 +784,7 @@ class TherapistSurveyResponseTestCase(TestCase):
     def test_answer_text_success(self):
         
         survey = TherapistSurveyMocker.mock_instances(1, question_n=1, question_fixed_args={
-            'question_type': SurveyQuestionTypes.TEXT.value
+            'question_type': SurveyQuestionTypes.TEXT.value, 'active': True
         })[0]
         response = TherapistSurveyResponse.objects.create(
             survey=survey,
@@ -855,7 +854,9 @@ class TherapistSurveyResponseTestCase(TestCase):
     def test_submit_success(self):
         
         appointment = AppointmentMocker.mock_instances(1, with_survey=True)[0]
-        survey = TherapistSurvey.objects.first()
+        survey = TherapistSurveyMocker.mock_instances(1, question_n=5, include_responses=True, question_fixed_args= {
+            'active': True
+        })[0]
         survey_response = TherapistSurveyMocker.mock_resposne(survey, {'patient': appointment.patient, 'status': PENDING})
         AppointmentSurveyResponse.objects.create(
             appointment=appointment,

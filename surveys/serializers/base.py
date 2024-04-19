@@ -217,7 +217,7 @@ class TherapistSurveyQuestionAnswerSerializer(serializers.Serializer):
         if not attrs['question'].survey == attrs['survey_response'].survey:
             raise ValidationError(_('Question and response must belong to the same survey'))
 
-        
+        return attrs
     
 class TherapistSurveyQuestionMCQResponseSerializer(TherapistSurveyQuestionAnswerSerializer):
 
@@ -244,6 +244,8 @@ class TherapistSurveyQuestionMCQResponseSerializer(TherapistSurveyQuestionAnswer
 
         if attrs['question'].question_type != SurveyQuestionTypes.MULTIPLE_CHOICE.value:
             raise ValidationError(_('Question is not of type multiple choice'))
+        
+        
 
         return attrs
 
@@ -255,6 +257,5 @@ class TherapistSurveyQuestionTextResponseSerializer(TherapistSurveyQuestionAnswe
 
         if attrs['question'].question_type != SurveyQuestionTypes.TEXT.value:
             raise ValidationError(_('Question is not of type text'))
-
         
         return attrs

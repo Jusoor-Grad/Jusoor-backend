@@ -193,7 +193,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
 
         instance.status = CONFIRMED
         instance.save()
-        return Response(data=None, status=status.HTTP_200_OK, message=_('Appointment confirmed successfully'))
+        return Response(data={'message': _('Appointment confirmed successfully')}, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(responses={200: HttpSuccessResponseSerializer()})    
     @action(methods=['PATCH'], detail=True)
@@ -217,7 +217,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         TherapistAssignment.objects.filter(therapist_timeslot=instance.timeslot, status=ACTIVE).update(status=INACTIVE)
         instance.save()
 
-        return Response(data=None, status=status.HTTP_200_OK, message=_('Appointment cancelled successfully'))
+        return Response(data={'message':_('Appointment cancelled successfully')}, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(responses={200: HttpSuccessResponseSerializer(), 400: HttpErrorResponseSerializer()})
     @action(methods=['PATCH'], detail=True)
@@ -231,7 +231,7 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
         instance.status = COMPLETED
         instance.save()
     
-        return Response(data=None, status=status.HTTP_200_OK, message=_('Appointment completed successfully'))
+        return Response(data={"message": _('Appointment completed successfully')}, status=status.HTTP_200_OK)
 
 
 class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin):
@@ -396,7 +396,7 @@ class AvailabilityTimeslotViewset(AugmentedViewSet, ListModelMixin, RetrieveMode
         instance.active = False
         instance.save()
 
-        return Response(data=None, message=_("Time slot deleted successfully"), status=status.HTTP_200_OK)
+        return Response(data={"message":_("Time slot deleted successfully")}, status=status.HTTP_200_OK)
     
 
 
