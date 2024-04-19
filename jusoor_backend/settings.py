@@ -264,7 +264,7 @@ STATIC_ROOT = str(BASE_DIR / 'static')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CELERY_RESULT_BACKEND = 'django-db'
-CELERY_BROKER_URL = env('REDIS_URL')
+CELERY_BROKER_URL = env('REDIS_URL', '')
 
 # celery setting.
 CELERY_CACHE_BACKEND = 'default'
