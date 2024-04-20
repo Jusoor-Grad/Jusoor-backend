@@ -71,13 +71,13 @@ class AppointmentsViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, 
     }
 
     queryset_by_action = {
-        'list': QSWrapper(Appointment.objects.all().select_related('timeslot__therapist__user', 'survey_response'))\
+        'list': QSWrapper(Appointment.objects.all().select_related('timeslot__therapist__user', 'survey_response__survey_response', 'patient__user'))\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
                         },
                         by=QuerysetBranching.USER_GROUP, 
                         pass_through=[UserRole.THERAPIST.value]),
-        'admin_list':  QSWrapper(Appointment.objects.all().select_related('timeslot__therapist__user', 'survey_response'))\
+        'admin_list':  QSWrapper(Appointment.objects.all().select_related('timeslot__therapist__user', 'survey_response__survey_response', 'patient__user'))\
                         .branch({
                         UserRole.PATIENT.value: PatientOwnedQS(ownership_fields=[PATIENT_FIELD])
                         },
