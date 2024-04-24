@@ -31,7 +31,7 @@ from rest_framework.exceptions import ValidationError as VE
 from drf_yasg.utils import swagger_serializer_method
 
 from surveys.models import TherapistSurvey, TherapistSurveyResponse
-from surveys.serializers.base import TherapistSurveyMiniReadSerializer, TherapistSurveyResposneNanoReadSerializer
+from surveys.serializers.base import TherapistSurveyMiniReadSerializer, TherapistSurveyResposneNanoReadSerializer, ThreapistSurveyResponseFullReadSerializer
 
 class ReferralRequestReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing referral requests"""
@@ -790,11 +790,11 @@ class AppointmentPatientReadSerializer(serializers.ModelSerializer):
 	survey_response = serializers.SerializerMethodField()
 	patient = serializers.SerializerMethodField()
 	
-	@swagger_serializer_method(serializer_or_field=TherapistSurveyResposneNanoReadSerializer)
+	@swagger_serializer_method(serializer_or_field=ThreapistSurveyResponseFullReadSerializer)
 	def get_survey_response(self, instance):
 		if hasattr(instance, 'survey_response'):
 			# TODO: rename the relations in clearer manner
-			return TherapistSurveyResposneNanoReadSerializer(instance=instance.survey_response.survey_response).data
+			return ThreapistSurveyResponseFullReadSerializer(instance=instance.survey_response.survey_response).data
 		return None
 
 	@swagger_serializer_method(serializer_or_field=UserReadSerializer)
