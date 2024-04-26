@@ -92,23 +92,11 @@ class SentimentReportMocker:
 @transaction.atomic        
 def run():
 
-    msgs = ChatMessage.objects.filter(sender__pk=137)
-    fake = faker.Faker() 
-    sents = []
+    pass
 
-    for msg in msgs:    
-        sent = MessageSentiment(
-            message=msg,
-            sad = fake.random.random(),
-            joy = fake.random.random(),
-            fear = fake.random.random(),
-            anger = fake.random.random(),
-            surprise = fake.random.random()
-        )
-        sents.append(sent)
 
-    MessageSentiment.objects.bulk_create(sents)
-    print('done')
+
+    
 
 
 

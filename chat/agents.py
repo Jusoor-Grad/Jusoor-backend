@@ -169,6 +169,8 @@ class ChatGPTAgent(AIAgent):
         ]
 
         return """
+                   Make sure to provide a brief resposne that fits in the context of a normal chat message with a mental health patient.
+
                     The following are references recorded from specialized mental health personnel who conducted mental health conversations like yours. Use
                     them as a reference on how to answer your patient. Do not stick to same wording, but use similar techniques to communicate effectively.
 

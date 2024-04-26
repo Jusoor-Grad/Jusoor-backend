@@ -1,4 +1,5 @@
 import decimal
+from typing import Dict, List
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 from authentication.models import User
@@ -8,7 +9,8 @@ from core.db.fields import ZeroToOneDecimalField
 from core.mock import UserMock
 from core.models import StudentPatient, TimeStampedModel
 from django.utils import timezone
-from django.db.models import Avg
+from django.db.models import Avg, Sum
+from sentiment_ai.agents.mental_disorder_detector import MentalDisorderPrediction
 from sentiment_ai.enums import REPORT_STATUSES
 from sentiment_ai.types import SentimentEval
 from decimal import Decimal as D
@@ -27,13 +29,20 @@ class SentimentReport(TimeStampedModel):
     status = models.CharField(max_length=20, default=PENDING, choices= REPORT_STATUSES)
     # the last message that was included within the report
     report_ending_message = models.OneToOneField(ChatMessage, on_delete=models.PROTECT, related_name='terminated_sentiment_report', null=False)
+    no_mental_disorder_score = ZeroToOneDecimalField()
+    depression_score = ZeroToOneDecimalField()
+    autism_score = ZeroToOneDecimalField()
+    adhd_score = ZeroToOneDecimalField()
+    anxiety_score = ZeroToOneDecimalField()
+    bipolar_score = ZeroToOneDecimalField()
+    ocd_score = ZeroToOneDecimalField()
 
     @staticmethod
-    def calculate_batch_message_sentiment(user: User):
+    def calculate_batch_message_sentiment(latest_messages: List[ChatMessage]):
 
         # fetch all previous message sentiments not included within an existing sentiment report and only sent by the human user
-        latest_messages = SentimentReport.get_messages_since_last_report(user)
-        reported_message_sentiments = MessageSentiment.objects.filter(message__in=[ msg for msg in latest_messages if msg.sender == user ] )
+        
+        reported_message_sentiments = MessageSentiment.objects.filter(message__in=latest_messages )
         average_sentiment = reported_message_sentiments\
             .aggregate(sad_avg=Avg('sad'), joy_avg=Avg('joy'), fear_avg=Avg('fear'), anger_avg=Avg('anger'))
 
@@ -46,6 +55,23 @@ class SentimentReport(TimeStampedModel):
         sentiment_score = max(0, min(1, (positive_sentiment * D(1.5) - negative_sentiment * D(0.7))))
 
         return sentiment_score, reported_message_sentiments
+    
+    @staticmethod
+    def get_cumulative_mental_disorder_score(messages: List[ChatMessage])-> Dict:
+        
+        reported_message_sentiments = MessageSentiment.objects.filter(message__in=messages )
+        mental_disorder_scores = reported_message_sentiments\
+            .aggregate(no_mental_disorder_score=Sum('no_mental_disorder'), depression_score=Sum('depression'), autism_score=Sum('autism'), adhd_score=Sum('adhd'), anxiety_score=Sum('anxiety'), bipolar_score=Sum('bipolar'), ocd_score=Sum('ocd'))
+
+        print('TOTAL SCORES', mental_disorder_scores)
+        total_sum = sum(mental_disorder_scores.values())
+        result = dict()
+
+        for key, value in mental_disorder_scores.items():
+            result[key] = value / total_sum
+
+
+        return result
     
 
     @staticmethod
@@ -83,12 +109,22 @@ class MessageSentiment(TimeStampedModel):
     """
 
     message = models.OneToOneField(ChatMessage, on_delete=models.CASCADE, related_name='sentiment_result', unique=True)
+    # emotion report
     sad = ZeroToOneDecimalField()
     joy = ZeroToOneDecimalField()
     # love = ZeroToOneDecimalField()
     fear = ZeroToOneDecimalField()
     anger = ZeroToOneDecimalField()
     surprise = ZeroToOneDecimalField()
+
+    # mental disorder prediction
+    no_mental_disorder = ZeroToOneDecimalField()
+    depression = ZeroToOneDecimalField()
+    autism = ZeroToOneDecimalField()
+    adhd = ZeroToOneDecimalField()
+    anxiety = ZeroToOneDecimalField()
+    bipolar = ZeroToOneDecimalField()
+    ocd = ZeroToOneDecimalField()
 
     
 

@@ -48,7 +48,7 @@ class SentimentReportRetrieveSerializer(SentimentReportMiniReadSerializer):
 
     class Meta:
         model = SentimentReport
-        fields = ['pk', 'created_at', 'sentiment_score', 'messages_covered', 'status', 'patient', 'messages']
+        fields = ['pk', 'created_at', 'sentiment_score', 'messages_covered', 'status', 'patient', 'messages', 'conversation_highlights', 'recommendations', 'no_mental_disorder_score', 'depression_score', 'autism_score', 'adhd_score', 'anxiety_score', 'bipolar_score', 'ocd_score']
 
 
 class SentimentReportCreateSerializer(serializers.ModelSerializer):

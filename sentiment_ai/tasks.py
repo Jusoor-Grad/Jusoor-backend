@@ -6,7 +6,8 @@ from chat.enums import PENDING
 from chat.mock import ChatBotMocker
 from chat.models import ChatMessage
 from core.mock import PatientMock, UserMock
-from sentiment_ai.agents.emotion_detector import MessageEmotionDetector
+from sentiment_ai.agents.emotion_detector import EmotionDetector
+from sentiment_ai.agents.mental_disorder_detector import MentalDisorderDetector
 from sentiment_ai.agents.report_generator import SentimentReportGenerator
 from sentiment_ai.enums import COMPLETED, FAILED
 from sentiment_ai.mock import MessageSentimentMocker, SentimentReportMocker
@@ -20,15 +21,16 @@ from langchain_core.exceptions import OutputParserException
 @transaction.atomic
 def calculate_sentiment(message_id: int):
     """
-    This function will be called by celery to calculate the sentiment of a message
+    This function will be called by celery to calculate the sentiment and possibility of mental disorder within a message
     """
 
     # get the message from the database
     message = ChatMessage.objects.get(pk=message_id)
 
     # get the sentiment of the message
-    sentiment: SentimentEval = MessageEmotionDetector().predict(message).prediction
-
+    sentiment: SentimentEval = EmotionDetector().predict(message).prediction
+    mental_disorder_prediction = MentalDisorderDetector().predict(message.content)
+    print(mental_disorder_prediction)
     # create a message sentiment object
     message_sentiment=  MessageSentiment.objects.create(
         message=message,
@@ -36,7 +38,8 @@ def calculate_sentiment(message_id: int):
         joy=sentiment.joy + sentiment.love,
         fear=sentiment.fear,
         anger=sentiment.anger,
-        surprise=sentiment.surprise
+        surprise=sentiment.surprise,
+        **mental_disorder_prediction.model_dump()
     )
 
     # update the user daily sentiment profile
@@ -59,8 +62,9 @@ def generate_sentiment_report(user_id: int):
     user= User.objects.select_related('patient_profile').get(pk=user_id)
     # create the report resposne from the LLM
     agent = SentimentReportGenerator()
-    sentiment_score, message_sentiments = SentimentReport.calculate_batch_message_sentiment(user)
-
+    latest_messages = [ msg for msg in  SentimentReport.get_messages_since_last_report(user) if msg.sender == user]
+    sentiment_score, message_sentiments = SentimentReport.calculate_batch_message_sentiment(latest_messages=latest_messages)
+    mental_disorder_score = SentimentReport.get_cumulative_mental_disorder_score(latest_messages)
     try:
         result = agent.answer(user)
     except OutputParserException as e:
@@ -74,7 +78,8 @@ def generate_sentiment_report(user_id: int):
         status=PENDING, patient=user.patient_profile, sentiment_score=sentiment_score,
         conversation_highlights=result.conversation_highlights,
         recommendations=result.recommendations,
-        report_ending_message= message_sentiments.order_by('-created_at')[0].message
+        report_ending_message= message_sentiments.order_by('-created_at')[0].message,
+        **mental_disorder_score
     )
     # link the message sentiments included to the report
 
@@ -95,21 +100,5 @@ def run():
     """side-code to test the sentiment report generation task without affecting the DB"""
 
     # mock sentiment messages with existing report
-    patient = PatientMock.mock_instances(1)[0]
-    bot  = ChatBotMocker.mock_instances(1)[0]
-    report = SentimentReportMocker.mock_instances(n_messages=14)[0][0]
-
-    # mock  sentiment messages with no report
-    print(bot.user_profile.is_bot)
-    no_report_msgs = MessageSentimentMocker.mock_instances(10, msg_fixed_args={'user': patient.user, 'bot': bot})
-    # mock the batch message sentiment
-
-    print(len(no_report_msgs), len(ReportSentimentMessage.objects.filter(report=report)))
-    
-    # create a new actual report
-    new_report_id = generate_sentiment_report(patient.user.id)
-
-    
-    print('REPORTED MESSAGES AFTER', len(ReportSentimentMessage.objects.filter(report=new_report_id)))
-    
-    raise RuntimeError("TERMINATED")
+     
+    generate_sentiment_report(137)

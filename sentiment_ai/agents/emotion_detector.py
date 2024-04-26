@@ -4,13 +4,15 @@ from chat.models import ChatMessage
 from jusoor_backend.settings import env
 from requests import post
 from typing import List
+from sentiment_ai.agents.core import AIPredictor
 from sentiment_ai.types import MessageSentimentResponse, SentimentEvalHttpResponse
 
 
-class MessageEmotionDetector:
+class EmotionDetector(AIPredictor[str, ChatMessage, MessageSentimentResponse]):
+    """ Class used to detect the sentiment of a chat message """
 
-    def __init__(self, predictor_endpoint: str = env('SENTIMENT_ENDPOINT')) -> None:
-        self.endpoint = predictor_endpoint
+    def __init__(self, identifier: str = env('SENTIMENT_ENDPOINT')) -> None:
+        self.endpoint = identifier
 
     def predict(self, message: ChatMessage) -> MessageSentimentResponse:
             

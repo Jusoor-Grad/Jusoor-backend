@@ -16,7 +16,7 @@ from drf_yasg.utils import swagger_auto_schema
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 from jusoor_backend.settings import env
-from sentiment_ai.agents.emotion_detector import MessageEmotionDetector
+from sentiment_ai.agents.emotion_detector import EmotionDetector
 from sentiment_ai.tasks import calculate_sentiment
 
 class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin):

@@ -1,10 +1,12 @@
 from django.core.management.base import BaseCommand, CommandParser
-import tensorflow_text
-import tensorflow as tf
+import boto3
+import json
+from pprint import pprint
+from jusoor_backend.settings import env
 
 class Command(BaseCommand):
 
-    help = "Send a websocket event to all in channel chat_lobby"
+    help = "make a prediction for the mental disorder classifier deployed on sagemaker"
 
 
 
@@ -13,6 +15,23 @@ class Command(BaseCommand):
         
     def handle(self, *args, **options):
 
-        reloaded_layer = tf.keras.layers.TFSMLayer('sentiment_ai\emotion_detector-full-model')
+        session = boto3.Session()
+        client = session.client("sagemaker-runtime")
 
-        print('RESULT', reloaded_layer(tf.constant(['I am really excited'])))
+        endpoint_name = env("MENTAL_DISORDER_DETECTOR_ENDPOINT")
+        content_type = "application/json"
+        payload = json.dumps({
+            "inputs": "I cannot focus at all on anything I am not able to finish anything and I am letting my project teammates down",
+            "parameters": {
+                "return_all_scores": True
+            }
+        
+            })
+
+        response = client.invoke_endpoint(
+            EndpointName=endpoint_name,
+            ContentType=content_type,
+            Body=payload
+        )
+
+        pprint(json.loads(response['Body'].read().decode('utf-8')), compact=True)
