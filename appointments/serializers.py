@@ -207,7 +207,7 @@ class RawAppointmentReadSerializer(serializers.ModelSerializer):
 class AvailabilityTimeslotReadSerializer(serializers.ModelSerializer):
 	"""Serializer for listing availability timeslots"""
 	therapist = serializers.SerializerMethodField()
-	entry_survey = TherapistSurveyMiniReadSerializer()
+	entry_survey = TherapistSurveyMiniReadSerializer(allow_null=True, required=False)
 	linked_appointments = serializers.SerializerMethodField()
 
 	@swagger_serializer_method(serializer_or_field=RawAppointmentReadSerializer(many=True))
@@ -801,6 +801,7 @@ class AppointmentPatientReadSerializer(serializers.ModelSerializer):
 	def get_therapist(self, instance):
 		return UserReadSerializer(instance=instance.timeslot.therapist.user).data
 	
+	@swagger_serializer_method(serializer_or_field=serializers.IntegerField())
 	def get_patient(self, instance):
 		return instance.patient.user.pk
 	
