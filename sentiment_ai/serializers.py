@@ -1,10 +1,13 @@
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from appointments.serializers import DatetimeIntervalSerializer
+from authentication.models import User
 from authentication.serializers import PatientMiniReadSerializer, PatientReadSerializer
 from chat.chat_serializers.base import ChatMessageReadSerializer
 from chat.enums import PENDING
 from chat.models import ChatMessage
 from core.serializers import HttpErrorResponseSerializer, HttpErrorSerializer, HttpInnerErrorSerialzier, HttpPaginatedSerializer, HttpSuccessResponseSerializer
+from core.types import DatetimeInterval
 from sentiment_ai.enums import COMPLETED
 from sentiment_ai.models import MessageSentiment, ReportSentimentMessage, SentimentReport
 from rest_framework import serializers
@@ -51,42 +54,53 @@ class SentimentReportRetrieveSerializer(SentimentReportMiniReadSerializer):
         fields = ['pk', 'created_at', 'sentiment_score', 'messages_covered', 'status', 'patient', 'messages', 'conversation_highlights', 'recommendations', 'no_mental_disorder_score', 'depression_score', 'autism_score', 'adhd_score', 'anxiety_score', 'bipolar_score', 'ocd_score']
 
 
-class SentimentReportCreateSerializer(serializers.ModelSerializer):
+# TODO: change it to get the timestamp range with normal serializer
 
-    class Meta:
-        model = SentimentReport
-        fields = ['patient']
-
-    def validate(self, attrs):
-        
-        # 1. validate that the patient has more than 10 messages since
-        # his last report
-
-        user = self.context['request'].user
-
-        message_count = len(SentimentReport.get_messages_since_last_report(user))
-
-        print('CAPTURED MESSAGE COUNT', message_count)
-
-        if message_count < 10:
-            raise ValidationError(_('The patient does not have enough messages to generate a report'))
-
-        # 2. validate that the patient has not exceeded 3 reports per day
-
-        reports_today = SentimentReport.objects.filter(
-            patient=user.patient_profile, created_at__date=timezone.now().date(),
-            status__in=[PENDING, COMPLETED]
-            ).count()
-
-        if reports_today >= 3:
-            raise ValidationError(_('The patient has exceeded the number of reports allowed per day'))
-        
-        return attrs
-        
+class SentimentReportCreateSerializer(DatetimeIntervalSerializer):
+    patient = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(patient_profile__isnull=False), required=True)
 
     def create(self, validated_data):
-        generate_sentiment_report.delay(validated_data['patient'].user.pk)
+        generate_sentiment_report.delay(validated_data['patient'].pk, start_at=validated_data['start_at'], end_at = validated_data['end_at'])
         return validated_data
+
+
+
+# class SentimentReportCreateSerializer(serializers.ModelSerializer):
+
+#     class Meta:
+#         model = SentimentReport
+#         fields = ['patient']
+
+#     def validate(self, attrs):
+        
+#         # 1. validate that the patient has more than 10 messages since
+#         # his last report
+
+#         user = self.context['request'].user
+
+#         message_count = len(SentimentReport.get_messages_since_last_report(user))
+
+#         print('CAPTURED MESSAGE COUNT', message_count)
+
+#         if message_count < 10:
+#             raise ValidationError(_('The patient does not have enough messages to generate a report'))
+
+#         # 2. validate that the patient has not exceeded 3 reports per day
+
+#         reports_today = SentimentReport.objects.filter(
+#             patient=user.patient_profile, created_at__date=timezone.now().date(),
+#             status__in=[PENDING, COMPLETED]
+#             ).count()
+
+#         if reports_today >= 3:
+#             raise ValidationError(_('The patient has exceeded the number of reports allowed per day'))
+        
+#         return attrs
+        
+
+#     def create(self, validated_data):
+#         generate_sentiment_report.delay(validated_data['patient'].user.pk)
+#         return validated_data
 
 #  ------------ sentiment report http schema serializers
 

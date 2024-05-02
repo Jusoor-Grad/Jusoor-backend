@@ -17,9 +17,9 @@ class SentimentReportViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
 
     
     action_permissions = {
-        'list': [IsPatient() | IsTherapist()],
-        'retrieve': [IsPatient() | IsTherapist()],
-        'create': [IsPatient()]
+        'list': [IsTherapist()],
+        'retrieve': [IsTherapist()],
+        'create': [IsTherapist()]
     }
     
     serializer_class_by_action = {
@@ -64,9 +64,7 @@ class SentimentReportViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
     @swagger_auto_schema(responses={201: HttpSuccessResponseSerializer, 400: SentimentReportCreateHttpSerializer }, request_body=openapi.Schema(type=openapi.TYPE_OBJECT, description="This endpoint does not require any request body payload"))
     def create(self, request, *args, **kwargs):
         
-        patient = request.user.patient_profile
-        
-        serializer = self.get_serializer(data={'patient': patient.pk})
+        serializer = self.get_serializer(data=request.data)
 
         serializer.is_valid(raise_exception=True)
         serializer.save()        

@@ -29,22 +29,21 @@ class SentimentReportGenerator(AIAgent):
         self.metadata_index = metadata_index
 
 
-    def _retrieve_history(self, user: User):
+    def _retrieve_history(self, user: User, messages: List[ChatMessage]):
         """
             retrireve up to 20 messages from last exchanged message
         """
 
-        history = SentimentReport.get_messages_since_last_report(user, max_scope=self.history_len)
         formatted_messages = []
 
-        for msg in history:
+        for msg in messages:
 
             if msg.sender.id == user.id:
                 formatted_messages.append("<patient-message>{patient_message}</patient-message>".format(patient_message=msg.content))
             else:
                 formatted_messages.append("<expert-message>{expert_message}</expert-message>".format(expert_message=msg.content))
 
-        return "<covnersation>" + "\n".join([message.content for message in history]) + "</conversation>"
+        return "<covnersation>" + "\n".join([message.content for message in messages]) + "</conversation>"
 
 
     def _construct_prompt(self, user: User, format_instructions: str):
@@ -84,14 +83,14 @@ class SentimentReportGenerator(AIAgent):
         """
         return PydanticOutputParser(pydantic_object=SentimentReportAgentResponseFormat)
 
-    def answer(self, user: User)-> SentimentReportAgentResponseFormat:
+    def answer(self, user: User, messages: List[ChatMessage])-> SentimentReportAgentResponseFormat:
         """
             generate a sentiment report for the patient based on the exchanged messages
         """
         
         base_parser = self.output_parser
         prompt = self._construct_prompt(user, base_parser.get_format_instructions())
-        history = self._retrieve_history(user)
+        history = self._retrieve_history(user, messages=messages)
         
         
         # handling incorrect output schema by retrying the requests 2 times

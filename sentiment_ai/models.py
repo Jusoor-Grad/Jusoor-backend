@@ -28,7 +28,6 @@ class SentimentReport(TimeStampedModel):
     sentiment_score = ZeroToOneDecimalField()
     status = models.CharField(max_length=20, default=PENDING, choices= REPORT_STATUSES)
     # the last message that was included within the report
-    report_ending_message = models.OneToOneField(ChatMessage, on_delete=models.PROTECT, related_name='terminated_sentiment_report', null=False)
     no_mental_disorder_score = ZeroToOneDecimalField()
     depression_score = ZeroToOneDecimalField()
     autism_score = ZeroToOneDecimalField()
@@ -133,7 +132,7 @@ class MessageSentiment(TimeStampedModel):
 class ReportSentimentMessage(TimeStampedModel):
     """storing the inclusion of a message sentiment result within a report"""
     report = models.ForeignKey(SentimentReport, on_delete=models.CASCADE, related_name='sentiment_messages')
-    message = models.OneToOneField(MessageSentiment, on_delete=models.CASCADE, related_name='sentiment_report')
+    message = models.ForeignKey(MessageSentiment, on_delete=models.CASCADE, related_name='sentiment_report')
 
 class StudentPatientSentimentPosture(models.Model):
     patient = models.ForeignKey(StudentPatient, on_delete=models.PROTECT, related_name='sentiment_postures')
