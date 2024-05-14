@@ -133,6 +133,32 @@ class MessageSentimentReadSerializer(serializers.ModelSerializer):
         model = MessageSentiment
         fields = ['message', 'sad', 'joy', 'fear', 'anger']
 
+class MentalDisorderSerializer(serializers.Serializer):
+    depression = serializers.FloatField()
+    autism = serializers.FloatField()
+    adhd = serializers.FloatField()
+    anxiety = serializers.FloatField()
+    bipolar = serializers.FloatField()
+    ocd = serializers.FloatField()
+
+class EmotionDetectionSerializer(serializers.Serializer):
+    sad = serializers.FloatField()
+    joy = serializers.FloatField()
+    fear = serializers.FloatField()
+    anger = serializers.FloatField()
+    surprise = serializers.FloatField()
+
+class RelevantConversationSerializer(serializers.Serializer):
+    patient_message = serializers.CharField()
+    therapist_message = serializers.CharField()
+
+class TextScoringSerializer(serializers.Serializer):
+    mental_disorders = MentalDisorderSerializer()
+    emotion = EmotionDetectionSerializer()
+    relevant_conversation = RelevantConversationSerializer()
+
+class TextScoringHttpSerializer(HttpSuccessResponseSerializer):
+    data = TextScoringSerializer()
 
 class PaginatedMessageSentimentSerializer(HttpPaginatedSerializer):
     results = MessageSentimentReadSerializer(many=True)

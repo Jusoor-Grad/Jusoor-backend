@@ -63,7 +63,7 @@ class ChatGPTAgent(AIAgent):
 
 
     def __init__(self, 
-        prompt: str,
+        prompt: str = '',
         chat_model: BaseChatModel = ChatOpenAI,
         model_name: str = 'gpt-3.5-turbo', 
         history_len: int = 8, 
@@ -149,6 +149,9 @@ class ChatGPTAgent(AIAgent):
             incoming_message
         ]
         )
+    
+    def get_relevant_docs(self, message: str):
+        return self.vector_store.similarity_search(message, k=1)
 
     def _construct_few_shots(self, message: str):
         """

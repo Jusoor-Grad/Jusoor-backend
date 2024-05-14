@@ -1,6 +1,8 @@
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from authentication.permissions import IsPatient, IsTherapist
+from chat.agents import ChatGPTAgent
 from core.enums import QuerysetBranching, UserRole
 from core.querysets import PatientOwnedQS, QSWrapper
 from core.serializers import HttpSuccessResponseSerializer
@@ -8,8 +10,10 @@ from core.viewssets import AugmentedViewSet
 from django.utils.translation import gettext_lazy as _
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin
 from rest_framework.response import Response
+from sentiment_ai.agents.emotion_detector import EmotionDetector
+from sentiment_ai.agents.mental_disorder_detector import MentalDisorderDetector
 from sentiment_ai.models import MessageSentiment, SentimentReport
-from sentiment_ai.serializers import MessageSentimentListHttpSerializer, MessageSentimentReadSerializer, SentimentReportCreateHttpSerializer, SentimentReportCreateSerializer, SentimentReportListHttpSerializer, SentimentReportMiniReadSerializer, SentimentReportRetrieveSerializer
+from sentiment_ai.serializers import MessageSentimentListHttpSerializer, MessageSentimentReadSerializer, SentimentReportCreateHttpSerializer, SentimentReportCreateSerializer, SentimentReportListHttpSerializer, SentimentReportMiniReadSerializer, SentimentReportRetrieveSerializer, TextScoringHttpSerializer
 
 
 class SentimentReportViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin):
@@ -19,7 +23,8 @@ class SentimentReportViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
     action_permissions = {
         'list': [IsTherapist()],
         'retrieve': [IsTherapist()],
-        'create': [IsTherapist()]
+        'create': [IsTherapist()],
+        
     }
     
     serializer_class_by_action = {
@@ -76,7 +81,8 @@ class MessageSentimentViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMix
     
     action_permissions = {
         'list': [IsPatient() | IsTherapist()],
-        'retrieve': [IsPatient() | IsTherapist()]
+        'retrieve': [IsPatient() | IsTherapist()],
+        'score_text': [IsTherapist()],
     }
 
 
@@ -118,3 +124,27 @@ class MessageSentimentViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMix
     @swagger_auto_schema(responses={200: MessageSentimentReadSerializer() })
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(responses={200: TextScoringHttpSerializer()}, request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={'text': openapi.Schema(type=openapi.TYPE_STRING, description="The text to be scored")}))
+    @action(methods=['post'], detail=False, url_path='score-text', url_name='score-text')
+    def score_text(self, request, *args, **kwargs):
+
+        data = request.data.get('text', None)
+
+        if not type(data) == str:
+            return Response({'message':_("Invalid data type")}, status=400)
+
+        emotion = EmotionDetector().predict_from_text(data)
+
+        mental_disorders = MentalDisorderDetector().predict(data)
+
+        relevant_message = ChatGPTAgent().get_relevant_docs(data)[0]
+
+        return Response({
+            'emotion': emotion.model_dump(),
+            'mental_disorders': mental_disorders.model_dump(),
+            'relevant_conversation': {
+                'patient_message': relevant_message.page_content,
+                'therapist_message': relevant_message.metadata['response']
+            }
+        }, status=200)

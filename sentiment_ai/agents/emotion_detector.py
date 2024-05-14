@@ -22,6 +22,14 @@ class EmotionDetector(AIPredictor[str, ChatMessage, MessageSentimentResponse]):
             ]}).json())
             print(response.predictions, response.predictions[0])
             return response.predictions[0]
+    
+    def predict_from_text(self, text: str):
+            
+            # call the http endpoint to get the prediction
+            response = SentimentEvalHttpResponse(**post(self.endpoint, json={"messages": [
+                {"text": text, 'id': 1}
+            ]}).json())
+            return response.predictions[0].prediction
 
     def batch_predict(self, messages: List[ChatMessage]) -> List[MessageSentimentResponse]:
         

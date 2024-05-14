@@ -30,7 +30,7 @@ class Command(BaseCommand):
         )
 
         data = {
-            "inputs": "I am feeling very sad lately that it's making not feel like eating or doing anything at all"
+            "inputs": "I went out with my friends to a nice restautrant"
         }
 
         print(predictor.predict(data))
