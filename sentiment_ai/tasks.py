@@ -64,6 +64,7 @@ def generate_sentiment_report(user_id: int, start_at: datetime, end_at: datetime
     # create the report resposne from the LLM
     agent = SentimentReportGenerator()
     captured_messages = ChatMessage.objects.filter(sender=user, created_at__gte=start_at, created_at__lte=end_at)
+    captured_messages = captured_messages[:min(15, len(captured_messages))]
     print(len(captured_messages))
     sentiment_score, message_sentiments = SentimentReport.calculate_batch_message_sentiment(latest_messages=captured_messages)
     mental_disorder_score = SentimentReport.get_cumulative_mental_disorder_score(captured_messages)
