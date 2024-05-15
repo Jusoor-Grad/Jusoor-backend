@@ -148,7 +148,7 @@ class StudentPatientSentimentPosture(models.Model):
         posture_score, posture_created = StudentPatientSentimentPosture.objects.get_or_create(defaults={
             'patient': patient,
             'date': timezone.now().date(),
-            'score': 0.5
+            'score': decimal.Decimal(0.5)
         }, patient=patient, date=timezone.now().date())
 
         if posture_created:
@@ -167,7 +167,7 @@ class StudentPatientSentimentPosture(models.Model):
         new_raw_score = max(0.15, min(1, (positive_score * 1.5 - negative_score * 0.7) + surprise_factor * 0.5 )) 
         # update the moving average of the patient score
 
-        posture_score.score = posture_score.score * (1 - new_score_weight) + decimal.Decimal(new_raw_score) * new_score_weight
+        posture_score.score = decimal.Decimal(posture_score.score) * (1 - new_score_weight) + decimal.Decimal(new_raw_score) * new_score_weight
         posture_score.save()
 
         return posture_score
