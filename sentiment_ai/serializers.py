@@ -26,7 +26,7 @@ class SentimentReportMiniReadSerializer(serializers.ModelSerializer):
     patient = serializers.SerializerMethodField()
 
     def get_messages_covered(self, obj: SentimentReport):
-        return ReportSentimentMessage.objects.filter(report=obj).count()
+        return int(ReportSentimentMessage.objects.filter(report=obj).count())
     
     @swagger_serializer_method(serializer_or_field=PatientMiniReadSerializer)
     def get_patient(self, obj: SentimentReport):
