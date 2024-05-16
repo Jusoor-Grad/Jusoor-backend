@@ -97,10 +97,10 @@ class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, C
         msg: ChatMessage = ChatMessage.objects.create(
             sender=bot.user_profile,
             receiver=request.user,
-            content=bot_message.content
+            content=bot_message
         )
 
-        calculate_sentiment.delay(user_message.id)
+        # calculate_sentiment.delay(user_message.id)
         return Response( ChatMessageReadSerializer(msg).data, status=201)
 
 

@@ -1,3 +1,4 @@
+import re
 from django.db import transaction
 from abc import ABC, abstractmethod
 from pyexpat import model
@@ -7,6 +8,7 @@ from langchain_community.vectorstores.pgvector import PGVector
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from authentication.models import User
+from chat.enums import BLACKLIST_INPUTS
 from chat.mock import ChatBotMocker, ChatMessageMocker
 from chat.models import ChatMessage
 from core.mock import PatientMock
@@ -65,7 +67,7 @@ class ChatGPTAgent(AIAgent):
     def __init__(self, 
         prompt: str = '',
         chat_model: BaseChatModel = ChatOpenAI,
-        model_name: str = 'gpt-3.5-turbo', 
+        model_name: str = 'gpt-4o', 
         history_len: int = 8, 
         embeddings: Embeddings = OpenAIEmbeddings, 
         collection_name: str = env('EMBEDDING_COLLECTION_NAME'),
@@ -175,7 +177,7 @@ class ChatGPTAgent(AIAgent):
                    Make sure to provide a brief resposne that fits in the context of a normal chat message with a mental health patient.
 
                     The following are references recorded from specialized mental health personnel who conducted mental health conversations like yours. Use
-                    them as a reference on how to answer your patient. Do not stick to same wording, but use similar techniques to communicate effectively.
+                    them as a reference on how to answer your patient. Do not stick to exact same wording, but use similar techniques to communicate effectively. Do not use markdown syntax.
 
                     <list>
                     {messages}
@@ -183,7 +185,9 @@ class ChatGPTAgent(AIAgent):
                 """.format(messages="\n".join(formatted_docs))
 
     def answer(self, user: User, message: str):
-        
+
+        if any([re.compile(pattern, re.IGNORECASE).match(message) for pattern in BLACKLIST_INPUTS]):
+            return "XX I am sorry. I am mental health AI and I am not allowed to perform that action. If you need mental health assitance, I am always here"
         # 1. get history and reference prompting
         chat_template = self._construct_prompt(user=user, message=message)
         # TODO: use a filter to restrict lookup to only chat metadata tags
@@ -196,7 +200,7 @@ class ChatGPTAgent(AIAgent):
             reference_message= reference_message
         )
 
-        return self.chat_model.invoke(messages, temperature= self.temperature, top_p= self.top_p)
+        return self.chat_model.invoke(messages, temperature= self.temperature, top_p= self.top_p).content
 
 class DummyAIAgent(AIAgent):
 
