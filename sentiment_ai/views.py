@@ -66,7 +66,7 @@ class SentimentReportViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixi
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @swagger_auto_schema(responses={201: HttpSuccessResponseSerializer, 400: SentimentReportCreateHttpSerializer }, request_body=openapi.Schema(type=openapi.TYPE_OBJECT, description="This endpoint does not require any request body payload"))
+    @swagger_auto_schema(responses={201: HttpSuccessResponseSerializer, 400: SentimentReportCreateHttpSerializer })
     def create(self, request, *args, **kwargs):
         
         serializer = self.get_serializer(data=request.data)
