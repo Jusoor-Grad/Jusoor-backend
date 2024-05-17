@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from appointments.serializers import DatetimeIntervalSerializer
@@ -58,6 +59,14 @@ class SentimentReportRetrieveSerializer(SentimentReportMiniReadSerializer):
 
 class SentimentReportCreateSerializer(DatetimeIntervalSerializer):
     patient = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(patient_profile__isnull=False), required=True)
+
+    def validate(self, attrs):
+        super().validate(attrs)
+        print('VALIDATING')
+        if ChatMessage.objects.filter((Q(sender=attrs['patient'])) & Q(created_at__range=[attrs['start_at'], attrs['end_at']])).count() < 3:
+            raise ValidationError(_('The patient does not have enough messages to generate a report'))
+        
+        return attrs
 
     def create(self, validated_data):
         generate_sentiment_report.delay(validated_data['patient'].pk, start_at=validated_data['start_at'], end_at = validated_data['end_at'])
