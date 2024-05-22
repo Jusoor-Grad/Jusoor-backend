@@ -8,7 +8,7 @@ from core.placeholders import SUCCESS, ERROR
 from rest_framework.renderers import JSONRenderer
 
 class FormattedJSONRenderrer(JSONRenderer):
-    """Custom JSON renderer to format the response"""
+    """Custom JSON renderer to format the response to be consistent with the API response structure"""
     def render(self, data: Any, accepted_media_type: str = None, renderer_context: dict = None) -> bytes:
         """Format the response"""
 

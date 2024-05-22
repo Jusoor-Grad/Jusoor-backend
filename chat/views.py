@@ -1,13 +1,11 @@
 from rest_framework.decorators import action
-from yaml import serialize
 from authentication.permissions import IsPatient, IsTherapist
 from chat.agents import ChatGPTAgent, DummyAIAgent
 from chat.chat_serializers.base import ChatBotFullReadSerializer, ChatBotReadSerializer, ChatBotWriteSerializer, ChatMessageCreateSerializer, ChatMessageReadSerializer, ChatRoomReportReadSerializer, ReportChatroomCreateSerializer, ReviewChatRoomFeedbackSerializer
 from chat.chat_serializers.http import ChatBotFullRetrieveHttpSuccessSerializer, ChatBotListHttpSuccessResponseSerializer, ChatBotRetrieveHttpSuccessSerializer, ChatBotWriteSerializerSuccessSerializer, CreateChatRoomReportHttpSuccessSerializer,  HttpErrorCreateChatMessageSerializer, HttpErrorReportChatRoomFeedbackSerializer, HttpSuccessChatMessageReadSerializer, ListChatMessageHttpSuccessSerializer, ListChatRoomFeedbackResponseHttpSuccessResponseSerializer, ListChatRoomFeedbackResponseHttpSuccessSerializer,  ListReportChatroomReportHttpSuccessResposneSerializer, RetrieveChatRoomReportHttpSerializer, ReviewChatRoomFeedbackHttpErrorSerializer, ReviewChatRoomFeedbackHttpSuccessSerializer
 from chat.models import ChatBot, ChatMessage,  ChatRoomFeedeback
 from core.enums import QuerysetBranching, UserRole
-from core.models import Therapist
-from core.querysets import OwnedQS, PatientOwnedQS, QSWrapper
+from core.querysets import OwnedQS, QSWrapper
 from core.viewssets import AugmentedViewSet, CustomPagination
 from rest_framework.response import Response
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin
@@ -16,7 +14,6 @@ from drf_yasg.utils import swagger_auto_schema
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 from jusoor_backend.settings import env
-from sentiment_ai.agents.emotion_detector import EmotionDetector
 from sentiment_ai.tasks import calculate_sentiment
 
 class ChatMessageViewset(AugmentedViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin):

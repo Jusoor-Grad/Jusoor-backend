@@ -11,14 +11,15 @@ from surveys.models import TherapistSurvey, TherapistSurveyResponse
 
 class AvailabilityTimeSlotGroup(TimeStampedModel):
     """
-        Recording assigned avialability times for a therapist
+        Representation of a group of availability
+        timeslots created together by the therapist
     """
     pass
 
-# TODO: link a created survey to a timeslot
 class AvailabilityTimeSlot(TimeStampedModel):
     """
-        Grouping availability timeslots to allow batch editing
+        a continuous time interval where a therapist can be available
+        to receive appointments by students
     """
 
     therapist = models.ForeignKey(Therapist, on_delete=models.PROTECT, null=False, blank=False)
@@ -26,6 +27,7 @@ class AvailabilityTimeSlot(TimeStampedModel):
     end_at = models.DateTimeField(null= False, blank=False)
     group   = models.ForeignKey(AvailabilityTimeSlotGroup, on_delete=models.PROTECT, null=True, blank=True)
     active = models.BooleanField(default=True)
+    # survey assigned by survey to evaluate patient status before conducting the appointment
     entry_survey = models.ForeignKey(TherapistSurvey, on_delete=models.PROTECT, null=True, blank=True, related_name='availability_timeslots')
 
     def __str__(self):
@@ -35,7 +37,8 @@ class AvailabilityTimeSlot(TimeStampedModel):
 
 class Appointment(TimeStampedModel):
     """
-        Recording appointment requests on a pre-defined availability slot
+        an appointment created to signify a meeting between a therapist and a patient in
+        a pre-specified time interval
     """
     
     timeslot = models.ForeignKey(AvailabilityTimeSlot, on_delete=models.PROTECT, related_name='linked_appointments', null= True, blank=True)
@@ -56,7 +59,8 @@ class Appointment(TimeStampedModel):
     
 class AppointmentSurveyResponse(TimeStampedModel):
     """
-        Joint table to directly link the appointment to a survey resposne object
+        joint table to create a direct link between the status of the linked
+        survey response and the appointment of a patient
     """
 
     appointment = models.OneToOneField(Appointment, on_delete=models.PROTECT, related_name='survey_response')
@@ -72,7 +76,7 @@ class AppointmentSurveyResponse(TimeStampedModel):
 
 class PatientReferralRequest(TimeStampedModel):
     """
-        Record for a referral from one user to another for a therapist
+        Record for a referral from one student user to another to create a therapist appointment
     """
 
     referrer = models.ForeignKey('authentication.User', on_delete=models.PROTECT, related_name='outward_referrals')
@@ -91,7 +95,7 @@ class PatientReferralRequest(TimeStampedModel):
 
 class TherapistAssignment(TimeStampedModel):
     """
-        Record to audit the shift of an appointment assignment from one therapist to another
+        a model to record the shift of the appointment assignment from one therapist to another
     """
 
     therapist_timeslot = models.ForeignKey(AvailabilityTimeSlot, on_delete=models.PROTECT, null=False, blank=False, related_name='appointment_assignments')

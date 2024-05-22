@@ -1,19 +1,12 @@
-from operator import is_
+
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
-from core.enums import UserRole
 from core.http import ValidationError as ValidationError
-from core.models import KFUPMDepartment, StudentPatient
+from core.models import StudentPatient
 from ..constants.types import TokenPayload
-from ..constants.placeholders import DUPLICATE_CREDENTIALS, TOKEN_INVALID
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-from authentication.services.encryption import AESEncryptionService as AES
-from .hash import hash_string
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+from ..constants.placeholders import DUPLICATE_CREDENTIALS
+from authentication.services.encryption import AES256EncryptionService as AES
 from rest_framework_simplejwt.tokens import UntypedToken
 from django.db import transaction
 
@@ -27,13 +20,12 @@ class AuthService:
         if User.objects.filter(Q(email= email.lower())).exists():
             raise ValidationError(DUPLICATE_CREDENTIALS)
 
-
-
         patient, user = StudentPatient.create(username, email.lower(), password)
         
         return user
 
     def generate_tokens(user) -> TokenPayload:
+        """Generate a new refresh and access token for the given user"""
         refresh_token = RefreshToken.for_user(user)
         
         return TokenPayload(
@@ -42,7 +34,7 @@ class AuthService:
         )
 
     def logout(refresh_token: str):
-        """Blacklist the given refresh token"""
+        """logout a user by blacklisting the given user refresh token"""
         refresh_token = RefreshToken(refresh_token)
         refresh_token.blacklist()
 

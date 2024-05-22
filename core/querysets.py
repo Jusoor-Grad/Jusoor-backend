@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 
 class SoftDeletedQuerySet(QuerySet):
     """
-        Overriding standard queryset to remove all softly deleted records
+        Standard Django queryset which forces all object deletions to be soft deletions
     """
 
     def delete(self):
@@ -27,7 +27,8 @@ class SoftDeletedQuerySet(QuerySet):
 
         
 
-# ---------------- Utilities for QS mapping
+# ---------------- Utilities for action-based QS mapping ----------------
+    
 class QSExtractor:
     """
         Utility class used to extract the quertset either directly or through invoking
@@ -36,11 +37,11 @@ class QSExtractor:
 
     def _extract_qs(self, view: GenericAPIView, qs: Union[QuerySet, 'QSWrapperFilter']) -> QuerySet:
         """
-            Extra querysets from the passed queryset mapper or simply return 
-            the vanilla queryset object in the same call stack level
+            method used to recursively filter a queryset through mutliple levels of queryset mappers
+            that terminates by returning a standard Django queryset
 
             @param view: the view instance to supply the request information for filtering for next levels
-            @param qs: the queryset to be filtered or another nested dynamic queryset mapper
+            @param qs: the queryset to be filtered or another nested dynamic queryset mapper for further filtering
         """
 
         
@@ -55,7 +56,7 @@ class QSExtractor:
 
 class QSWrapperFilter(ABC, QSExtractor):
     """
-        Utility class used for conditional queryset mapping
+        Utility class used for conditional queryset filtering
     """
 
     def __init__(self, mapper: Dict[UserRole, Q], pass_through: List[str] = None) -> None:
@@ -64,7 +65,7 @@ class QSWrapperFilter(ABC, QSExtractor):
             @passthrough: list of keys used to determine whether the queryset should be passed through without filtering
 
             NOTE: the strings used as the mapper keys should include information retrivevable from the
-            passed DRF viewset object instance
+            passed DRF viewset object instance (.e.g user groups, permissions can be fetched from the authenticated user object linked to incoming HTTP request)
         """
 
         self.mapper = mapper
@@ -72,6 +73,7 @@ class QSWrapperFilter(ABC, QSExtractor):
 
     @abstractmethod
     def _pass_qs_or_reject(self, view: GenericAPIView, qs: Union[QuerySet, 'QSWrapperFilter'], *args, **kwargs) -> QuerySet:
+        """block or pass throug a queryset through a filtering layer"""
         pass
 
     @abstractmethod
@@ -81,7 +83,6 @@ class QSWrapperFilter(ABC, QSExtractor):
 
             @view: the view instance to supply the request information for filtering
             @qs: the queryset to be filtered or another nested dynamic queryset mapper
-            @passthrough: list of values whoe values determine whether the queryset should be passed completely through
         """
         pass
 
@@ -100,7 +101,7 @@ class QSWrapperBranch(QSWrapperFilter):
         if isinstance(self.mapper[lookup_key], Q):
             return self._extract_qs(view, qs).filter(self.mapper[lookup_key])
         
-        # if the value of the mapper is a QSWrapperFilter object, invoke it to filter the queryset
+        # if the value of the mapper is a QSWrapperFilter object, invoke it to return the filtered queryset
         elif isinstance(self.mapper[lookup_key], QSWrapperFilter):
             return self.mapper[lookup_key](view, qs)
 
@@ -109,7 +110,7 @@ class QSWrapperBranch(QSWrapperFilter):
 
 class OwnedQS(QSWrapperFilter):
     """
-        Queryset filter action that only returns owned objects by the current user
+        Queryset filter action that only returns owned objects by the authenticated user passed by the HTTP request object
     """
 
     def __init__(self, ownership_fields: List[str] = ['user'], user_model_rel: str = None) -> None:
@@ -125,6 +126,7 @@ class OwnedQS(QSWrapperFilter):
         self.user_model_rel = user_model_rel
 
     def _pass_qs_or_reject(self, view: GenericAPIView, qs: Union[QuerySet, QSWrapperFilter]) -> QuerySet:
+        """ empty the currently pending queryset if the user role does not match the ownership field"""
         return self._extract_qs(view, qs).none()
 
     def __call__(self, view: GenericAPIView, qs: Union[QuerySet, QSWrapperFilter], *args: Any, **kwds: Any) -> QuerySet:
@@ -167,16 +169,16 @@ class TherapistOwnedQS(OwnedQS):
 class UserGroupQS(QSWrapperBranch):
     """Queryset mapper based on user group membership"""
 
-
     def _pass_qs_or_reject(self, view: GenericAPIView, qs: Union[QuerySet, QSWrapperFilter], *args, **kwargs) -> QuerySet:
 
         user = view.request.user
         
         if kwargs.get('user_groups') is None:
-            raise ValueError('User groups not passed to qs pasthrough handler')
+            raise ValueError('User groups not passed to qs passthrough handler')
         
         user_groups = kwargs.get('user_groups')
 
+        # if the user has a passthrough group, return the queryset as is with no filtering
         if user_groups.filter(name__in=self.pass_through).exists():
             return self._extract_qs(view, qs)
         else:
@@ -191,7 +193,7 @@ class UserGroupQS(QSWrapperBranch):
         if user_groups.filter(name__in=self.pass_through).exists():
             return self._extract_qs(view, qs)
         
-        # if there is no match with any specified user groups, return an empty queryset
+        # if there is no match with any specified user groups, return an empty queryset or full dataset for passthrough groups
         if not user_groups.exists():
             return self._pass_qs_or_reject(view, qs, user_groups=user_groups)
 
@@ -218,7 +220,8 @@ class PermissionQS(QSWrapperBranch):
             return self._pass_qs_or_reject(view, qs)
 
         else:
-            # NOTE: the order of permission keys matters
+            # NOTE: the order of permission keys matters. The first matching
+            # key will be the one whose filters are applied
             for key in self.mapper.items():
                 if user.has_perm(key):
                     return self._map_filter_qs(view, qs, lookup_key=key)
@@ -244,13 +247,13 @@ class QSWrapper:
         self.mapper_prequisites: List[str] = []
 
         if not callable(self.queryset) and not isinstance(self.queryset, QuerySet):
-            raise ValueError('Queryset must be a callable or a Queryset instance')
+            raise ValueError('Queryset must be a callable QSWrapperFilter or a Queryset instance')
 
 
     def _get_queryset(self, view: GenericAPIView) -> QuerySet:
         """
             Method used to either return raw queryset or successively apply
-            all the queryset mappers in the stack to filter it dynanamically
+            all the queryset mappers in the stack to filter it dynamically
         """
 
         if not self.mapper_stack:
@@ -263,11 +266,11 @@ class QSWrapper:
         return qs
     
     def __call__(self, *args: Any, **kwds: Any) -> Any:
-        
-        def __wrapper__(view: GenericAPIView):
+        """used to create a compatible interface with DRF get_queryset"""
+        def __wrapped_qs(view: GenericAPIView):
             return self._get_queryset(view)
 
-        return __wrapper__
+        return __wrapped_qs
 
     def _get_last_prerequisites(self) -> List[str]:
         """
@@ -282,7 +285,8 @@ class QSWrapper:
     def _validate_mapper_keys(self, keys: List[str]):
         """
             Function used to check for the validity of the passed keys
-            using the last mapper's keys
+            using the last mapper's keys, by checking if all current keys
+            are a subset of the last mapper's keys
         """
 
         last_mapper_keys = self._get_last_prerequisites()
@@ -294,7 +298,7 @@ class QSWrapper:
 
     def branch(self, qs_mapper: Dict[str, Union[Q, QSWrapperFilter]], by: QuerysetBranching, pass_through: List[str] = []) -> 'QSWrapper':
         """
-            Method to used to add a new queryset mapper to the stack
+            Method to used to add a new queryset wrapper branch to the stack
             for dynamic length branching for a queryset
 
             @param mapper: the mapper object to be used for filtering

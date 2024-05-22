@@ -44,27 +44,6 @@ class ChatBot(TimeStampedModel):
             
         }
 
-# TODO: we might add sentiment analysis to the chat rooms    
-# class ChatRoom(TimeStampedModel):
-#     """
-#         record to save the chat rooms between a user and certain bot characters
-#         we may use it in the future to create aggregate sentiment stats of the user
-#         interactions within each room
-#     """
-
-#     user = models.ForeignKey(get_user_model(), on_delete=models.PROTECT, related_name='chat_rooms')
-#     bot = models.ForeignKey(ChatBot, on_delete=models.PROTECT, related_name='bot_rooms')
-
-#     def __str__(self):
-#         return f'{self.user} - {self.bot}'
-    
-#     def get_agent(self, agent_cls):
-#         """
-#             Method to get the chatbot agent
-#         """
-
-#         return self.bot.get_agent(agent_cls)
-
 class ChatMessage(TimeStampedModel):
     """
         Record for every message sent between 2 users in jusoor

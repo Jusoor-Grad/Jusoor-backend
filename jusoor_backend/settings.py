@@ -71,7 +71,6 @@ INSTALLED_APPS = [
     "authentication",
     "appointments",
     "sentiment_ai",
-    'notifications',
     "surveys",
     'django.contrib.admin',
     'django.contrib.auth',

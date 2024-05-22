@@ -23,7 +23,6 @@ class ActionBasedPermission(BasePermission):
             class_list = action_perms[action]
         else:
             return False
-            # class_list = api_settings.DEFAULT_PERMISSION_CLASSES
 
         perm_list = [perm() for perm in class_list]
 
@@ -44,7 +43,7 @@ def get_full_perm(model, action):
 def HasPerm(action_name, model: Optional[models.Model] = None, ignore_super=False):
     """
     Takes an action_name, and returns a class with a
-    has_permission() method that checks if the user has a permission named
+    has_permission() method that checks if the user has a permission named in format:
     '{applabel}_{action_name}_{model}'.
     """
 
@@ -99,7 +98,7 @@ def HasPerm(action_name, model: Optional[models.Model] = None, ignore_super=Fals
 
 def HasLambdaPerm(function: Callable):
     """
-    a permission class that uses a custom passed function to control access
+    a permission class that uses a custom passed function to control access on runtime
     @function a function that takes a request, and view objects and returns a boolean
     """
 

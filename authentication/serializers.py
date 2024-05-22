@@ -1,15 +1,11 @@
-
-from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.tokens import Token
+"""
+definition of handlinh serialization and deseerialization of HTTP
+endpoints for authnetication app
+"""
 from rest_framework import serializers
 from authentication.models import User
-from core.http import ValidationError
-from core.models import KFUPMDepartment, StudentPatient
-from core.placeholders import DEPARTMENT_DOES_NOT_EXIST
 from core.serializers import HttpPaginatedSerializer, HttpSuccessResponseSerializer, HttpErrorSerializer, TherapistSpecializationSerializer
 from sentiment_ai.models import StudentPatientSentimentPosture
-from .services.encryption import AESEncryptionService
 from drf_yasg.utils import swagger_serializer_method
 from django.utils.translation import get_language
 from drf_yasg.utils import swagger_serializer_method

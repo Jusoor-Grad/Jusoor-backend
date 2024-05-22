@@ -1,3 +1,6 @@
+"""
+Generic utility custom pydnatic types 
+"""
 import datetime
 from typing import List, Tuple, Optional
 from pydantic import BaseModel as Model, model_validator

@@ -74,7 +74,7 @@ class AuthViewset(ActionBasedPermMixin, SerializerMapperMixin, GenericViewSet):
         """signup a new user using his email and password"""
 
         # 1. extract the incoming HTTP body
-        serializer = self.get_serializer_class()(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
 
@@ -173,7 +173,6 @@ class UserViewset(SerializerMapperMixin, ActionBasedPermMixin, GenericViewSet):
 
     pagination_class = None
 
-    # TODO: add scoping to prevent any other patient form accessing the patint profile
     def get_queryset(self):
         return super().get_queryset().filter(id=self.request.user.id).prefetch_related('patient_profile__department', 'therapist_profile__specializations__specialization')
 
@@ -184,7 +183,7 @@ class UserViewset(SerializerMapperMixin, ActionBasedPermMixin, GenericViewSet):
     def patient_profile(self, request, *args, **kwargs):
         """
             endpoint used to get the personal profile of the patient
-            using the token header
+            using his authneticated user profile
         """
 
         serializer = self.get_serializer(request.user)

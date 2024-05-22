@@ -44,7 +44,6 @@ class AIAgent(ABC):
             retrieve the chat history of the user in the chatroom
 
             @param: user_id: the id of the user
-            @param: chatroom_id: the id of the chatroom
         """
 
     def _construct_prompt(self):
@@ -56,7 +55,9 @@ class AIAgent(ABC):
         """
         pass
     
-    
+    def answer(self, user: User, message: str):
+        """generate a chatbot answer for a given user message and retrieved conversation context"""
+        pass
 
 
 
@@ -124,7 +125,7 @@ class ChatGPTAgent(AIAgent):
 
         return messages
 
-    def _construct_prompt(self, user: User,  message: str):
+    def _construct_prompt(self, user: User):
         
         # 1. TODO: retrieve the user message history using his id
 
@@ -155,7 +156,7 @@ class ChatGPTAgent(AIAgent):
     def get_relevant_docs(self, message: str):
         return self.vector_store.similarity_search(message, k=1)
 
-    def _construct_few_shots(self, message: str):
+    def _construct_few_shots_reference(self, message: str):
         """
             constructing a few shot prompt for the AI model using an RAG setup
         """
@@ -185,14 +186,14 @@ class ChatGPTAgent(AIAgent):
                 """.format(messages="\n".join(formatted_docs))
 
     def answer(self, user: User, message: str):
-
+        """generate a chatbot answer for a given user message and retrieved conversation context"""
         if any([re.compile(pattern, re.IGNORECASE).match(message) for pattern in BLACKLIST_INPUTS]):
             return "XX I am sorry. I am mental health AI and I am not allowed to perform that action. If you need mental health assitance, I am always here"
         # 1. get history and reference prompting
-        chat_template = self._construct_prompt(user=user, message=message)
+        chat_template = self._construct_prompt(user=user)
         # TODO: use a filter to restrict lookup to only chat metadata tags
         
-        reference_message = self._construct_few_shots(message)
+        reference_message = self._construct_few_shots_reference(message)
         
 
         messages = chat_template.format_messages(
@@ -203,29 +204,16 @@ class ChatGPTAgent(AIAgent):
         return self.chat_model.invoke(messages, temperature= self.temperature, top_p= self.top_p).content
 
 class DummyAIAgent(AIAgent):
-
+    """dummy AI agent used for testing purposes"""
     def __init__(self, chat_model: BaseChatModel = ChatOpenAI, embeddings: Embeddings = OpenAIEmbeddings, history_len: int = 8, collection_name: str = env('EMBEDDING_COLLECTION_NAME'), *args, **kwargs):
         super().__init__(chat_model, embeddings, history_len, collection_name, *args, **kwargs)
 
-    def answer(self, user_id: int, message: str):
+    def _retrieve_history(self, user: User):
+        return []
+    
+    def _construct_prompt(self):
+        return ""
+
+    def answer(self, user: User, message: str):
         return "I am a dummy agent. I am not configured to answer questions yet."
     
-@transaction.atomic
-def run():
-
-    # mock a user with 50 messages:
-    patient = PatientMock.mock_instances(1)[0]
-    # mock a bot user
-    bot = ChatBotMocker.mock_instances(1)[0]
-    # mock a chat message
-    messages = ChatMessageMocker.mock_instances(10, **{'user': patient.user, 'bot': bot})
-
-    print('ALL SENT MESSAGES', sorted([m for m in messages], key=lambda x: x.id))
-    print('=' * 5)
-    agent = ChatGPTAgent("googoo gaagaa", history_len=3)
-
-    print('\n')
-    print('CAPTURED MESSAGES', sorted([ (m,) for m in agent._retrieve_history(patient.user)], key = lambda x: x[0].id))
-
-    print('\n' * 5)
-    raise ValueError("Done")

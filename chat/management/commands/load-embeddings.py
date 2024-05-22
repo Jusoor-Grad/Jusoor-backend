@@ -61,6 +61,7 @@ class Command(BaseCommand):
 
         )
 
+        # loading embedding from OpenAI and pgvector vector store
         embeddings = OpenAIEmbeddings(openai_api_key=env('OPENAI_KEY'))
 
         vector_store = PGVector(
@@ -68,7 +69,7 @@ class Command(BaseCommand):
             collection_name= env('EMBEDDING_COLLECTION_NAME'),
             embedding_function= embeddings
         )
-
+        # embed the documents in the vector DB
         vector_store.add_documents(results)
 
    

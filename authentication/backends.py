@@ -14,7 +14,7 @@ class EmailAuthBackend(BaseBackend):
     """
     def authenticate(self, request, username=None, password=None, **kwargs):
         """
-        Authenticate the user by looking up the email hash
+        Authenticate the user using email as his username
         """
         
         ## blocking anyone from using a bot account to login

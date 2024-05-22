@@ -1,9 +1,11 @@
 """
     File used for object mocking for all appointment system related tasks
+    for easier end-to-end testing
 """
+
 from typing import List
 import faker
-from appointments.constants.enums import ACTIVE, APPOINTMENT_STATUS_CHOICES, CONFIRMED, PENDING, PENDING_SURVEY_RESPONSE, REFERRAL_STATUS_CHOICES
+from appointments.constants.enums import ACTIVE, CONFIRMED, PENDING, PENDING_SURVEY_RESPONSE, REFERRAL_STATUS_CHOICES
 
 from appointments.models import Appointment,  AvailabilityTimeSlot, AvailabilityTimeSlotGroup, PatientReferralRequest, TherapistAssignment
 from core.mock import PatientMock, TherapistMock
@@ -12,6 +14,7 @@ from django.utils import timezone
 
 from core.types import TimeInterval, WeeklyTimeSchedule
 from surveys.mock import TherapistSurveyMocker
+from surveys.models import TherapistSurvey
 
 
 faker = faker.Faker()
@@ -47,7 +50,7 @@ class AvailabilityTimeslotMocker:
                     start_at= random_start_date,
                     end_at= faker.date_time_between(random_start_date, end_date),
                     group=slot_groups[0],
-                    entry_survey = TherapistSurveyMocker.mock_instances(1)[0] if with_survey else None
+                    entry_survey = TherapistSurvey.objects.get(pk=1) if with_survey else None
                 )
             )
 
@@ -57,7 +60,7 @@ class AvailabilityTimeslotMocker:
     @staticmethod
     def mock_schedule_input(days: List[str] = ['sunday'], conflicting: bool = False):
         """
-            mocking a weekly schedule input for batch creationg of timeslots
+            mocking a weekly schedule input for batch creation of timeslots
         """
         output = dict()
         for day in days:

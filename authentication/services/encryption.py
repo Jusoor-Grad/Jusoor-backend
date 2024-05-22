@@ -1,6 +1,5 @@
 """
-File used to define the encryption services used to ensure user anonymity even
-in case of DB breach
+File used to define the encryption services
 """
 from abc import ABC, abstractmethod
 
@@ -46,7 +45,8 @@ class EncryptionService(ABC):
         pass
 
 
-class AESEncryptionService(EncryptionService):
+class AES256EncryptionService(EncryptionService):
+    """AES256-based encryption service"""
 
     def __init__(self, key: str = None) -> None:
 
@@ -81,7 +81,7 @@ class AESEncryptionService(EncryptionService):
         return self._unpad(plain_text=plaintext)
 
     def _pad(self, plain_text: str) -> str:
-        
+        """padding the plaintext to be a multiple of block_size"""
         number_of_bytes_to_pad = self.block_size - len(plain_text) % self.block_size
         # the character used for padding is the ascii 
         # representation of the number of bytes to pad (dynamic)
@@ -93,6 +93,7 @@ class AESEncryptionService(EncryptionService):
 
     @staticmethod
     def _unpad(plain_text: str) -> str:
+        """Remove the padding from the decrypted string to retrieve the correct format"""
         last_character = plain_text[len(plain_text) - 1:]
         return plain_text[: -ord(last_character)]
 

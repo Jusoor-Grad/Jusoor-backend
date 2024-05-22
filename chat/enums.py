@@ -8,7 +8,7 @@ FEEDBACK_STATUSES = {
     REVIEWED: _('the chat room feedback has been reviewed'),
 }
 
-# inputs to avoid blacklisting
+# manual black list to handle chatbot usage abuse
 BLACKLIST_INPUTS = [
     r'.*(update|alter|change|read|show|view|delete|ignore|abandon|discard|remove|destroy).+prompt.*',
     r'.*(ignore|discard)(\s+|\s+.+\s+)above.*',

@@ -11,7 +11,8 @@ from typing import Dict, Optional
 from rest_framework.views import exception_handler
 
 def Response(data: Optional[Dict] = None, status = status.HTTP_200_OK, message: str = SUCCESS)  -> _Response:
-    """Utility function to format all HTTP API respones into same format"""
+    """Utility function to format all HTTP API respones into same format
+       for uniform and consistent API resposne"""
   
     return _Response({
         'status': status,
@@ -34,7 +35,7 @@ def ValidationError(message: str, data: Dict = None) -> _ValidationError:
 def formatted_error_handler(exc, context):
     """
         Custom exception handler used
-        NOTE: to use this formatter always invoke raise_exception=True in serializer validation
+        NOTE: to use this formatter always add raise_exception=True in serializer validation invocations
     """
 
     response = exception_handler(exc, context)
