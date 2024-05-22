@@ -30,7 +30,7 @@ Jusoor Backend depends on a myriad of amazing open-source technologies that empo
 # Project structure
 Jusoor follows standard django app-based directory structure with the following main directories
 - `appointments`: Patient Appointment scheduling and Therapist working hour availability management
-- `authentication`: user authentication and authorization, along some hadhing and encryption utilities
+- `authentication`: user authentication and authorization, along some hashing and encryption utilities
 - `chat`: LangChain-based LLM chatbot on top of a `pgvector` based RAG for interacting with student patients
 - `core`: a collection of utilies for DRF class viewset enhancement like action-based permissions and dynamically scopes querysets. formatted HTTP response,
 and soft-deleted querysets
