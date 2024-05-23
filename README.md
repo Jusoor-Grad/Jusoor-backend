@@ -57,7 +57,7 @@ pipenv install
 ```
 2. add the following environmental variables as shown in `.env.example`
 > [!WARNING]
-> You must create a new file named `.env` to be able to run the application
+> You must add the populated environmental variables in a new file named `.env` to be able to run the application
 
 3. run the migrations after configuring your database settings
 ```bash
