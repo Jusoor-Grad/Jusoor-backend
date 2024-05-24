@@ -16,12 +16,12 @@ Jusoor Backend depends on a myriad of amazing open-source technologies that empo
 
 - `django` for main HTTP server handling and Database ORM
 - `django-rest-framework` easy-to-use wrapper for building HTTP APIs on top of `django`
-- `djangorestframework-simplejwt` utility for creation, managementof user JWTs in conjunction with `django-rest-framework`
+- `djangorestframework-simplejwt` utility for creation and management of user JWTs in conjunction with `django-rest-framework`
 - `drf-yasg`: OpenAPI swagger/redoc API documentation generation
 - `django-filter`: utility for django ORM-based HTTP query parameter filtering
 - `celery/django-celery-results`: background task execution handling with `redis` backend
 - `pydantic`: typesafe type-hints for business logic and cross-app communications
-- `langchain`: easy-to-use abstraction layer when using thirdpart-LLMs as `openai`
+- `langchain`: easy-to-use abstraction layer when using third-party LLMs as `openai`
 - `faker`: utility used to easily generate mocked values for end-2-end testing
 - `sagemaker`: AWS SDK to deploy AI models to your AWS account
 - `channels`: Django Async server and WebSocket support for Django
