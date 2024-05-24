@@ -89,7 +89,7 @@ docker run --rm -p 6379:6379 redis:7
 ```bash
 watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- celery -A jusoor_backend worker -l INFO -P solo
 ```
-> [!INFO]
+> [!NOTE]
 > to the chatbot. Make sure to create a new DB record with specified prompt, and supply its ID to the chatbot wrapper class, as the current implementation uses relies on a dynamic DB-stored chatbot configuration when using the chatbot
 
 After running the main process, you can find the swagger API docs at [localhost:8000/swagger/](localhost:8000/swagger/)
