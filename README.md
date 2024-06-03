@@ -16,12 +16,12 @@ Jusoor Backend depends on a myriad of amazing open-source technologies that empo
 
 - `django` for main HTTP server handling and Database ORM
 - `django-rest-framework` easy-to-use wrapper for building HTTP APIs on top of `django`
-- `djangorestframework-simplejwt` utility for creation, managementof user JWTs in conjunction with `django-rest-framework`
+- `djangorestframework-simplejwt` utility for creation and management of user JWTs in conjunction with `django-rest-framework`
 - `drf-yasg`: OpenAPI swagger/redoc API documentation generation
 - `django-filter`: utility for django ORM-based HTTP query parameter filtering
 - `celery/django-celery-results`: background task execution handling with `redis` backend
 - `pydantic`: typesafe type-hints for business logic and cross-app communications
-- `langchain`: easy-to-use abstraction layer when using thirdpart-LLMs as `openai`
+- `langchain`: easy-to-use abstraction layer when using third-party LLMs as `openai`
 - `faker`: utility used to easily generate mocked values for end-2-end testing
 - `sagemaker`: AWS SDK to deploy AI models to your AWS account
 - `channels`: Django Async server and WebSocket support for Django
@@ -29,13 +29,13 @@ Jusoor Backend depends on a myriad of amazing open-source technologies that empo
 
 # Project structure
 Jusoor follows standard django app-based directory structure with the following main directories
-- `appointments`: Patient Appointment scheudling and Therapist working hour availability management
-- `authentication`: user authentication and authorization, along some hadhing and encryption utilities
+- `appointments`: Patient Appointment scheduling and Therapist working hour availability management
+- `authentication`: user authentication and authorization, along some hashing and encryption utilities
 - `chat`: LangChain-based LLM chatbot on top of a `pgvector` based RAG for interacting with student patients
 - `core`: a collection of utilies for DRF class viewset enhancement like action-based permissions and dynamically scopes querysets. formatted HTTP response,
 and soft-deleted querysets
 - `sentiment_ai`: serving of sentiment and mental disorder reports using deployed AI models
-- `django-extensions`: a utility set for easier development like `shell_plus` and many more
+- `django-extensions`: a utility set for easier development like `shell_plus` interactive notebook terminal interface and many more
 
 # Application structure
 Each application is structured uniformly and may contain the following files:
@@ -57,7 +57,7 @@ pipenv install
 ```
 2. add the following environmental variables as shown in `.env.example`
 > [!WARNING]
-> You must create a new file named `.env` to be able to run the application
+> You must add the populated environmental variables in a new file named `.env` to be able to run the application
 
 3. run the migrations after configuring your database settings
 ```bash
@@ -89,8 +89,8 @@ docker run --rm -p 6379:6379 redis:7
 ```bash
 watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- celery -A jusoor_backend worker -l INFO -P solo
 ```
-
-8. to run. the chatbot. Make sure to create a new DB record with specified prompt, and supply its ID to the chatbot wrapper class
+> [!NOTE]
+> to the chatbot. Make sure to create a new DB record with specified prompt, and supply its ID to the chatbot wrapper class, as the current implementation uses relies on a dynamic DB-stored chatbot configuration when using the chatbot
 
 After running the main process, you can find the swagger API docs at [localhost:8000/swagger/](localhost:8000/swagger/)
 
@@ -100,6 +100,7 @@ After running the main process, you can find the swagger API docs at [localhost:
 - App server: The deployment configuration supplied works seemlessly with Heroku using `Pipfile` to specify needed dependencies, and `Procfile` to specify 2 processes for main HTTP server and background tasks
 - Database: You can use any database provider. Make sure that the DB dialect supports `JSON/JSONB` fields (I personally recommend using `PostgreSQL`)
 - AI models: I recommend using AWS SageMaker, with the configured command `deploy-model`
+- Background task scheduling: You need to provision a Redis instance to be used for Caching, WebSocket connection handling, as well as Background task execution.
 
 ## Limitations
 - Both Emotion and Mental disorder models can only work on `English` language, and are trained on relatively long text passages (Reddit posts), which can hinder their performance on normal short chat message texts
